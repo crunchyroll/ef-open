@@ -1,0 +1,20 @@
+# install to: /etc/systemd/system/ef-init.service
+# systemctl daemon-reload
+# systemctl enable ef-init
+
+[Unit]
+Description=Load EF config data and initialize system before starting app
+After=network.target syslog.target cloud-config.target
+Requires=network.target
+Wants=cloud-config.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/python /usr/local/bin/ef-instanceinit.py
+RemainAfterExit=yes
+StandardOutput=journal+console
+TimeoutStartSec=120
+TimeoutStopSec=60
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,8 @@
+*.pyc
+.DS_Store
+.idea
+.vagrant
+basevm/archive
+basevm/box/*.box
+chef/library/Berksfile.lock
+lambdas/build
