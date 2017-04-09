@@ -64,7 +64,6 @@ class EFServiceRegistry(object):
       if service_counts.get(service_group) > 1:
         raise RuntimeError("service name appears more than once in service registry: {}".format(service_group))
 
-
   @property
   def filespec(self):
     """
@@ -159,3 +158,23 @@ class EFServiceRegistry(object):
       if self.services(group).has_key(service_name):
         return group
     return None
+
+  def version_keys(self):
+    return self.service_registry_json["version_keys"]
+
+  def allows_latest(self, version_key_name):
+    """
+    Does this version key allow 'latest' as an option (e.g. "latest AMI" makes sense and is allowed)
+    Args:
+      version_key_name: the version key to check for "allow_latest"
+    Returns:
+      True if the version key allows latest, False if it does not
+    Raises:
+      ValueError if the key was not found
+    """
+    if not self.version_keys().has_key(version_key_name):
+      raise RuntimeError("service registry doesn't have a version key entry for: {}".format(version_key_name))
+    if not self.version_keys()[version_key_name].has_key("allow_latest"):
+      raise RuntimeError("service registry key {} doesn't have an 'allow_latest' value".format(
+        version_key_name))
+    return self.version_keys()[version_key_name]["allow_latest"]

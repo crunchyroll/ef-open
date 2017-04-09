@@ -37,12 +37,13 @@ class TestEFVersionResolver(unittest.TestCase):
     fail("Can't test in environment: " + where)
 
   clients = {
-    "ec2": session.client("ec2")
+    "ec2": session.client("ec2"),
+    "s3": session.client("s3")
   }
 
   def test_ami_id(self):
-    """Does ami-id,data-api resolve to an AMI id"""
-    test_string = "ami-id,data-api"
+    """Does ami-id,proto0/test-instance resolve to an AMI id"""
+    test_string = "ami-id,proto0/test-instance"
     resolver = EFVersionResolver(TestEFVersionResolver.clients)
     self.assertRegexpMatches(resolver.lookup(test_string), "^ami-[a-f0-9]{8}$")
 

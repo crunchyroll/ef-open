@@ -73,7 +73,7 @@ class EFTemplateResolver(object):
   These instance-state strings are always available in AWS EC2 and Lambda:
     ACCOUNT - account number in which this EC2 instance or lambda is running
     ACCOUNT_ALIAS - friendly-name alias to the numeric account number
-    ENV - prod, staging, proto0..proto3
+    ENV - prod, staging, proto0..proto3, internal
     ENV_SHORT - ENV with the final digit (if any) removed to make a generic env descriptor
     FUNCTION_NAME - Lambda only
     INSTANCE_ID - EC2 only
@@ -98,10 +98,10 @@ class EFTemplateResolver(object):
           "myvarA2": "myvalueA2",
           ...
   Valid <env> values are:
-    "default", "prod", "staging", "proto", "proto<0>".."proto<N>", "localvm"
+    "default", "prod", "staging", "proto", "proto<0>".."proto<N>", "internal", "localvm"
   <env> sections are evaluated hierarchically, in this order:
     1) "default" - optional; if present is always applied first
-    2) the general environment: "prod", "staging", or "proto" ("any proto<0>..<N>")
+    2) the general environment: "prod", "staging", "proto" ("any proto<0>..<N>"), or "internal"
     3) "proto<N>" - the specific proto environment, if any
   The "proto" env evaluation happens as it does to allow "proto" to set generic values for allow
   prototype environments. Then proto<N> values can be applied to a set of proto envs if necessary
@@ -168,9 +168,9 @@ class EFTemplateResolver(object):
       {{ACCOUNT}}       - AWS account number
                           CloudFormation can use this or the AWS::AccountID pseudo param
       {{ACCOUNT_ALIAS}} - AWS account alias
-      {{ENV}}           - environment: global, mgmt, prod, staging, proto<N>
-      {{ENV_SHORT}}     - env with <N> trimmed: global, prod, staging, proto
-      {{ENV_FULL}}      - env fully qualified: prod, staging, proto<N>, mgmt.<account_alias>, global.<account_alias>
+      {{ENV}}           - environment: global, mgmt, prod, staging, proto<N>, internal
+      {{ENV_SHORT}}     - env with <N> trimmed: global, prod, staging, proto, internal
+      {{ENV_FULL}}      - env fully qualified: prod, staging, proto<N>, internal, mgmt.<account_alias>, global.<account_alias>
       {{FUNCTION_NAME}} - only for lambdas
       {{INSTANCE_ID}}   - only for ec2
       {{REGION}}        - the region currently being worked in
@@ -234,7 +234,7 @@ class EFTemplateResolver(object):
       # Create clients - if accessing by role, profile should be None
       try:
         EFTemplateResolver.__CLIENTS = create_aws_clients(self.resolved["REGION"], profile,
-                                          "cloudfront", "cloudformation", "ec2", "iam", "lambda", "route53", "waf")
+                                        "cloudformation", "cloudfront", "ec2", "iam", "lambda", "route53", "s3", "waf")
       except RuntimeError as error:
         fail("Exception logging in with Session()", error)
 
@@ -429,7 +429,7 @@ class EFTemplateResolver(object):
         # if symbol was resolved, replace it everywhere
         if resolved_symbol:
           self.resolved[symbol] = resolved_symbol
-          if isinstance(resolved_symbol,list):
+          if isinstance(resolved_symbol, list):
             self.template = self.template.replace("{{"+symbol+"}}", "\n".join(self.resolved[symbol]))
           else:
             self.template = self.template.replace("{{"+symbol+"}}", self.resolved[symbol])

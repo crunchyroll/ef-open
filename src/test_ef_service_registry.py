@@ -28,7 +28,7 @@ class TestEFUtils(unittest.TestCase):
   def test_services(self):
     """Does services() return all the services?"""
     sr = EFServiceRegistry(service_registry_file="test_data/test_service_registry_1.json")
-    self.assertEqual(len(sr.services()),3)
+    self.assertEqual(len(sr.services()),4)
 
   def test_services_one_group(self):
     """Does services("fixtures") return only the services in that group?"""

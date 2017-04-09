@@ -28,10 +28,10 @@ class EFContext(object):
   def __init__(self):
     # service environment
     self._account_alias = None
-    self._env = None # prod, staging, proto<n>, global -- the name used in AWS
-    self._env_short = None # prod, staging, proto, global -- the generic name for matching when templating
-    # _env_full deals with naming differences for "proto<n>" and "global.<alias>" in the service registry
-    self._env_full = None # prod, staging, proto, global.<account_alias> -- name found in SR
+    self._env = None # prod, staging, proto<n>, global, mgmt, internal -- the name used in AWS
+    self._env_short = None # prod, staging, proto, global, mgmt, internal -- the generic name for matching when templating
+    # _env_full deals with naming differences for "proto<n>", "global.<alias>", "mgmt.<alias>" in the service registry
+    self._env_full = None # prod, staging, proto, global.<account_alias>, mgmt.<account_alias>, internal -- name found in SR
     self._service = None
     # Service registry object
     self._service_registry = None

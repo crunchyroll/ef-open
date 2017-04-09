@@ -31,7 +31,7 @@ class EFConfigResolver(object):
     """
     Return account alias of the account that hosts the env named in lookup, None otherwise
     Params:
-      lookup: ENV_SHORT name of an env, one of: 'prod', 'staging', or 'proto'
+      lookup: ENV_SHORT name of an env, one of: 'prod', 'staging', 'proto', or 'internal'
     """
 
     if EFConfig.ENV_ACCOUNT_MAP.has_key(lookup):
@@ -52,4 +52,3 @@ class EFConfigResolver(object):
 
   def __init__(self):
     pass
-

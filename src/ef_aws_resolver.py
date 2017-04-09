@@ -16,6 +16,7 @@ limitations under the License.
 
 from __future__ import print_function
 
+import datetime
 import re
 
 from botocore.exceptions import ClientError
@@ -50,11 +51,17 @@ class EFAwsResolver(object):
   def acm_certificate_arn(self, lookup, default=None):
     """
     Args:
-      lookup: region,domain on the certificate to be looked up
+      lookup: region/domain on the certificate to be looked up
       default: the optional value to return if lookup failed; returns None if not set
     Returns:
-      ARN of the certificate if found, or default/None if no match
+      ARN of a certificate with status "Issued" for the region/domain, if found, or default/None if no match
+      If more than one "Issued" certificate matches the region/domain:
+        - if any matching cert was issued by Amazon, returns ARN of certificate with most recent IssuedAt timestamp
+        - if no certs were issued by Amazon, returns ARN of an arbitrary matching certificate
+        - certificates issued by Amazon take precedence over certificates not issued by Amazon
     """
+    # @todo: Only searches the first 100 certificates in the account
+
     try:
       # This a region-specific client, so we'll make a new client in the right place using existing SESSION
       region_name, domain_name = lookup.split("/")
@@ -65,11 +72,23 @@ class EFAwsResolver(object):
       )
     except Exception:
       return default
+    # No certificates
     if len(response["CertificateSummaryList"]) < 1:
       return default
-    for cert in response["CertificateSummaryList"]:
-      if cert["DomainName"] == domain_name:
-        return cert["CertificateArn"]
+    # One or more certificates - find cert with latest IssuedAt date or an arbitrary cert if none are dated
+    best_match_cert = None
+    for cert_handle in response["CertificateSummaryList"]:
+      if cert_handle["DomainName"] == domain_name:
+        cert = acm_client.describe_certificate(CertificateArn=cert_handle["CertificateArn"])["Certificate"]
+        if best_match_cert is None:
+          best_match_cert = cert
+          # Patch up cert if there is no IssuedAt (i.e. cert was not issued by Amazon)
+          if not best_match_cert.has_key("IssuedAt"):
+            best_match_cert[u"IssuedAt"] = datetime.datetime(1970, 1, 1, 0, 0)
+        elif cert.has_key("IssuedAt") and cert["IssuedAt"] > best_match_cert["IssuedAt"]:
+          best_match_cert = cert
+    if best_match_cert is not None:
+      return best_match_cert["CertificateArn"]
     return default
 
   def ec2_elasticip_elasticip_id(self, lookup, default=None):
