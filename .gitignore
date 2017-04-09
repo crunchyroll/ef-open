@@ -5,9 +5,4 @@
 .pants.d
 .pants.workdir.file_lock
 .pids
-.vagrant
-basevm/archive
-basevm/box/*.box
-chef/library/Berksfile.lock
 dist
-lambdas/build
