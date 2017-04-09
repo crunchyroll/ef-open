@@ -31,17 +31,17 @@ class EFConfig(EFSiteConfig):
   PARAMETER_FILE_SUFFIX = ".parameters.json"
   POLICY_TEMPLATE_PATH_SUFFIX = "/policy_templates/"
   # the service group 'fixtures' always exists
-  SERVICE_GROUPS.add("fixtures")
-  VALID_ENV_REGEX = "prod|staging|proto[0-{}]|global|mgmt|internal".format(PROTO_ENVS - 1)
+  EFSiteConfig.SERVICE_GROUPS.add("fixtures")
+  VALID_ENV_REGEX = "prod|staging|proto[0-{}]|global|mgmt|internal".format(EFSiteConfig.PROTO_ENVS - 1)
 
   # Convenient list of all mapped accounts
-  ACCOUNT_ALIAS_LIST = set(ENV_ACCOUNT_MAP.values())
+  ACCOUNT_ALIAS_LIST = set(EFSiteConfig.ENV_ACCOUNT_MAP.values())
 
   # Convenient list of all possible valid environments
   ENV_LIST = ["prod", "staging", "internal"]
   ENV_LIST.extend("global." + x for x in ACCOUNT_ALIAS_LIST)
   ENV_LIST.extend("mgmt." + x for x in ACCOUNT_ALIAS_LIST)
-  ENV_LIST.extend("proto" + str(x) for x in range(PROTO_ENVS))
+  ENV_LIST.extend("proto" + str(x) for x in range(EFSiteConfig.PROTO_ENVS))
   ENV_LIST = sorted(ENV_LIST)
 
   # These environments are for account-wide resources; they have a ".<ACCOUNT_ALIAS>" suffix
