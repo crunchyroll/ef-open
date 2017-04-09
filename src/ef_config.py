@@ -18,6 +18,7 @@ limitations under the License.
 
 from ef_site_config import EFSiteConfig
 
+
 class EFConfig(EFSiteConfig):
   """
   Installation-specific and global settings shared by all EF tools
