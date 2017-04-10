@@ -8,19 +8,13 @@ We switch from this non-human-readable, manually-looked-up form (for example, to
 
 ... to this human-readable, machine-looked-up form:
 
-```"GroupId": "{{aws:ec2:security-group/security-group-id,{{ENV}}-ess-elb}}"```
+```"GroupId": "{{aws:ec2:security-group/security-group-id,{{ENV}}-myservice-elb}}"```
 
 The above ```{{aws:ec2:...}}``` lookup returns the Security Group ID of the load balancer for the ess service
 in the current environment.
 
 ### Syntax in CloudFormation templates, in general
 ```{{<symbol_name>[,lookup][,default]}}```
-
-#### Examples
-- ```{{ENV}}```
-- ```{{aws:ec2:vpc/availabilityzones,vpc-{{ENV}}}}```
-- ```{{aws:route53:public-hosted-zone-id,cx-{{ENV}}.com.}}```
-- ```{{aws:route53:public-hosted-zone-id,cx-{{ENV}}.com.,somedefaultdomain.com.}}```
 
 #### Defaults
 - If a \<default> value is present, and the lookup fails, the default value is used.
@@ -29,25 +23,31 @@ unresolved and processing will stop with an error (ef-cf won't upload a template
 
 Default values should be used sparingly. They are mostly used to pass syntax checks for values gated by Condition statements in the template, since the symbol must resolve even if the condition is false.
 
-##### Example of a default value in a symbol lookup, guarded by a CloudFormation conditional
+### Examples
+- ```{{ENV}}```
+- ```{{aws:ec2:vpc/availabilityzones,vpc-{{ENV}}}}```
+- ```{{aws:route53:public-hosted-zone-id,mydomain-{{ENV}}.com.}}```
+- ```{{aws:route53:public-hosted-zone-id,mydomain-{{ENV}}.com.,somedefaultdomain.com.}}```
+
+##### Bigger example: a default value in a symbol lookup, guarded by a CloudFormation conditional
 ```
 "AcmCertificateArn" : { "Fn::If": [
   "EnvIsProd",
-    "{{aws:acm:certificate-arn,us-east-1/mydomain.co,NONE}}",
+    "{{aws:acm:certificate-arn,us-east-1/mydomain.com,NONE}}",
     "{{aws:acm:certificate-arn,us-east-1/myotherdomain-{{ENV}}.com,NONE}}"
   ]
 },
 ```
 
-### Replace Fn::Join with inline symbol lookups makes them easier to read
-
+### Protips
+#### Replace Fn::Join with inline symbol lookups to make the template human-auditable
 If you formerly wrote this, with EnvParam coming in from a parameters file:
 ```
-"BucketName": { "Fn::Join": [ "-", [ "ellation-cx", { "Ref": "EnvParam" }, "s3logs" ] ] },
+"BucketName": { "Fn::Join": [ "-", [ "mydomain", { "Ref": "EnvParam" }, "s3logs" ] ] },
 ```
 ... rewrite it like this and remove EnvParam from the parameter file
 ```
-"BucketName": "ellation-cx-{{ENV}}-s3logs",
+"BucketName": "mydomain-{{ENV}}-s3logs",
 ```
 
 ## Symbols for CloudFormation templates deployed with ef-cf:
@@ -61,7 +61,6 @@ http://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html#arn-sy
 ### Instance / Service Context
 | Symbol name	| What it contains | Example(s) |
 | ----------- | ---------------- | ---------- |
-| <b>Instance / Service Context</b> | | |
 | ```{{ACCOUNT}}``` | numeric account the stack is being deployed into | 0123456789012 |
 | ```{{ACCOUNT_ALIAS}}``` | alphanumeric alias of ```{{ACCOUNT}}```	| myaccountalias |
 | ```{{ENV}}``` | environment the stack is being built in	| staging<br>proto3 |
@@ -76,48 +75,54 @@ http://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html#arn-sy
 Returns: ARN of the ISSUED certificate for a domain in AWS Certificate Manager, if there is one. Certificates whose status is not "ISSUED" are not returned<br>
 Needs: Region and main domain name on certificate<br>
 Example:<br>
-```{{aws:acm:certificate-arn,us-west-2/mydomain.com```<br>
+```{{aws:acm:certificate-arn,us-west-2/mydomain.com}}```<br>
 ```arn:aws:acm:us-west-2:0123456789012:certificate/abcdef01-0123-abcd-0123-01234567890a```
  
 #### {{aws:cloudfront:domain-name,\<cname>}}
-Returns: Domain name of the CloudFront distribution that hosts a given CNAME
-Needs: Any domain name that's a CNAME on the desired CLoudFront distribution
+Returns: Domain name of the CloudFront distribution that hosts a given CNAME<br>
+Needs: Any domain name that's a CNAME on the desired CLoudFront distribution<br>
 Example:<br>
-```aws:cloudfront:domain-name,static.mydomain-{{ENV}}.com```<br>
+```{{aws:cloudfront:domain-name,static.mydomain-{{ENV}}.com}}```<br>
 which is looked up in env "proto3" as:<br>
-```aws:cloudfront:domain-name,static.mydomain-{{ENV}}.com```<br>
-```d6wsamxysrvr4.cloudfront.net```
+```{{aws:cloudfront:domain-name,static.mydomain-proto3.com}}```<br>
+returning:<br>
+```d6mwasxvryve1.cloudfront.net```
+
+#### {{aws:cloudfront:origin-access-identity/oai-canonical-user-id,<oai_fqdn>}}
+Returns: Amazon S3 Canonical User ID associated with an Origin Access Identity (identified by the comment on the OAI, which for us is always a FQDN) FQDN<br>
+Needs: FQDN that the Origin Access Identity (OAI) is associated with. When we create an OAI, we add a comment that identifies the domain that it's for. The comment is what's used for the lookup.<br>
+Note: In our process, the "Comment" on the OAI is literally the FQDN, e.g.: "static.mydomain-proto3.com"<br>
+Example:<br>
+```{{aws:cloudfront:origin-access-identity/oai-canonical-user-id,static.mydomain-{{ENV}}.com}}```<br>
+which is looked up in 'proto3' as:<br>
+```{{aws:cloudfront:origin-access-identity/oai-canonical-user-id,static.mydomain-proto3.com```<br>
+returning:<br>
+```c1dabc158c3cca7db15d511cbe6661319ae8111d56b113ab751411171a51e16e9baa7d1d4e4c8a1b9363c4111bdad4a7```
+
+#### {{aws:cloudfront:origin-access-identity/oai-id,<oai_fqdn>}}
+Returns: ID of the Origin Access Identity associated with the FQDN (identified by the comment on the OAI, which for us is always a FQDN) FQDN<br>
+Needs: FQDN that the Origin Access Identity (OAI) is associated with. When we create an OAI, we add a comment that identifies the domain that it's for. The comment is what's used for the lookup.<br>
+Note: In our process, the "Comment" on the OAI is literally the FQDN, e.g.: "static.mydomain-proto3.com"<br>
+Example:<br>
+```{{aws:cloudfront:origin-access-identity/oai-id,static.mydomain-{{ENV}}.com}}```<br>
+which is looked up in 'proto3' as:<br>
+```{{aws:cloudfront:origin-access-identity/oai-id,static.mydomain-proto3.com```<br>
+returning:<br>
+```A2Q53T2TMX231E```
 
 
-aws:cloudfront:origin-access-identity/oai-canonical-user-id,<oai_fqdn>
-example:
-aws:cloudfront:origin-access-identity/oai-canonical-user-id,static.cx-{{ENV}}.com
-which is looked up in 'proto3' as:
-aws:cloudfront:origin-access-identity/oai-id,static.mydomain.com
-FQDN that the Origin Access Identity (OAI) is associated with. When we create an OAI, we add a comment that identifies the domain that it's for. The comment is what's used for the lookup.
-ID of the Amazon S3 Canonical User ID associated with the FQDN
-static.mydomain.com
-ada42644cade...
-aws:cloudfront:origin-access-identity/oai-id,<oai_fqdn>
-example:
-aws:cloudfront:origin-access-identity/oai-id,static.cx-{{ENV}}.com
-which is looked up in 'proto3' as:
-aws:cloudfront:origin-access-identity/oai-id,static.mydomain.com
-FQDN that the Origin Access Identity (OAI) is associated with. When we create an OAI, we add a comment that identifies the domain that it's for. The comment is what's used for the lookup.
-ID of the Origin Access Identity associated with the FQDN
-static.mydomain.com
-E3P54S8TLL883D
-aws:ec2:elasticip/elasticip-id,<elasticip_resourceid>
-example:
-aws:ec2:elasticip/elasticip-id,ElasticIpMgmtCingest1
-Resource names for Elastic IPs in the elasticip.json fixture template follow a strict convention. If the convention is not followed, lookups will not work.
-See Elastic IPs for Fixed IP Addresses in the Network Runbook
+#### {{aws:ec2:elasticip/elasticip-id,<elasticip_resourceid>}}
+Returns: Allocation ID of the Elastic IP whose resource ID is <elasticip_resourceid><br>
+Needs: Resource ID of the Elastic IP (and thus in the CF stack)<br>
+Note: in our process, the Resource ID is set in the elasticip.json fixture template, and is composed as: "ElasticIP\<ENV>\<SERVICE>"<br>
+Example:<br>
+```{{aws:ec2:elasticip/elasticip-id,ElasticIpMgmtMyService1}}```<br>
+Returns:<br>
+```eipalloc-b351cab5```<br>
 
-Resource ID of the Elastic IP as written in the elasticip.json fixture template (and thus in the CF stack)
-Allocation ID of the Elastic IP whose resource ID is <elasticip_resourceid>
-ElasticIpMgmtCingest1
-eipalloc-a557dcc2
-aws:ec2:elasticip/elasticip-ipaddress,<elasticip_resourceid>
+
+#### {{aws:ec2:elasticip/elasticip-ipaddress,<elasticip_resourceid>}}
+
 example:
 aws:ec2:elasticip/elasticip-ipaddress,ElasticIpMgmtCingest1
 Resource names for Elastic IPs in the elasticip.json fixture template follow a strict convention. If the convention is not followed, lookups will not work.
@@ -197,14 +202,14 @@ example:
 aws:route53:private-hosted-zone-id,mydomain.
 fully qualified private zone name, ending with "."
 Private Zone's ID in Route53
-cx-staging.
+mydomain-staging.
 Z2ASVW53V915EN
 aws:route53:public-hosted-zone-id,<zone_name>.
 example:
 aws:route53:public-hosted-zone-id,mydomain.
 fully qualified public zone name, ending with "."
 Public Zone's ID in Route53
-cx-staging.
+mydomain-staging.
 Z3RSER33V9W3RN
 aws:waf:rule-id,<waf_rule_name>
 example:
