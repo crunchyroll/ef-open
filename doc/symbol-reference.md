@@ -59,9 +59,9 @@ http://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html#arn-sy
 
 
 
-| Symbol name	| What it contains | Example(s) |
-| ----------- | ---------------- | ---------- |
-| <b>Instance / Service Context | | |
+| Symbol name	| What it contains | Example(s) | |
+| ----------- | ---------------- | ---------- | |
+| <b>Instance / Service Context</b> | | | |
 | {{ACCOUNT}} | numeric account the stack is being deployed into | 0123456789012 |
 | {{ACCOUNT_ALIAS}} | alphanumeric alias of {{ACCOUNT}}	| myaccountalias |
 | {{ENV}} | environment the stack is being built in	| staging<br>proto3 |
@@ -69,17 +69,12 @@ http://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html#arn-sy
 | {{ENV_SHORT}} | short version of {{ENV}} if it has a numeric suffix	staging | proto |
 | {{SERVICE}} | name of the service being deployed | vod-origin |
 | {{REGION}} | region being deployed into | us-west-2 |
-| AWS resource lookup symbols	What it needs
-What it returns
-Example lookup
-Example return
-aws:acm:certificate-arn,<region>/<domain_name>
+| <b>AWS resources</b> | What it needs<br>What it returns | Example lookup<br>Example return|
+| {{aws:acm:certificate-arn,<region>/<domain_name>}}<br>
 example:
-aws:acm:certificate-arn,us-west-2/cx-proto3.com
-Region and main domain name on certificate
-ARN of the ISSUED certificate for that domain, if there is one. Certificates whose status is not "ISSUED" are not returned
-us-west-2/cx-proto3.com
-arn:aws:acm:us-west-2:366843697376:certificate/acf5ef38-1948-4e62-b6ab-28f54d4a3fe9
+aws:acm:certificate-arn,us-west-2/cx-proto3.com | Region and main domain name on certificate<br>
+ARN of the ISSUED certificate for that domain, if there is one. Certificates whose status is not "ISSUED" are not returned |
+us-west-2/cx-proto3.com<br>arn:aws:acm:us-west-2:366843697376:certificate/acf5ef38-1948-4e62-b6ab-28f54d4a3fe9 |
 aws:cloudfront:domain-name,<cname>
 example:
 aws:cloudfront:domain-name,static.cx-{{ENV}}.com
