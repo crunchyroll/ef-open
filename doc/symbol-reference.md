@@ -73,10 +73,7 @@ http://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html#arn-sy
 ### AWS Resources
 | Symbol name	| What it needs<br>what it returns | Example(s) |
 | ----------- | ---------------- | ---------- |
-| ```{{aws:acm:certificate-arn,<region>/<domain_name>}}```<br>example:<br>```aws:acm:certificate-arn,us-west-2/cx-proto3.com``` | 
-Region and main domain name on certificate<br>
-ARN of the ISSUED certificate for that domain, if there is one. Certificates whose status is not "ISSUED" are not returned |
-```us-west-2/cx-proto3.com<br>arn:aws:acm:us-west-2:366843697376:certificate/acf5ef38-1948-4e62-b6ab-28f54d4a3fe9``` |
+| ```{{aws:acm:certificate-arn,<region>/<domain_name>}}```<br>example:<br>```aws:acm:certificate-arn,us-west-2/cx-proto3.com``` |  Region and main domain name on certificate<br>ARN of the ISSUED certificate for that domain, if there is one. Certificates whose status is not "ISSUED" are not returned |```us-west-2/cx-proto3.com```<br>```arn:aws:acm:us-west-2:366843697376:certificate/acf5ef38-1948-4e62-b6ab-28f54d4a3fe9``` |
 
 aws:cloudfront:domain-name,<cname>
 example:
