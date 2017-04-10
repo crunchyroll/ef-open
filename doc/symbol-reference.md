@@ -71,43 +71,41 @@ http://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html#arn-sy
 | ```{{REGION}}``` | region being deployed into | us-west-2 |
 
 ### AWS Resources
-| Symbol name	| What it needs<br>what it returns | Example(s) |
-| ----------- | ---------------- | ---------- |
-| ```{{aws:acm:certificate-arn,<region>/<domain_name>}}```<br>
-example:<br>
-```aws:acm:certificate-arn,us-west-2/cx-proto3.com```<br>
- Needs: Region and main domain name on certificate<br>
- Returns: ARN of the ISSUED certificate for that domain, if there is one. Certificates whose status is not "ISSUED" are not returned<br>
- Example:<br>
- ```us-west-2/cx-proto3.com```<br>
- ```arn:aws:acm:us-west-2:366843697376:certificate/acf5ef38-1948-4e62-b6ab-28f54d4a3fe9``` |
 
-aws:cloudfront:domain-name,<cname>
-example:
-aws:cloudfront:domain-name,static.cx-{{ENV}}.com
-which is looked up in 'proto3' as:
-aws:cloudfront:domain-name,static.cx-proto3.com
-Any of the CNAMEs on the CloudFront distribution
-Domain Name of the distribution that hosts that CNAME
-static.cx-proto3.com
-d6wsamxysrvr4.cloudfront.net
+#### {{aws:acm:certificate-arn,\<region>/<domain_name>}}
+Returns: ARN of the ISSUED certificate for a domain in AWS Certificate Manager, if there is one. Certificates whose status is not "ISSUED" are not returned<br>
+Needs: Region and main domain name on certificate<br>
+Example:<br>
+```{{aws:acm:certificate-arn,us-west-2/mydomain.com```<br>
+```arn:aws:acm:us-west-2:0123456789012:certificate/abcdef01-0123-abcd-0123-01234567890a```
+ 
+#### {{aws:cloudfront:domain-name,\<cname>}}
+Returns: Domain name of the CloudFront distribution that hosts a given CNAME
+Needs: Any domain name that's a CNAME on the desired CLoudFront distribution
+Example:<br>
+```aws:cloudfront:domain-name,static.mydomain-{{ENV}}.com```<br>
+which is looked up in env "proto3" as:<br>
+```aws:cloudfront:domain-name,static.mydomain-{{ENV}}.com```<br>
+```d6wsamxysrvr4.cloudfront.net```
+
+
 aws:cloudfront:origin-access-identity/oai-canonical-user-id,<oai_fqdn>
 example:
 aws:cloudfront:origin-access-identity/oai-canonical-user-id,static.cx-{{ENV}}.com
 which is looked up in 'proto3' as:
-aws:cloudfront:origin-access-identity/oai-id,static.cx-proto3.com
+aws:cloudfront:origin-access-identity/oai-id,static.mydomain.com
 FQDN that the Origin Access Identity (OAI) is associated with. When we create an OAI, we add a comment that identifies the domain that it's for. The comment is what's used for the lookup.
 ID of the Amazon S3 Canonical User ID associated with the FQDN
-static.cx-proto3.com
+static.mydomain.com
 ada42644cade...
 aws:cloudfront:origin-access-identity/oai-id,<oai_fqdn>
 example:
 aws:cloudfront:origin-access-identity/oai-id,static.cx-{{ENV}}.com
 which is looked up in 'proto3' as:
-aws:cloudfront:origin-access-identity/oai-id,static.cx-proto3.com
+aws:cloudfront:origin-access-identity/oai-id,static.mydomain.com
 FQDN that the Origin Access Identity (OAI) is associated with. When we create an OAI, we add a comment that identifies the domain that it's for. The comment is what's used for the lookup.
 ID of the Origin Access Identity associated with the FQDN
-static.cx-proto3.com
+static.mydomain.com
 E3P54S8TLL883D
 aws:ec2:elasticip/elasticip-id,<elasticip_resourceid>
 example:
@@ -196,14 +194,14 @@ vpc-staging
 "subnet-dda956ab","subnet-ad8f55c9"
 aws:route53:private-hosted-zone-id,<zone_name>.
 example:
-aws:route53:private-hosted-zone-id,cx-proto3.
+aws:route53:private-hosted-zone-id,mydomain.
 fully qualified private zone name, ending with "."
 Private Zone's ID in Route53
 cx-staging.
 Z2ASVW53V915EN
 aws:route53:public-hosted-zone-id,<zone_name>.
 example:
-aws:route53:public-hosted-zone-id,cx-proto3.
+aws:route53:public-hosted-zone-id,mydomain.
 fully qualified public zone name, ending with "."
 Public Zone's ID in Route53
 cx-staging.
