@@ -58,10 +58,9 @@ http://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html#arn-sy
 \<region>", and "\<account>:" to create query keys.
 
 
-
-| Symbol name	| What it contains | Example(s) | |
-| ----------- | ---------------- | ---------- | |
-| <b>Instance / Service Context</b> | | | |
+| Symbol name	| What it contains | Example(s) |
+| ----------- | ---------------- | ---------- |
+| <b>Instance / Service Context</b> | | |
 | {{ACCOUNT}} | numeric account the stack is being deployed into | 0123456789012 |
 | {{ACCOUNT_ALIAS}} | alphanumeric alias of {{ACCOUNT}}	| myaccountalias |
 | {{ENV}} | environment the stack is being built in	| staging<br>proto3 |
@@ -71,6 +70,7 @@ http://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html#arn-sy
 | {{REGION}} | region being deployed into | us-west-2 |
 | <b>AWS resources</b> | What it needs<br>What it returns | Example lookup<br>Example return|
 | {{aws:acm:certificate-arn,<region>/<domain_name>}}<br>
+
 example:
 aws:acm:certificate-arn,us-west-2/cx-proto3.com | Region and main domain name on certificate<br>
 ARN of the ISSUED certificate for that domain, if there is one. Certificates whose status is not "ISSUED" are not returned |
