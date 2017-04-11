@@ -163,7 +163,7 @@ returning:<br>
 
 #### {{aws:ec2:subnet/subnet-id,<subnet_friendly_name>}}
 Returns: subnet ID<br>
-Needs: Subnet's friendly name, which is always "subnet-<env>-<az>"<br>
+Needs: Subnet's friendly name, which is always "subnet-\<env>-\<az>"<br>
 Example:<br>
 ```{{aws:ec2:subnet/subnet-id,subnet-{{ENV}}-a}}```<br>
 which is looked up in 'proto3' as:
