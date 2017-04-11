@@ -110,7 +110,6 @@ which is looked up in 'proto3' as:<br>
 returning:<br>
 ```A2Q53T2TMX231E```
 
-
 #### {{aws:ec2:elasticip/elasticip-id,<elasticip_resourceid>}}
 Returns: Allocation ID of the Elastic IP whose resource ID is <elasticip_resourceid><br>
 Needs: Resource ID of the Elastic IP (and thus in the CF stack)<br>
@@ -120,49 +119,58 @@ Example:<br>
 Returns:<br>
 ```eipalloc-b351cab5```<br>
 
-
 #### {{aws:ec2:elasticip/elasticip-ipaddress,<elasticip_resourceid>}}
+Returns: Public IP address of the Elastic IP whose resource ID is \<elasticip_resourceid><br>
+Needs: Resource ID of the Elastic IP (and thus in the CF stack)<br>
+Note: in our process, the Resource ID is set in the elasticip.json fixture template, and is composed as: "ElasticIP\<ENV>\<SERVICE>"<br>
+Example:<br>
+```{{aws:ec2:elasticip/elasticip-ipaddress,ElasticIpMgmtMyService1}}```<br>
+Returns:<br>
+```35.161.255.167```<br>
 
-example:
-aws:ec2:elasticip/elasticip-ipaddress,ElasticIpMgmtCingest1
-Resource names for Elastic IPs in the elasticip.json fixture template follow a strict convention. If the convention is not followed, lookups will not work.
-See Elastic IPs for Fixed IP Addresses in the Network Runbook
-Resource ID of the Elastic IP as written in the elasticip.json fixture template (and thus in the CF stack)
-Public IP address of the Elastic IP whose resource ID is <elasticip_resourceid>
-ElasticIpMgmtCingest1
-35.161.255.167
-aws:ec2:eni/eni-id,<eni_description>
-pattern:
-aws:ec2:eni/eni-id,eni-{{ENV}}-{{SERVICE}}-<N><subnet_letter>
-interface '1' in subnet 'a' in env 'proto3' for the 'dnsproxy' service is looked up as:
-aws:ec2:eni/eni-id,eni-proto3-dnsproxy-1a
-"Description" field of the Elastic Network Interface to be looked up. ENIs are defined in the network.json fixture; their descriptions should follow the standard format shown at left.
-ID of the Elastic Network Interface having the <eni_description>
-eni-proto3-dnsproxy-1a
-eni-33df0a2b
-aws:ec2:route-table/main-route-table-id,<vpc_name>
-Friendly name of the VPC containing the main route table, always "vpc-<env>"
-Route table's ID
-vpc-prod
-rtb-3f820be9a
-aws:ec2:security-group/security-group-id,<sg_friendly_name>
-example:
-aws:ec2:security-group/security-group-id,{{ENV}}-ess
+#### {{aws:ec2:eni/eni-id,<eni_description>}}
+Returns: ID of the Elastic Network Interface having the <eni_description><br>
+Needs: "Description" field of the Elastic Network Interface to be looked up.
+Note: In our process, the Description field of an ENI is composed as:<br>
+```eni-{{ENV}}-{{SERVICE}}-<N><subnet_letter><br>```
+pattern:<br>
+```aws:ec2:eni/eni-id,eni-{{ENV}}-{{SERVICE}}-<N><subnet_letter>```<br>
+Example:<br>
+interface '1' in subnet 'a' in env 'proto3' for the 'myservice' service is looked up as:<br>
+```aws:ec2:eni/eni-id,eni-proto3-myservice-1a```
+Returns:<br>
+```eni-31ca3f1a```
+
+#### {{aws:ec2:route-table/main-route-table-id,<vpc_name>}}
+Returns: Route table ID<br>
+Needs: Friendly name of the VPC containing the main route table, always "vpc-\<env>"<br>
+Example:<br>
+```{{aws:ec2:route-table/main-route-table-id,vpc-{{ENV}}}}```<br>
+which is looked up in 'prod' as:<br>
+```{{aws:ec2:route-table/main-route-table-id,vpc-prod}}```<br>
+returning:<br>
+```rtb-3f820be9a```<br>
+
+#### {{aws:ec2:security-group/security-group-id,<sg_friendly_name>}}
+Returns: Security group ID<br>
+Needs: Security group's friendly name<br>
+Example:<br>
+```{{aws:ec2:security-group/security-group-id,{{ENV}}-myservice}}```<br>
+which is looked up in 'proto3' as:<br>
+```{{aws:ec2:security-group/security-group-id,proto3-myservice}}```<br>
+returning:<br>
+```sg-78fe34a6```<br>
+
+#### {{aws:ec2:subnet/subnet-id,<subnet_friendly_name>}}
+Returns: subnet ID<br>
+Needs: Subnet's friendly name, which is always "subnet-<env>-<az>"<br>
+Example:<br>
+```{{aws:ec2:subnet/subnet-id,subnet-{{ENV}}-a}}```<br>
 which is looked up in 'proto3' as:
-aws:ec2:security-group/security-group-id,proto3-ess
-Security group's friendly name
-Security group ID
-staging-ess
-sg-78fe34a6
-aws:ec2:subnet/subnet-id,<subnet_friendly_name>
-example:
-aws:ec2:subnet/subnet-id,subnet-{{ENV}}-a
-which is looked up in 'proto3' as:
-aws:ec2:subnet/subnet-id,subnet-proto3-a
-Subnet's friendly name, which is always "subnet-<env>-a" or "subnet-<env>-b"
-Subnet's ID
-subnet-staging-a
-subnet-ad8f55c9
+```{{aws:ec2:subnet/subnet-id,subnet-proto3-a}}```<br>
+returning:<br>
+```subnet-be2d211a```<br>
+
 aws:ec2:vpc/cidrblock,<vpc_friendly_name>
 example:
 aws:ec2:vpc/cidrblock,<vpc_name>
