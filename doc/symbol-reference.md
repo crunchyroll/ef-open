@@ -280,7 +280,9 @@ Returns:<br>
 
 
 ### Examples of the various forms of "ENV" in templates and how they resolve
+
 | Environment	| Account | ENV Resolves to	| ENV_SHORT resolves to	| ENV_FULL resolves to |
+| ----------- | ------- | --------------- | --------------------- | -------------------- |
 | prod | N/A | prod | prod | prod |
 | staging	| N/A	| staging	| staging	| staging |
 | proto<1..N> | N/A	| protoN | proto | protoN |
