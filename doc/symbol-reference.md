@@ -171,24 +171,26 @@ which is looked up in 'proto3' as:
 returning:<br>
 ```subnet-be2d211a```<br>
 
-aws:ec2:vpc/cidrblock,<vpc_friendly_name>
-example:
-aws:ec2:vpc/cidrblock,<vpc_name>
-which is looked up in 'proto3' as:
-aws:ec2:vpc/cidrblock,vpc-proto3
-VPC's friendly name, which is always "vpc-<env>"
-VPC's CIDR block
-vpc-staging
-10.8.64.0/18
-aws:ec2:vpc/vpc-id,<vpc_friendly_name>
-example:
-aws:ec2:vpc/vpc-id,vpc-{{ENV}}
-which is looked in 'proto3' as:
-aws:ec2:vpc/vpc-id,vpc-proto3
-VPC's friendly name, which is always "vpc-<env>"
-VPC's ID
-vpc-prod
-vpc-65ef1239
+#### {{aws:ec2:vpc/cidrblock,<vpc_friendly_name>}}
+Returns: VPC's CIDR block<br>
+Needs: VPC's friendly name, which is always "vpc-\<env>"<br>
+Example:<br>
+```{{aws:ec2:vpc/cidrblock,<vpc_name>}}```<br>
+which is looked up in 'proto3' as:<br>
+```{{aws:ec2:vpc/cidrblock,vpc-proto3}}```<br>
+returning:<br>
+```10.8.64.0/18```<br>
+
+#### {{aws:ec2:vpc/vpc-id,<vpc_friendly_name>}}
+Returns: VPC's ID<br>
+Needs: VPC's friendly name, which is always "vpc-\<env>"<br>
+Example:<br>
+```{{aws:ec2:vpc/vpc-id,vpc-{{ENV}}}}```<br>
+which is looked in 'proto3' as:<br>
+```{{aws:ec2:vpc/vpc-id,vpc-proto3}}```<br>
+returning:<br>
+```vpc-21ac3315```<br>
+
 aws:ec2:vpc/availabilityzones,<vpc_friendly_name>
 Usage example
 Use exactly like this in the template, including [ ] and dual quotes
