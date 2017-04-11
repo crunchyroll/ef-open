@@ -191,43 +191,57 @@ which is looked in 'proto3' as:<br>
 returning:<br>
 ```vpc-21ac3315```<br>
 
-aws:ec2:vpc/availabilityzones,<vpc_friendly_name>
-Usage example
-Use exactly like this in the template, including [ ] and dual quotes
-"AvailabilityZones": [ "{{aws:ec2:vpc/availabilityzones,vpc-{{ENV}}}}" ]
-Friendly name of the VPC serving the target environment, which is always "vpc-<env>"
-Comma-separated list of availability zones that contain subnets within the VPC, with internal double-quotes (external double-quotes come from the template)
-vpc-staging
-"us-west-2a","us-west-2b"
-aws:ec2:vpc/subnets,<vpc_friendly_name>
-Usage example
-Use exactly like this in the template, including [ ] and dual quotes
-"Subnets": [ "{{aws:ec2:vpc/subnets,vpc-{{ENV}}}}" ]
-Friendly name of the vpc serving the target environment, which is always "vpc-<env>"
-Comma-separated list of all subnet IDs within the VPC, with internal double-quotes (external double-quotes come from the template)
-vpc-staging
-"subnet-dda956ab","subnet-ad8f55c9"
-aws:route53:private-hosted-zone-id,<zone_name>.
-example:
-aws:route53:private-hosted-zone-id,mydomain.
-fully qualified private zone name, ending with "."
-Private Zone's ID in Route53
-mydomain-staging.
-Z2ASVW53V915EN
-aws:route53:public-hosted-zone-id,<zone_name>.
-example:
-aws:route53:public-hosted-zone-id,mydomain.
-fully qualified public zone name, ending with "."
-Public Zone's ID in Route53
-mydomain-staging.
-Z3RSER33V9W3RN
-aws:waf:rule-id,<waf_rule_name>
-example:
-aws:waf:rule-id,global-OfficeCidr
-friendly name of the WAF rule
-WAF rule's ID
-global-officeCidr
-e87a80f6-50b6-...
+#### {{aws:ec2:vpc/availabilityzones,<vpc_friendly_name>}}
+Returns: Comma-separated list of availability zones that contain subnets within the VPC, with internal double-quotes (external double-quotes come from the template)<br>
+Needs: Friendly name of the VPC serving the target environment, which is always "vpc-\<env>"<br>
+Example (use exactly like this in a JSON template, including [ ] and the dual quotes):<br>
+```"AvailabilityZones": [ "{{aws:ec2:vpc/availabilityzones,vpc-{{ENV}}}}" ]```<br>
+which is looked up in 'prod' as:<br>
+```"AvailabilityZones": [ "{{aws:ec2:vpc/availabilityzones,vpc-prod}}" ]```<br>
+returning:<br>
+```"us-west-2a","us-west-2b"```<br>
+which resolves to this if the above example was followed exactly:<br>
+```"AvailabilityZones": [ "us-west-2a","us-west-2b" ]```
+
+#### {{aws:ec2:vpc/subnets,<vpc_friendly_name>}}
+Returns: Comma-separated list of all subnet IDs within the VPC, with internal double-quotes (external double-quotes come from the template)
+Needs: Friendly name of the vpc serving the target environment, which is always "vpc-\<env>"
+Example (use exactly like this in a JSON template, including [ ] and the dual quotes):<br>
+```"Subnets": [ "{{aws:ec2:vpc/subnets,vpc-{{ENV}}}}" ]```<br>
+which is looked up in 'staging' as:<br>
+```"Subnets": [ "{{aws:ec2:vpc/subnets,vpc-staging}}" ]```<br>
+which resolves to this if the above example was followed exactly:<br>
+```"Subnets": [ "subnet-aac314be","subnet-aac351fa" ]```<br>
+
+#### {{aws:route53:private-hosted-zone-id,<zone_name>.}}
+Returns: Private Hosted Zone's ID in Route53<br>
+Needs: fully qualified private zone name, ending with "."<br>
+Example:<br>
+```{{aws:route53:private-hosted-zone-id,mydomain-{{ENV}}}}```
+which is looked up in 'proto3' as:<br>
+```{{aws:route53:private-hosted-zone-id,mydomain-proto3}}```<br>
+returning:
+```Z20EFA41X32AM```
+
+#### {{aws:route53:public-hosted-zone-id,<zone_name>.}}
+Returns: Private Hosted Zone's ID in Route53<br>
+Needs: fully qualified private zone name, ending with "."<br>
+Example:<br>
+```{{aws:route53:public-hosted-zone-id,mydomain-{{ENV}}}}```
+which is looked up in 'proto3' as:<br>
+```{{aws:route53:public-hosted-zone-id,mydomain-proto3}}```<br>
+returning:
+```Z20EFA87A26E8```
+
+#### {{aws:waf:rule-id,<waf_rule_name>}}
+Returns: WAF rule's ID<br>
+Needs: friendly name of the WAF rule<br>
+Example:<br>
+```global-officeCidr```<br>
+Returns:
+```0af1232a-a60a-433a-cd3a-20d62ada238a```<br>
+
+
 aws:waf:web-acl-id,<web_acl_name>
 example:
 aws:waf:web-acl-id,staging-StaticAcl
