@@ -133,11 +133,11 @@ returns:<br>
 Returns: ID of the Elastic Network Interface having the <eni_description><br>
 Needs: "Description" field of the Elastic Network Interface to be looked up.
 Note: In our process, the Description field of an ENI is composed as:<br>
-```eni-{{ENV}}-{{SERVICE}}-<N><subnet_letter><br>```<br>
+```eni-{{ENV}}-{{SERVICE}}-<N><subnet_letter>```<br>
 pattern:<br>
-```aws:ec2:eni/eni-id,eni-{{ENV}}-{{SERVICE}}-<N><subnet_letter>```<br>
+```{{aws:ec2:eni/eni-id,eni-{{ENV}}-{{SERVICE}}-<N><subnet_letter>}}```<br>
 Example - interface '1' in subnet 'a' in env 'proto3' for the 'myservice' service is looked up as:<br>
-```aws:ec2:eni/eni-id,eni-proto3-myservice-1a```<br>
+```{{aws:ec2:eni/eni-id,eni-proto3-myservice-1a}}```<br>
 returns:<br>
 ```eni-31ca3f1a```
 
@@ -237,7 +237,7 @@ returns:
 Returns: WAF rule's ID<br>
 Needs: friendly name of the WAF rule<br>
 Example:<br>
-```global-officeCidr```<br>
+```{{aws:waf:rule-id,global-officeCidr}}```<br>
 returns:
 ```0af1232a-a60a-433a-cd3a-20d62ada238a```<br>
 
