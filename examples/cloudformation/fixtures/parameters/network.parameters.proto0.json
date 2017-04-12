@@ -1,0 +1,18 @@
+[
+  {
+    "ParameterKey": "AvailabilityZoneAParam",
+    "ParameterValue": "us-west-2a"
+  },
+  {
+    "ParameterKey": "VPCSubnetBlockAParam",
+    "ParameterValue": "10.9.0.0/19"
+  },
+  {
+    "ParameterKey": "AvailabilityZoneBParam",
+    "ParameterValue": "us-west-2b"
+  },
+  {
+    "ParameterKey": "VPCSubnetBlockBParam",
+    "ParameterValue": "10.9.32.0/19"
+  }
+]
