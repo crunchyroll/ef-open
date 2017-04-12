@@ -4,15 +4,15 @@
       "type": "aws_fixture",
       "description": "Network config - everything after the vpc: subnets and gateway",
       "runbook_url": "https://ellation.atlassian.net/wiki/display/DEVOPS/VRV+Network+Runbook",
-      "team_email": "ops@ellation.com",
-      "environments": ["prod", "staging", "proto", "internal", "mgmt.ellation", "mgmt.ellationeng", "mgmt.ellationint"]
+      "team_email": "myteam@example.com",
+      "environments": ["prod", "staging", "proto", "internal", "mgmt.myaccountalias", "mgmt.myaccountalias2"]
     },
     "vpc": {
       "type": "aws_fixture",
       "description": "Network config - VPC only (with default routetable)",
       "runbook_url": "TBD",
-      "team_email": "ops@ellation.com",
-      "environments": ["prod", "staging", "proto", "internal", "mgmt.ellation", "mgmt.ellationeng", "mgmt.ellationint"]
+      "team_email": "myteam@example.com",
+      "environments": ["prod", "staging", "proto", "internal", "mgmt.myaccountalias", "mgmt.myaccountalias2"]
     }
   },
   "platform_services": {
@@ -22,10 +22,10 @@
       "type": "aws_ec2",
       "description": "test ec2 instance",
       "runbook_url": "TBD",
-      "jira_project": "CXOPS",
+      "jira_project": "PROJ",
       "chef_role": "base",
-      "team_email": "ops@ellation.com",
-      "environments": ["staging", "proto", "internal", "mgmt.ellationeng"],
+      "team_email": "myteam@example.com",
+      "environments": ["staging", "proto", "internal", "mgmt.myaccountalias2"],
       "policies": ["global_buckets_ro", "instance_introspection"]
     }
   },
