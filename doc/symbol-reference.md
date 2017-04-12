@@ -1,12 +1,12 @@
 ## What does the ellation_formation ef-cf tool do?
 
-The main difference in CF templating with {{SYMBOLS}}...
+The main difference in CF templating is the availability of {{SYMBOLS}} to fill in values from the AWS environment.
 
-We switch from this non-human-readable, manually-looked-up form (for example, to refer to a security group):
+We switch from this non-human-auditable, manually-looked-up form (for example, to refer to a security group):
 
 `"GroupId": "sg-803a8e34"`
 
-... to this human-readable, machine-looked-up form:
+... to a human-auditable, machine-looked-up form:
 
 ```"GroupId": "{{aws:ec2:security-group/security-group-id,{{ENV}}-myservice-elb}}"```
 
