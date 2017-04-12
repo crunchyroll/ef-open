@@ -37,7 +37,7 @@ class EFSiteConfig:
   }
 
   # Number of prototype environments, numbered 0..N-1
-  PROTO_ENVS = 4 # we use 4
+  PROTO_ENVS = 4
 
   # Bucket where late-bound service configs are found
   S3_CONFIG_BUCKET = "" #name-of-config-bucket
@@ -47,7 +47,7 @@ class EFSiteConfig:
   # The usual other groups are "platform_services" and "application_services".
   # Each group must be contained in an object in the service registry.
   SERVICE_GROUPS = {
-    "application_services", # These are ours.
+    "application_services",
     "internal_services",
     "platform_services"
   }

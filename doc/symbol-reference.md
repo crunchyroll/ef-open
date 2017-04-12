@@ -76,6 +76,7 @@ Returns: ARN of the ISSUED certificate for a domain in AWS Certificate Manager, 
 Needs: Region and main domain name on certificate<br>
 Example:<br>
 ```{{aws:acm:certificate-arn,us-west-2/mydomain.com}}```<br>
+returns:<br>
 ```arn:aws:acm:us-west-2:0123456789012:certificate/abcdef01-0123-abcd-0123-01234567890a```
  
 #### {{aws:cloudfront:domain-name,\<cname>}}
@@ -85,7 +86,7 @@ Example:<br>
 ```{{aws:cloudfront:domain-name,static.mydomain-{{ENV}}.com}}```<br>
 which is looked up in env "proto3" as:<br>
 ```{{aws:cloudfront:domain-name,static.mydomain-proto3.com}}```<br>
-returning:<br>
+returns:<br>
 ```d6mwasxvryve1.cloudfront.net```
 
 #### {{aws:cloudfront:origin-access-identity/oai-canonical-user-id,\<oai_fqdn>}}
@@ -96,7 +97,7 @@ Example:<br>
 ```{{aws:cloudfront:origin-access-identity/oai-canonical-user-id,static.mydomain-{{ENV}}.com}}```<br>
 which is looked up in 'proto3' as:<br>
 ```{{aws:cloudfront:origin-access-identity/oai-canonical-user-id,static.mydomain-proto3.com```<br>
-returning:<br>
+returns:<br>
 ```c1dabc158c3cca7db15d511cbe6661319ae8111d56b113ab751411171a51e16e9baa7d1d4e4c8a1b9363c4111bdad4a7```
 
 #### {{aws:cloudfront:origin-access-identity/oai-id,\<oai_fqdn>}}
@@ -107,7 +108,7 @@ Example:<br>
 ```{{aws:cloudfront:origin-access-identity/oai-id,static.mydomain-{{ENV}}.com}}```<br>
 which is looked up in 'proto3' as:<br>
 ```{{aws:cloudfront:origin-access-identity/oai-id,static.mydomain-proto3.com```<br>
-returning:<br>
+returns:<br>
 ```A2Q53T2TMX231E```
 
 #### {{aws:ec2:elasticip/elasticip-id,\<elasticip_resourceid>}}
@@ -116,7 +117,7 @@ Needs: Resource ID of the Elastic IP (and thus in the CF stack)<br>
 Note: in our process, the Resource ID is set in the elasticip.json fixture template, and is composed as: "ElasticIP\<ENV>\<SERVICE>"<br>
 Example:<br>
 ```{{aws:ec2:elasticip/elasticip-id,ElasticIpMgmtMyService1}}```<br>
-Returns:<br>
+returns:<br>
 ```eipalloc-b351cab5```<br>
 
 #### {{aws:ec2:elasticip/elasticip-ipaddress,\<elasticip_resourceid>}}
@@ -125,20 +126,19 @@ Needs: Resource ID of the Elastic IP (and thus in the CF stack)<br>
 Note: in our process, the Resource ID is set in the elasticip.json fixture template, and is composed as: "ElasticIP\<ENV>\<SERVICE>"<br>
 Example:<br>
 ```{{aws:ec2:elasticip/elasticip-ipaddress,ElasticIpMgmtMyService1}}```<br>
-Returns:<br>
+returns:<br>
 ```35.161.255.167```<br>
 
 #### {{aws:ec2:eni/eni-id,\<eni_description>}}
 Returns: ID of the Elastic Network Interface having the <eni_description><br>
 Needs: "Description" field of the Elastic Network Interface to be looked up.
 Note: In our process, the Description field of an ENI is composed as:<br>
-```eni-{{ENV}}-{{SERVICE}}-<N><subnet_letter><br>```
+```eni-{{ENV}}-{{SERVICE}}-<N><subnet_letter><br>```<br>
 pattern:<br>
 ```aws:ec2:eni/eni-id,eni-{{ENV}}-{{SERVICE}}-<N><subnet_letter>```<br>
-Example:<br>
-interface '1' in subnet 'a' in env 'proto3' for the 'myservice' service is looked up as:<br>
-```aws:ec2:eni/eni-id,eni-proto3-myservice-1a```
-Returns:<br>
+Example - interface '1' in subnet 'a' in env 'proto3' for the 'myservice' service is looked up as:<br>
+```aws:ec2:eni/eni-id,eni-proto3-myservice-1a```<br>
+returns:<br>
 ```eni-31ca3f1a```
 
 #### {{aws:ec2:route-table/main-route-table-id,\<vpc_name>}}
@@ -148,7 +148,7 @@ Example:<br>
 ```{{aws:ec2:route-table/main-route-table-id,vpc-{{ENV}}}}```<br>
 which is looked up in 'prod' as:<br>
 ```{{aws:ec2:route-table/main-route-table-id,vpc-prod}}```<br>
-returning:<br>
+returns:<br>
 ```rtb-3f820be9a```<br>
 
 #### {{aws:ec2:security-group/security-group-id,\<sg_friendly_name>}}
@@ -158,7 +158,7 @@ Example:<br>
 ```{{aws:ec2:security-group/security-group-id,{{ENV}}-myservice}}```<br>
 which is looked up in 'proto3' as:<br>
 ```{{aws:ec2:security-group/security-group-id,proto3-myservice}}```<br>
-returning:<br>
+returns:<br>
 ```sg-78fe34a6```<br>
 
 #### {{aws:ec2:subnet/subnet-id,\<subnet_friendly_name>}}
@@ -166,9 +166,9 @@ Returns: subnet ID<br>
 Needs: Subnet's friendly name, which is always "subnet-\<env>-\<az>"<br>
 Example:<br>
 ```{{aws:ec2:subnet/subnet-id,subnet-{{ENV}}-a}}```<br>
-which is looked up in 'proto3' as:
+which is looked up in 'proto3' as:<br>
 ```{{aws:ec2:subnet/subnet-id,subnet-proto3-a}}```<br>
-returning:<br>
+returns:<br>
 ```subnet-be2d211a```<br>
 
 #### {{aws:ec2:vpc/cidrblock,\<vpc_friendly_name>}}
@@ -178,7 +178,7 @@ Example:<br>
 ```{{aws:ec2:vpc/cidrblock,<vpc_name>}}```<br>
 which is looked up in 'proto3' as:<br>
 ```{{aws:ec2:vpc/cidrblock,vpc-proto3}}```<br>
-returning:<br>
+returns:<br>
 ```10.8.64.0/18```<br>
 
 #### {{aws:ec2:vpc/vpc-id,\<vpc_friendly_name>}}
@@ -188,7 +188,7 @@ Example:<br>
 ```{{aws:ec2:vpc/vpc-id,vpc-{{ENV}}}}```<br>
 which is looked in 'proto3' as:<br>
 ```{{aws:ec2:vpc/vpc-id,vpc-proto3}}```<br>
-returning:<br>
+returns:<br>
 ```vpc-21ac3315```<br>
 
 #### {{aws:ec2:vpc/availabilityzones,\<vpc_friendly_name>}}
@@ -198,7 +198,7 @@ Example (use exactly like this in a JSON template, including [ ] and the dual qu
 ```"AvailabilityZones": [ "{{aws:ec2:vpc/availabilityzones,vpc-{{ENV}}}}" ]```<br>
 which is looked up in 'prod' as:<br>
 ```"AvailabilityZones": [ "{{aws:ec2:vpc/availabilityzones,vpc-prod}}" ]```<br>
-returning:<br>
+returns:<br>
 ```"us-west-2a","us-west-2b"```<br>
 which resolves to this if the above example was followed exactly:<br>
 ```"AvailabilityZones": [ "us-west-2a","us-west-2b" ]```
@@ -220,7 +220,7 @@ Example:<br>
 ```{{aws:route53:private-hosted-zone-id,mydomain-{{ENV}}}}```
 which is looked up in 'proto3' as:<br>
 ```{{aws:route53:private-hosted-zone-id,mydomain-proto3}}```<br>
-returning:
+returns:
 ```Z20EFA41X32AM```
 
 #### {{aws:route53:public-hosted-zone-id,\<zone_name>.}}
@@ -230,7 +230,7 @@ Example:<br>
 ```{{aws:route53:public-hosted-zone-id,mydomain-{{ENV}}}}```
 which is looked up in 'proto3' as:<br>
 ```{{aws:route53:public-hosted-zone-id,mydomain-proto3}}```<br>
-returning:
+returns:
 ```Z20EFA87A26E8```
 
 #### {{aws:waf:rule-id,\<waf_rule_name>}}
@@ -238,7 +238,7 @@ Returns: WAF rule's ID<br>
 Needs: friendly name of the WAF rule<br>
 Example:<br>
 ```global-officeCidr```<br>
-Returns:
+returns:
 ```0af1232a-a60a-433a-cd3a-20d62ada238a```<br>
 
 #### {{aws:waf:web-acl-id,\<web_acl_name>}}
@@ -248,7 +248,7 @@ Example:<br>
 ```{{aws:waf:web-acl-id,{{ENV}}-StaticAcl}}```
 which is looked up in 'prod' as:<br>
 ```{{aws:waf:web-acl-id,prod-StaticAcl}}```
-returning:<br>
+returns:<br>
 ```0af2012e-b24e-55ba-ec2b-132d2e51268a```<br>
 
 
@@ -261,7 +261,7 @@ Example:<br>
 ```{{efconfig:accountaliasofenv,{{ENV}}}}```<br>
 which is looked up in 'staging' as:<br>
 ```{{efconfig:accountaliasofenv,staging}}```<br>
-returning:<br>
+returns:<br>
 ```myaccountalias```<br>
 
 ### Version lookup symbols
@@ -274,7 +274,7 @@ Example:<br>
 ```{{version:ami-id,{{ENV}}/myservice}}```<br>
 which is looked up in 'prod' as:<br>
 ```{{version:ami-id,prod/myservice}}```<br>
-Returns:<br>
+returns:<br>
 ... the AMI ID for the service 'myservice' in the environment 'prod'<br>
 ```ami-abcd0123```<br>
 
