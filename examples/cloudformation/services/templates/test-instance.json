@@ -1,0 +1,26 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "{{ENV}}-{{SERVICE}}",
+  "Resources": {
+    "TestInstance": {
+      "Type": "AWS::EC2::Instance",
+      "Properties": {
+        "IamInstanceProfile": "{{ENV}}-{{SERVICE}}",
+        "InstanceType": "t2.medium",
+        "ImageId": "{{version:ami-id,{{ENV}}/{{SERVICE}}}}",
+        "NetworkInterfaces": [{
+          "AssociatePublicIpAddress": "true",
+          "DeviceIndex": "0",
+          "SubnetId": "{{aws:ec2:subnet/subnet-id,subnet-{{ENV}}-a}}",
+          "GroupSet": [
+            "{{aws:ec2:security-group/security-group-id,{{ENV}}-{{SERVICE}}-ec2}}"
+          ]
+        }],
+        "Tags": [{
+          "Key": "Name",
+          "Value": "{{ENV}}-{{SERVICE}}"
+        }]
+      }
+    }
+  }
+}
