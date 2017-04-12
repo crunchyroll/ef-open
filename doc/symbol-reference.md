@@ -217,7 +217,7 @@ which resolves to this if the above example was followed exactly:<br>
 Returns: Private Hosted Zone's ID in Route53<br>
 Needs: fully qualified private zone name, ending with "."<br>
 Example:<br>
-```{{aws:route53:private-hosted-zone-id,mydomain-{{ENV}}}}```
+```{{aws:route53:private-hosted-zone-id,mydomain-{{ENV}}}}```<br>
 which is looked up in 'proto3' as:<br>
 ```{{aws:route53:private-hosted-zone-id,mydomain-proto3}}```<br>
 returns:
@@ -227,7 +227,7 @@ returns:
 Returns: Private Hosted Zone's ID in Route53<br>
 Needs: fully qualified private zone name, ending with "."<br>
 Example:<br>
-```{{aws:route53:public-hosted-zone-id,mydomain-{{ENV}}}}```
+```{{aws:route53:public-hosted-zone-id,mydomain-{{ENV}}}}```<br>
 which is looked up in 'proto3' as:<br>
 ```{{aws:route53:public-hosted-zone-id,mydomain-proto3}}```<br>
 returns:
@@ -238,16 +238,16 @@ Returns: WAF rule's ID<br>
 Needs: friendly name of the WAF rule<br>
 Example:<br>
 ```{{aws:waf:rule-id,global-officeCidr}}```<br>
-returns:
+returns:<br>
 ```0af1232a-a60a-433a-cd3a-20d62ada238a```<br>
 
 #### {{aws:waf:web-acl-id,\<web_acl_name>}}
 Returns: WAF rule's ID<br>
 Needs: friendly name of the WAF rule<br>
 Example:<br>
-```{{aws:waf:web-acl-id,{{ENV}}-StaticAcl}}```
+```{{aws:waf:web-acl-id,{{ENV}}-StaticAcl}}```<br>
 which is looked up in 'prod' as:<br>
-```{{aws:waf:web-acl-id,prod-StaticAcl}}```
+```{{aws:waf:web-acl-id,prod-StaticAcl}}```<br>
 returns:<br>
 ```0af2012e-b24e-55ba-ec2b-132d2e51268a```<br>
 
