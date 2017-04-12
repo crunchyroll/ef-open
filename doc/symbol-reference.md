@@ -224,13 +224,13 @@ returns:<br>
 ```Z20EFA41X32AM```
 
 #### {{aws:route53:public-hosted-zone-id,\<zone_name>.}}
-Returns: Private Hosted Zone's ID in Route53<br>
-Needs: fully qualified private zone name, ending with "."<br>
+Returns: Public Hosted Zone's ID in Route53<br>
+Needs: fully qualified public zone name, ending with "."<br>
 Example:<br>
 ```{{aws:route53:public-hosted-zone-id,mydomain-{{ENV}}}}```<br>
 which is looked up in 'proto3' as:<br>
 ```{{aws:route53:public-hosted-zone-id,mydomain-proto3}}```<br>
-returns:
+returns:<br>
 ```Z20EFA87A26E8```
 
 #### {{aws:waf:rule-id,\<waf_rule_name>}}
