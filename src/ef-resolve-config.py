@@ -23,6 +23,7 @@ limitations under the License.
 
 
 from __future__ import print_function
+
 import argparse
 from ef_config import EFConfig
 import json
@@ -54,7 +55,6 @@ def handle_args_and_set_context(args):
     a populated Context object based on CLI args
   """
   parser = argparse.ArgumentParser()
-  parser.add_argument("region", help="AWS region (like 'us-west-2')")
   parser.add_argument("env", help="environment")
   parser.add_argument("path_to_template", help="path to the config template to process")
   parser.add_argument("--verbose", help="Output extra info", action="store_true", default=False)
@@ -63,7 +63,7 @@ def handle_args_and_set_context(args):
 
   return Context(
     get_account_alias(parsed["env"]),
-    parsed["region"], parsed["env"],
+    EFConfig.DEFAULT_REGION, parsed["env"],
     service, parsed["path_to_template"],
     parsed["verbose"]
   )
@@ -112,8 +112,7 @@ def merge_files(context):
   rendered_body = resolver.render()
 
   if not resolver.resolved_ok():
-    print("Couldn't resolve all symbols; template has leftover {{ or }}: {}".format(resolver.unresolved_symbols()))
-    exit(0)
+    raise RuntimeError("Couldn't resolve all symbols; template has leftover {{ or }}: {}".format(resolver.unresolved_symbols()))
 
   if context.verbose:
     print(context)
@@ -122,43 +121,17 @@ def merge_files(context):
     print("chmod file to: " + dest["file_perm"])
     user, group = dest["user_group"].split(":")
     print("chown last directory in path to user: {}, group: {}".format(user, group))
-    print("chown file to user: {}, group: {}".format(user, group))
+    print("chown file to user: {}, group: {}\n".format(user, group))
 
   print(rendered_body)
 
 
-
 def main():
   context =  handle_args_and_set_context(sys.argv[1:])
-
-
-
-
-
-
-
-  """
-  # Tailor to operating mode
-  if WHERE == "virtualbox-kvm":
-    service = gethostname().split(".", 1)[0]
-  elif WHERE == "ec2":
-    print("EC2: setting up S3 client")
-    try:
-      session = boto3.Session()
-      # S3 iteration is easier using the S3 Resource
-      RESOURCES["s3"] = session.resource("s3")
-    except (botocore.exceptions.BotoCoreError, IOError) as e:
-      critical("Error setting up S3 resource " + repr(e))
-    service = http_get_instance_role()
-
-  print("platform: {} service: {}".format(WHERE, service))
-  """
-
   try:
     merge_files(context)
   except Exception as e:
     print("error {}".format(e))
-
 
 
 if __name__ == "__main__":
