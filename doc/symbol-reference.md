@@ -220,7 +220,7 @@ Example:<br>
 ```{{aws:route53:private-hosted-zone-id,mydomain-{{ENV}}}}```<br>
 which is looked up in 'proto3' as:<br>
 ```{{aws:route53:private-hosted-zone-id,mydomain-proto3}}```<br>
-returns:
+returns:<br>
 ```Z20EFA41X32AM```
 
 #### {{aws:route53:public-hosted-zone-id,\<zone_name>.}}
