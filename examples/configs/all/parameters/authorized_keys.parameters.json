@@ -1,0 +1,25 @@
+{
+  "dest": {
+    "path": "/home/centos/.ssh/authorized_keys",
+    "dir_perm": "755",
+    "file_perm": "600",
+    "user_group": "centos:centos",
+    "environments": ["global", "mgmt", "prod", "proto", "staging"]
+  },
+  "params": {
+    "default": {
+      "keys": [
+        "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCBFSL6oRI5jn5PmvwRhJyI0U9LJ8ZL1fNvoYEY2UtqwGybryX3IS2ynOvcmeXtSI6Qg1ucl0HpyRXThKRjvMczDg50jP5FBQaowSkGKovO2emn0uSX4k9z2I/r3HjF4zKftuJKmupz8MP5iVSo/tkS9bd9/MqlKU5ZCTCBLl4S/lapwtYAfPL5JMo3L2Cj2Vjd66kQuuTDpwJcU5vC4drx5U1i6Lr45ZoBN6rYcQHIzDHYeqpuaSDLKAfFf+b86365njnoed0Fv1FCqGm1kb5yKevchmAlYZASvxSHoeJ4PO9DTNVpupqUIL4DP9 someone1@example.com",
+        "ssh-rsa AAAAB3NzaC1yc2EAAAABJQAAAQEAqpfHYE2LtRBsHXjUpw7oG82me8yZ8cXNT0DcFIhf+L70bCcf/JQeuCLbywyA8xfH9yY2bFvPUJTYysbukhoqDaokyo7FuUYj8v5ptK0G85pyGbBwDx/+HqFsVmwVBFLKr6zHoSEMmSd4MbPELbjY9NnrPCizQCfH4sN3E00S7YnGakXMsHuVvgxPO5WsGuTWvow2lQ01L1FGpyJcrLryFetT+zgZtL51U3QSYeqpuaSDLKAfFf+b86365njnoed0Fv1FCqGm1kb5yKevchmAlYZASvxSHoeJ4PO9DTCqIyyujyjF+WPg84dkc0JHk0d+z2HOhgr0w== someone2@example.com",
+        "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDTMQBcEDGCxmOJwKq71Tnqsx9X8VvvIo4NSECC4s+ziR4y4YXC9Lu3svT7vQ7eSNFm9jXMD4I1PCzQVqe8FzPA3UgzwGVhetehQ17f2NK3KWEigqhOgILxBtei2fzdKK+22tuiztUaM09jkONbQtVzNPsjPX9lbMsE5EP7d4IZ/mng7s7eMtJhNd8xrG+mcR6w0Xu4wGx+CEX/UqFgmfheNBNDAyaTgfu9WuuroeeB1gX4UIa6Fdkj7OXmtcH4HqJWweBp5y4y3HScZxK7dP6yN0iKzzRLrvLn30Zo3Ry91Q6Q51vSwGuUTbyJ8Kju/emDmxy9DOY/n06d3fUarUUL someone3@example.com"
+      ]
+    },
+    "proto": {
+      "keys": [
+        "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCBFSL6oDGCxmOJwKq71Tnqsx9X8VvvIo4NSECC4s+ziR4y4YXC9Lu3svT7vQ7eSNFm9jXMD4I1PCzQVqe8FzPA3UgzwGV0jP5FBQaowSkGKovO2emn0uSX4k9z2I/r3HjF4zKftuJKmupz8MP5iVSo/tkS9bd9/MqlKU5ZCTCBLl4S/lapwtYAfPL5JMo3L2Cj2Vjd66kQuuTDpwJcU5vC4drx5U1i6Lr45ZoBN6rYcQHUpw7oG82me8yZ8cXNT0DcFIhf+L70bCcf/JQeuCLbywyA8xfH9yY2bFvPUJTYysbukhoqDaokO9DTNVpupqUIL4DP9 someone4@example.com",
+        "ssh-rsa AAAAB3NzaC1yc2EAAAABJQAAAQEAqpfHYE2LtRBsHXjUpw7oG82me8yZ8cXNTyaTgfu9WuuroeeB1gX4UIa6Fdkj7OXmtcH4HqJWweBp5y4y3HScZxK7dP6yN0iKzzRLrvLn30ZptK0G85pyGbBwDx/+HqFsVmwVBFLKr6zHoSEMmSd4MbPELbjY9NnrPCizQCfH4sN3E00S7YnGakXMsHuVvgxPO5WsGuTWvow2lQ01L1FGpyJcrLryFetT+zgZtL51U3QSYeqpuaSDLKAfFf+b86365njnoed0Fv1FCqGm1kb5yKevchmAlYZASvxSHoeJ4PO9DTCqIyyujyjF+WPg84dkc0JHk0d+z2HOhgr0w== someone5@example.com",
+        "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDTMQBoqDaokyo7FuUYj8v5ptK0G85pyGbBwDx/+HqFsVmwVBFLKr6zHoSEMmSd4MbPELbjY9NnrPCizQCfH4sN3E00S7YnGakhQ17f2NK3KWEigqhOgILxBtei2fzdKK+22tuiztUaM09jkONbQtVzNPsjPX9lbMsE5EP7d4IZ/mng7s7eMtJhNd8xrG+mcR6w0Xu4wGx+CEX/UqFgmfheNBNDAyaTgfu9WuuroeeB1gX4UIa6Fdkj7OXmtcH4HqJWweBp5y4y3HScZxK7dP6yN0iKzzRLrvLn30Zo3Ry91Q6Q51vSwGuUTbyJ8Kju/emDmxy9DOY/n06d3fUarUUL someone6@example.com"
+      ]
+    }
+  }
+}
