@@ -3,8 +3,9 @@
 """
 Manual single file config resolver
 
-This is mostly for testing - accepts a config file as input, finds
+This is mostly for testing and teaching - accepts a config file as input, finds
 the matching config blob in /configs, resolves everything, and outputs the result
+as it would be written to a file on an instance when starting up
 
 Copyright 2016-2017 Ellation, Inc.
 
@@ -20,7 +21,6 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
-
 
 from __future__ import print_function
 
@@ -123,7 +123,9 @@ def merge_files(context):
     print("chown last directory in path to user: {}, group: {}".format(user, group))
     print("chown file to user: {}, group: {}\n".format(user, group))
 
-  print(rendered_body)
+    print("template body:\n{}\nrendered body:\n{}\n".format(template_body, rendered_body))
+  else:
+    print(rendered_body)
 
 
 def main():
