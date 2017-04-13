@@ -97,7 +97,6 @@ def merge_files(context):
     raise IOError("Error loading param file: {} {}".format(context.param_path, repr(error)))
 
   dest = json.loads(param_body)["dest"]
-  params = json.loads(param_body)
 
   # if 'dest' for the current object contains an 'environments' list, check it
   if dest.has_key("environments"):
