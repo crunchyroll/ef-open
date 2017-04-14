@@ -26,6 +26,15 @@ python_binary(
 )
 
 python_binary(
+  name = 'ef-resolve-config',
+  source = 'ef-resolve-config.py',
+  dependencies = [
+    ':boto3',
+    ':tools'
+  ]
+)
+
+python_binary(
   name = 'ef-version',
   source = 'ef-version.py',
   dependencies = [
