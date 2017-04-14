@@ -27,7 +27,7 @@ from __future__ import print_function
 import argparse
 from ef_config import EFConfig
 import json
-from os.path import dirname, normpath
+from os.path import abspath, dirname, normpath
 import sys
 
 from ef_template_resolver import EFTemplateResolver
@@ -59,12 +59,13 @@ def handle_args_and_set_context(args):
   parser.add_argument("path_to_template", help="path to the config template to process")
   parser.add_argument("--verbose", help="Output extra info", action="store_true", default=False)
   parsed = vars(parser.parse_args(args))
-  service = parsed["path_to_template"].split('/')[-3]
+  path_to_template = abspath(parsed["path_to_template"])
+  service = path_to_template.split('/')[-3]
 
   return Context(
     get_account_alias(parsed["env"]),
     EFConfig.DEFAULT_REGION, parsed["env"],
-    service, parsed["path_to_template"],
+    service, path_to_template,
     parsed["verbose"]
   )
 
