@@ -1,12 +1,17 @@
 {
   "AWSTemplateFormatVersion": "2010-09-09",
   "Description": "{{ENV}}-{{SERVICE}}",
+  "Parameters": {
+    "InstanceTypeParam": {
+      "Type": "String"
+    }
+  },
   "Resources": {
-    "TestInstance": {
+    "Ec2Instance": {
       "Type": "AWS::EC2::Instance",
       "Properties": {
         "IamInstanceProfile": "{{ENV}}-{{SERVICE}}",
-        "InstanceType": "t2.medium",
+        "InstanceType": { "Ref": "InstanceTypeParam" },
         "ImageId": "{{version:ami-id,{{ENV}}/{{SERVICE}}}}",
         "NetworkInterfaces": [{
           "AssociatePublicIpAddress": "true",

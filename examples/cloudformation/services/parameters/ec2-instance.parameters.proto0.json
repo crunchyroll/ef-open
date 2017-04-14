@@ -1,0 +1,6 @@
+[
+  {
+    "ParameterKey": "InstanceTypeParam",
+    "ParameterValue": "t2.small"
+  }
+]

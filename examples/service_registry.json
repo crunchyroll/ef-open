@@ -3,14 +3,14 @@
     "network": {
       "type": "aws_fixture",
       "description": "Network config - everything after the vpc: subnets and gateway",
-      "runbook_url": "https://ellation.atlassian.net/wiki/display/DEVOPS/VRV+Network+Runbook",
+      "runbook_url": "https://path/to/mynetworkrunbook",
       "team_email": "myteam@example.com",
       "environments": ["prod", "staging", "proto", "internal", "mgmt.myaccountalias", "mgmt.myaccountalias2"]
     },
     "vpc": {
       "type": "aws_fixture",
       "description": "Network config - VPC only (with default routetable)",
-      "runbook_url": "TBD",
+      "runbook_url": "https://path/to/mynetworkrunbook",
       "team_email": "myteam@example.com",
       "environments": ["prod", "staging", "proto", "internal", "mgmt.myaccountalias", "mgmt.myaccountalias2"]
     }
@@ -18,14 +18,14 @@
   "platform_services": {
   },
   "application_services": {
-    "test-instance": {
+    "ec2-instance": {
       "type": "aws_ec2",
-      "description": "test ec2 instance",
-      "runbook_url": "TBD",
-      "jira_project": "PROJ",
+      "description": "sihgle ec2 instance",
+      "runbook_url": "https://path/to/myservicerunbook",
+      "jira_project": "myserviceproject",
       "chef_role": "base",
       "team_email": "myteam@example.com",
-      "environments": ["staging", "proto", "internal", "mgmt.myaccountalias2"],
+      "environments": ["proto", "staging", "prod"],
       "policies": ["global_buckets_ro", "instance_introspection"]
     }
   },
