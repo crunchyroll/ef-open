@@ -21,4 +21,11 @@ SITE_CONFIG_FILESPEC=${SITE_CONFIG_PATH}/${SITE_CONFIG_FILE_NAME}
 
 cp ${SITE_CONFIG_FILESPEC} src/${SITE_CONFIG_FILE_NAME} || fail "Error copying ${SITE_CONFIG_FILESPEC}" to src/
 
+# build
 ./pants binary src:
+[ $? -eq 0 ] || fail "Build failed"
+
+# rename files to remove .pex extension
+for f in dist/*.pex; do
+  mv "${f}" "${f%%.pex}"
+done
