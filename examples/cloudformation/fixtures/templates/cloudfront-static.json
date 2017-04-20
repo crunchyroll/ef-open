@@ -19,7 +19,7 @@
         "DistributionConfig": {
           "Origins": [
             {
-              "DomainName": "mynonproddomainprefix-{{ENV}}-static.s3.amazonaws.com",
+              "DomainName": "mybucketprefix-{{ENV}}-static.s3.amazonaws.com",
               "Id": "Static",
               "S3OriginConfig": {
                 "OriginAccessIdentity": "origin-access-identity/cloudfront/{{aws:cloudfront:origin-access-identity/oai-id,static.mydomainprefix-{{ENV}}.com}}"
@@ -45,7 +45,7 @@
           "DefaultRootObject": "index.html",
           "Logging": {
             "IncludeCookies": false,
-            "Bucket": "mydomainprefix-{{ENV_FULL}}-logs.s3.amazonaws.com",
+            "Bucket": "mybucketprefix-{{ENV_FULL}}-logs.s3.amazonaws.com",
             "Prefix": "{{SERVICE}}/"
           },
           "DefaultCacheBehavior": {
