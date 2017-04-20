@@ -1,0 +1,134 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "{{ENV}}-{{SERVICE}}",
+  "Conditions": {
+    "EnvIsProd": { "Fn::Equals": [ "{{ENV}}", "prod" ] }
+  },
+  "Parameters": {
+    "ExternalSite1Param": {
+      "Type": "String",
+      "Default": "2.2.2.2"
+    }
+  },
+  "Resources": {
+    "PublicDnsExternalSite2": {
+      "Type": "AWS::Route53::RecordSetGroup",
+      "Condition": "EnvIsProd",
+      "Properties": {
+        "HostedZoneId": "{{aws:route53:public-hosted-zone-id,myexternalsite1.com.}}",
+        "RecordSets": [
+          {
+            "Name": "myexternalsite1.com",
+            "Type": "A",
+            "TTL": 900,
+            "ResourceRecords": [
+              { "Ref": "ExternalSite1Param" }
+            ]
+          },
+          {
+            "Name": "www.myexternalsite1.com",
+            "Type": "A",
+            "TTL": 900,
+            "ResourceRecords": [
+              { "Ref": "ExternalSite1Param" }
+            ]
+          }
+        ]
+      }
+    },
+    "PublicDnsMyDomain": {
+      "Type": "AWS::Route53::RecordSetGroup",
+      "Condition": "EnvIsProd",
+      "Properties": {
+        "HostedZoneId": "{{aws:route53:public-hosted-zone-id,mydomain.com.}}",
+        "RecordSets": [
+          {
+            "Name": "api.mydomain.com",
+            "Type": "A",
+            "AliasTarget": {
+              "HostedZoneId": "Z2FDTNDATAQYW2",
+              "DNSName": "{{aws:cloudfront:domain-name,api.mydomain.com}}"
+            }
+          },
+          {
+            "Name": "error.mydomain.com",
+            "Type": "A",
+            "TTL": 120,
+            "ResourceRecords": [
+              "3.3.3.3"
+            ]
+          },
+          {
+            "Name": "static.mydomain.com.",
+            "Type": "A",
+            "AliasTarget": {
+              "HostedZoneId": "Z2FDTNDATAQYW2",
+              "DNSName": "{{aws:cloudfront:domain-name,static.mydomain.com}}"
+            }
+          },
+          {
+            "Name": "mydomain.com",
+            "Type": "A",
+            "AliasTarget": {
+              "HostedZoneId": "Z2FDTNDATAQYW2",
+              "DNSName": "{{aws:cloudfront:domain-name,mydomain.com}}"
+            }
+          },
+          {
+            "Name": "mydomain.com",
+            "Type": "MX",
+            "TTL": "60",
+            "ResourceRecords": [
+              "1 ASPMX.L.GOOGLE.COM",
+              "5 ALT1.ASPMX.L.GOOGLE.COM",
+              "5 ALT2.ASPMX.L.GOOGLE.COM",
+              "10 ALT3.ASPMX.L.GOOGLE.COM",
+              "10 ALT4.ASPMX.L.GOOGLE.COM"
+            ]
+          },
+          {
+            "Name": "mydomain.com",
+            "Type": "TXT",
+            "TTL": "60",
+            "ResourceRecords": [
+              "\"google-site-verification=XXXXXXXXXXXXXXXXXXXXXXXX\""
+            ]
+          },
+          {
+            "Name": "www.muydomain.com",
+            "Type": "A",
+            "AliasTarget": {
+              "HostedZoneId": "Z2FDTNDATAQYW2",
+              "DNSName": "{{aws:cloudfront:domain-name,www.mydomain.com}}"
+            }
+          }
+        ]
+      }
+    },
+    "PublicDnsMyDomain2": {
+      "Type": "AWS::Route53::RecordSetGroup",
+      "Condition": "EnvIsProd",
+      "Properties": {
+        "HostedZoneId": "{{aws:route53:public-hosted-zone-id,mydomain2.com.}}",
+        "RecordSets": [
+          {
+            "Name": "mydomain2.com",
+            "Type": "A",
+            "AliasTarget": {
+              "HostedZoneId": "Z2FDTNDATAQYW2",
+              "DNSName": "{{aws:cloudfront:domain-name,mydomain2.com}}"
+            }
+          },
+          {
+            "Name": "www.mydomain2.com",
+            "Type": "A",
+            "AliasTarget": {
+              "HostedZoneId": "Z2FDTNDATAQYW2",
+              "DNSName": "{{aws:cloudfront:domain-name,www.mhdomain2.com}}"
+            }
+          }
+        ]
+      }
+    }
+  }
+}
