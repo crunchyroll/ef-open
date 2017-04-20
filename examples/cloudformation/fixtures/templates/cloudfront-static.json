@@ -19,16 +19,16 @@
         "DistributionConfig": {
           "Origins": [
             {
-              "DomainName": "mydomain-{{ENV}}-static.s3.amazonaws.com",
+              "DomainName": "mynonproddomainprefix-{{ENV}}-static.s3.amazonaws.com",
               "Id": "Static",
               "S3OriginConfig": {
-                "OriginAccessIdentity": "origin-access-identity/cloudfront/{{aws:cloudfront:origin-access-identity/oai-id,static.mydomain-{{ENV}}.com}}"
+                "OriginAccessIdentity": "origin-access-identity/cloudfront/{{aws:cloudfront:origin-access-identity/oai-id,static.mydomainprefix-{{ENV}}.com}}"
               }
             }
           ],
           "WebACLId": { "Ref": "Waf" },
           "Aliases": [
-            { "Fn::If": [ "EnvIsProd", "static.myproddomain.com", "static.mynonproddomain-{{ENV}}.com" ] }
+            { "Fn::If": [ "EnvIsProd", "static.myproddomain.com", "static.mydomainprefix-{{ENV}}.com" ] }
           ],
           "CustomErrorResponses": [
             { "ErrorCode": "400", "ErrorCachingMinTTL": "30" },
@@ -45,7 +45,7 @@
           "DefaultRootObject": "index.html",
           "Logging": {
             "IncludeCookies": false,
-            "Bucket": "mydomain-{{ENV_FULL}}-logs.s3.amazonaws.com",
+            "Bucket": "mydomainprefix-{{ENV_FULL}}-logs.s3.amazonaws.com",
             "Prefix": "{{SERVICE}}/"
           },
           "DefaultCacheBehavior": {
@@ -68,7 +68,7 @@
             "AcmCertificateArn" : { "Fn::If": [
               "EnvIsProd",
                 "{{aws:acm:certificate-arn,us-east-1/myproddomain.com,NONE}}",
-                "{{aws:acm:certificate-arn,us-east-1/mynonproddomain-{{ENV}}.com,NONE}}"
+                "{{aws:acm:certificate-arn,us-east-1/mydomainprefix-{{ENV}}.com,NONE}}"
               ]
             },
             "MinimumProtocolVersion" : "TLSv1",
@@ -105,10 +105,10 @@
       "Type": "AWS::Route53::RecordSetGroup",
       "Condition": "EnvIsNotProd",
       "Properties": {
-        "HostedZoneId": "{{aws:route53:public-hosted-zone-id,mydomain-{{ENV}}.com.,NONE}}",
+        "HostedZoneId": "{{aws:route53:public-hosted-zone-id,mydomainprefix-{{ENV}}.com.,NONE}}",
         "RecordSets": [
           {
-            "Name": "static.mydomain-{{ENV}}.com",
+            "Name": "static.mydomainprefix-{{ENV}}.com",
             "Type": "A",
             "AliasTarget": {
               "HostedZoneId": "Z2FDTNDATAQYW2",
