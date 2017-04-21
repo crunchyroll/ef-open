@@ -1,0 +1,103 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "{{ENV}}-policy-allusers",
+  "Parameters": {
+    "OfficeCidrVpnInternalParam": {
+      "Type": "String",
+      "Default": "1.1.1.1/16"
+    },
+    "OfficeCidrVpnParam": {
+      "Type": "String",
+      "Default": "2.2.2.2/32"
+    },
+    "OfficeCidrWifiParam": {
+      "Type": "String",
+      "Default": "3.3.3.3/32"
+    },
+    "OfficeCidrWiredParam": {
+      "Type": "String",
+      "Default": "4.4.4.4/31"
+    }
+  },
+  "Resources": {
+    "UsersManageCredentials": {
+      "Type": "AWS::IAM::Policy",
+      "Properties": {
+        "PolicyName": "UsersManageCredentials",
+        "PolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [{
+            "Sid": "sid1",
+            "Effect": "Allow",
+            "Action": [
+              "iam:*AccessKey*",
+              "iam:*LoginProfile",
+              "iam:*SSHPublicKey*",
+              "iam:ChangePassword",
+              "iam:ListAttachedUserPolicies"
+            ],
+            "Resource": "arn:aws:iam::{{ACCOUNT}}:user/${aws:username}",
+            "Condition": {
+              "IpAddress": {
+                "aws:SourceIp": [
+                  { "Ref": "OfficeCidrVpnInternalParam" },
+                  { "Ref": "OfficeCidrVpnParam" },
+                  { "Ref": "OfficeCidrWifiParam" },
+                  { "Ref": "OfficeCidrWiredParam" }
+                ]
+              }
+            }
+          },
+          {
+            "Sid": "sid2",
+            "Effect": "Allow",
+            "Action": [
+              "iam:CreateVirtualMFADevice",
+              "iam:DeleteVirtualMFADevice",
+              "iam:EnableMFADevice",
+              "iam:ResyncMFADevice"
+            ],
+            "Resource": [
+              "arn:aws:iam::{{ACCOUNT}}:mfa/${aws:username}",
+              "arn:aws:iam::{{ACCOUNT}}:user/${aws:username}"
+            ],
+            "Condition": {
+              "IpAddress": {
+                "aws:SourceIp": [
+                  { "Ref": "OfficeCidrVpnInternalParam" },
+                  { "Ref": "OfficeCidrVpnParam" },
+                  { "Ref": "OfficeCidrWifiParam" },
+                  { "Ref": "OfficeCidrWiredParam" }
+                ]
+              }
+            }
+          },
+          {
+            "Sid": "sid3",
+            "Effect": "Allow",
+            "Action": [
+              "iam:GetAccountPasswordPolicy",
+              "iam:GetAccountSummary",
+              "iam:ListAccount*",
+              "iam:ListMFADevices",
+              "iam:ListUsers",
+              "iam:ListVirtualMFADevices"
+            ],
+            "Resource": "arn:aws:iam::{{ACCOUNT}}:*",
+            "Condition": {
+              "IpAddress": {
+                "aws:SourceIp": [
+                  { "Ref": "OfficeCidrVpnInternalParam" },
+                  { "Ref": "OfficeCidrVpnParam" },
+                  { "Ref": "OfficeCidrWifiParam" },
+                  { "Ref": "OfficeCidrWiredParam" }
+                ]
+              }
+            }
+          }]
+        },
+        "Groups": [ "AllUsers" ]
+      }
+    }
+  }
+}
