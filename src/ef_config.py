@@ -49,6 +49,8 @@ class EFConfig(EFSiteConfig):
   ACCOUNT_SCOPED_ENVS = ["global", "mgmt"]
 
   ## Version system
+  # suffix used for naming deployable service AMIs
+  AMI_SUFFIX = "-release"
   # content-encoding for S3 version registry
   S3_VERSION_CONTENT_ENCODING = "utf-8"
   # Metdata key on a version object to indicate who modified it
@@ -58,6 +60,10 @@ class EFConfig(EFSiteConfig):
   # Metadata version status values
   S3_VERSION_STATUS_STABLE = "stable"
   S3_VERSION_STATUS_UNDEFINED = "undefined"
-  # What values other than a literal version are allowed for each environment?
-  # Some envs' version entries can be set to these special values, meaning 'use the value found there'
+  VERSION_KEYS = {
+    "ami-id": {
+      "allow_latest": "true"
+    }
+  }
+  # Some envs' version entries can be set via these special values, meaning 'use the value found there'
   SPECIAL_VERSIONS = ["=latest", "=prod", "=staging"]
