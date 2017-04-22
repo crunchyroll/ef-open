@@ -62,7 +62,7 @@ class EFConfig(EFSiteConfig):
   S3_VERSION_STATUS_UNDEFINED = "undefined"
   VERSION_KEYS = {
     "ami-id": {
-      "allow_latest": "true"
+      "allow_latest": True
     }
   }
   # Some envs' version entries can be set via these special values, meaning 'use the value found there'
