@@ -402,7 +402,11 @@ def cmd_rollback(context):
 
 def _getlatest_ami_id(context):
   """
-  blah blah blah
+  Get the most recent AMI ID for a service
+  Args:
+    context: a populated EFVersionContext object
+  Returns:
+    ImageId or None if no images exist or on error
   """
   try:
     response = context.aws_client("ec2").describe_images(
