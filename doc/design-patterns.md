@@ -7,7 +7,7 @@ Name Patterns and Paths - for all the patterns for all the names we use (and der
 ### Least privilege is a firm, universal requirement
 - Assign only the minimum-necessary set of privileges to services (via policies on IAM Roles, and policy statements on resources) and people (via policies on IAM Groups, and policy statements on resources).
 - This is a core requirement, so it's policy by decree.
-= For justification and background, see []Wikipedia: Principle of least privilege](https://en.wikipedia.org/wiki/Principle_of_least_privilege).
+- For justification and background, see [Wikipedia: Principle of least privilege](https://en.wikipedia.org/wiki/Principle_of_least_privilege).
 
 ### Queue message generators and consumers
 - Message generators and message consumers must be separate processes running in separate roles.
