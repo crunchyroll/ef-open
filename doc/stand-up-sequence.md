@@ -9,19 +9,25 @@
 | What | How to stand it up |
 | ---- | ------------------ |
 
-#### 1. IAM Groups, create once per account
+#### 1a. Always-present IAM Groups (create once per account)
 _When adding a user to the account via IAM, make the user a member of this group.
 The AllUsers group allows the minimum necessary self-management (password and MFA self-help)
 plus read access to the production and non-production AWS tooling (architecture, instance views, and metrics only, not data or access to instances)_
 
-- Using the GUI or CLI interface for AWS IAM, create the group named "AllUsers"<br>
+- Using the CLI for AWS IAM, create a group named "AllUsers" in each account<br>
 <code>$ aws iam create-group --group-name AllUsers --profile <ACCOUNT_ALIAS></code>
 
+#### 1b. Service/Environment/Application-specific IAM Groups (create once per account)
+- Using the CLI for AWS IAM, create other groups<br>
+<code>$ aws iam create-group --group-name SomeGroup --profile <ACCOUNT_ALIAS></code>
 
-#### 2. Global fixtures (create once per account)
+
+#### 2. Global fixtures (scope is per-account)
 - Attach policies to the group AllUsers	
 <code>ef-cf fixtures/templates/policy-allusers.json global.<ACCOUNT_ALIAS> --commit</code>
 <code>ef-cf fixtures/templates/policy-2fausers.json global.<ACCOUNT_ALIAS> --commit</code>
+- Attach policies to the other IAM Groups	
+<code>ef-cf fixtures/templates/policy-some-group.json global.<ACCOUNT_ALIAS> --commit</code>
 - Global s3 logging buckets<br>
 <code>ef-cf fixtures/templates/s3-logs.json global.<ACCOUNT_ALIAS> --commit</code>
 - Global s3 buckets<br>
@@ -43,13 +49,9 @@ you give one up accidentally._<br>
 <code>ef-generate global.<ACCOUNT_ALIAS> --commit</code>
 - CloudTrail alarms for every account<br>
 <code>ef-cf fixtures/templates/cloudtrail-logs.json global.<ACCOUNT_ALIAS> --commit</code>
-- Create other IAM Groups (MANUAL)	
-<code>aws iam create-group --group-name SomeGroup --profile <ACCOUNT_ALIAS></code>
-- Attach policies to the other IAM Groups	
-<code>ef-cf fixtures/templates/policy-some-group.json global.<ACCOUNT_ALIAS> --commit</code>
 
 
-#### 3. Environment-specific fixtures
+#### 3. Environment-specific fixtures (scope is per-applicable-environment)
 ##### proto0..protoN, staging, prod, internal, mgmt.<ACCOUNT_ALIAS>, ...
 - CloudFront Origin Access Identities (OAI) (MANUAL)
 Account
@@ -121,10 +123,11 @@ ef-cf fixtures/templates/dns-prod-public-endpoints.json prod --commit
 SNS topics for CloudWatch to publish alarms	
 ef-cf fixtures/templates/sns-topics.json <env> --commit
 Elasticsearch logging	ef-cf fixtures/templates/logs-elasticsearch.json <env> --commit
-Management services
+#### Management services (scope is mgmt environment only)
 Lambdas that keep security groups updated with CloudFront IP addresses
 ef-cf fixtures/templates/update-cfr-security-groups.json mgmt.<ACCOUNT_ALIAS> --commit
-Application services (repeat for each service)
+
+#### Application services (scope is per-environment); repeat for each service
 individual services with their private resources
 "...the ESS service stack...
 ... with its RDS, private Redis,
