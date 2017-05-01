@@ -1,3 +1,4 @@
+## Name Patterns and Paths
 General rules for all names
 Unless the pattern explicitly states otherwise, use lowercase characters a-z, digits 0-9, '-', and '_' only in names.
 '-' (hyphen) is a delimiter between fields of a compound name composed of many fields
