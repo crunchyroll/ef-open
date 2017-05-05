@@ -28,7 +28,7 @@ $ ./pants -V
 pants_version: 1.1.0
 ```
 
-## to build ef-cf as a frestanding binary
+## to build ef-cf as a freestanding binary
 ```
 $ cd ~/workspace
 # copy the site config file into the repo (later, pants BUILD will find it)
