@@ -108,10 +108,10 @@ _for flexibility in production, we manage the DNS records for public endpoints s
 <code>ef-cf fixtures/templates/update-cfr-security-groups.json mgmt.<ACCOUNT_ALIAS> --commit</code><br>
 
 #### Application services (scope is per-environment); repeat for each service
-- individual services with their private resources
+- individual services with their private resources<br>
 _eg: "...the MYSERVICE stack... with its private RDS, private Redis, internal DNS entries, ELBs, ..._<br>
 <code>ef-cf cloudformation/services/templates/<service_short_name>.json \<env\> --commit</code><br>
-CloudWatch Alarms for the service	TBD, using fixtures/templates/cloudwatch.json iterating over all services
-Post-stand-up initialization for the service
-e.g. initialize database with (what?). tbd (warning)
-
+- CloudWatch or other Alarms for the service (TBD)<br>
+_TBD, possibly using fixtures/templates/cloudwatch.json + service registry to iterate over all services_<br>
+- Post-stand-up initialization for the service<br>
+_e.g. initialize database with (what?). tbd
