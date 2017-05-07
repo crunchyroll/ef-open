@@ -1,4 +1,4 @@
-## Stand-Up Sequence for an Environment
+## Global and Environment Stand-Up Sequence
 
 #### See also:
 - Instance Initialization and environment-customization
@@ -52,89 +52,65 @@ you give one up accidentally._<br>
 
 
 #### 3. Environment-specific fixtures (scope is per-applicable-environment)
-##### proto0..protoN, staging, prod, internal, mgmt.<ACCOUNT_ALIAS>, ...
-- CloudFront Origin Access Identities (OAI) (MANUAL)
-Account
-OAIs (named for their origins)
-<ACCOUNT_ALIAS>	
-static.cx-prod.com
-theanimeawards.com
-partner.vrv.co
-<ACCOUNT_ALIAS>	static.cx-staging.com
-static.cx-proto0.com ... static.cx-proto3.com
-<ACCOUNT_ALIAS>	orgchart.cx-internal.com
-Create one OAI per environment for each CloudFront distribution that needs it.
-An OAI authenticates Cloudfront to S3.
-Every OAI is named for the origin and environment that it represents (e.g. 'static.cx-prod.com')
-CloudFormation does not support OAI management, so we create OAIs through the AWS GUI at:
+##### envs are: proto0..protoN, staging, prod, internal, mgmt.<ACCOUNT_ALIAS>, ...
+- CloudFront Origin Access Identities (OAI) (MANUAL)<br>
+Account OAIs (named for their origins)<br>
+<code>ACCOUNT / OAIs (named for their origins)<br>
+myaccount / static.myaccount.com
+</code><br>
+_Create one OAI per environment for each CloudFront distribution that needs it._<br>
+_An OAI authenticates Cloudfront to S3._<br>
+_Every OAI is named for the origin and environment that it represents (e.g. 'static.myaccount.com')_<br>
+_CloudFormation does not support OAI management, so we create OAIs through the AWS GUI at:_<br>
 https://console.aws.amazon.com/cloudfront/home?region=us-west-2#oai:
-VPC	ef-cf fixtures/templates/vpc.json <env> --commit
-Network within VPC
-subnet(s)
-internet gateway
-route table connections
-ef-cf fixtures/templates/network.json <env> --commit
-VPN
-requires additional setup: at instantiation the VPN creates a pre-shared key that must be manually entered into our VPN endpoint
-To download a router configuration version of the configuration for a router in the data center, use the web GUI: VPC Dashboard → VPN Connections → select a VPN → Download Configuration (Vendor: Generic, Platform: Generic, Software: Vendor Agnostic)
-ef-cf fixtures/templates/vpn.json <env> --commit
-Roles and security groups for every <env>-<service>
-ef-generate <env> --commit
-Inline policies onto roles from /policy_templates directory
-Customer-Managed Keys (CMKs) in KMS for every <service>
-static fixture security groups
-e.g. set the office ip addresses in the CIDR security group
-ef-cf fixtures/templates/sg.json <env> --commit
-Per-environment common S3 buckets	
-ef-cf fixtures/templates/s3-logs.json <env> --commit
-ef-cf fixtures/templates/s3-credentials.json <env> --commit
-ef-cf fixtures/templates/s3-static.json <env> --commit
-Per-environment service S3 buckets (s3-*), and buckets and queues together (s3-sqs-*) where bucket events create messages in the SQS queues	
-ef-cf fixtures/templates/s3-aaweb.json prod --commit (prod only)
-ef-cf fixtures/templates/s3-cms-imagestore.json <env> --commit
-ef-cf fixtures/templates/s3-ecom-manga.json <env> --commit
-ef-cf fixtures/templates/s3-orgchart.json internal --commit
-ef-cf fixtures/templates/s3-partnerfeed.json prod --commit (prod only)
-ef-cf fixtures/templates/s3-sqs-cms-ingest.json --commit
-ef-cf fixtures/templates/s3-vod-ingest.json <env> --commit
-ef-cf fixtures/templates/s3-vod-media.json <env> --commit
-DNS hosted zones
-DNS hosted zone glue records for delegated subdomains
-MANUAL FOLLOWUP: Update domain NS records in whois if zones were created for the first time or nameservers changed
-ef-cf fixtures/templates/hosted-zones.json <env> --commit
+- VPC<br>
+<code>ef-cf fixtures/templates/vpc.json \<env\> --commit</code>
+- Network within VPC: subnet(s), Internet gateway, route table connections<br>
+<code>ef-cf fixtures/templates/network.json \<env\> --commit</code>
+- VPN<br>
+_requires additional setup: at instantiation the VPN creates a pre-shared key that must be manually entered into the VPN endpoint_<br>
+_To download a router configuration version of the configuration for a router in the data center, use the web GUI: VPC Dashboard → VPN Connections → select a VPN → Download Configuration. Then select vendor and software version, or use Vendor: Generic, Platform: Generic, Software: Vendor Agnostic for human-readable details._
+<code>ef-cf fixtures/templates/vpn.json \<env\> --commit</code>
+- Roles and security groups for every \<env\>-\<service\><br>
+- Inline policies onto roles from /policy_templates directory<br>
+- Customer-Managed Keys (CMKs) in KMS for every <service>
+<code>ef-generate \<env\> --commit</code>
+- Static fixture security groups<br>
+_e.g. set the office ip addresses in the CIDR security group_<br>
+<code>ef-cf fixtures/templates/sg.json \<env\> --commit<br>
+- Per-environment common S3 buckets<br>
+<code>ef-cf fixtures/templates/s3-logs.json \<env\> --commit<br>
+<code>ef-cf fixtures/templates/s3-credentials.json \<env\> --commit<br>
+<code>ef-cf fixtures/templates/s3-static.json \<env\> --commit</code><br>
+- Per-environment service-owned S3 buckets (s3-\*), and buckets and queues together (s3-sqs-*) where bucket events create messages in the SQS queues<br>
+<code>ef-cf fixtures/templates/s3-MYSERVICE1.json prod --commit (prod only)</code><br>
+<code>ef-cf fixtures/templates/s3-MYSERVICE2-SERVICEBUCKET1.json \<env\> --commit</code><br>
+<code>ef-cf fixtures/templates/s3-MYSERVICE2-SERVICEBUCKET2.json \<env\> --commit</code><br>
+- DNS hosted zones<br>
+_DNS hosted zone glue records for delegated subdomains_<br>
+_MANUAL FOLLOWUP: Update domain NS records in whois if zones were created for the first time or nameservers changed (needs a script)_<br>
+<code>ef-cf fixtures/templates/hosted-zones.json \<env\> --commit</code>
+- CloudFront distributions with their WAFs<br>
+<code>ef-cf fixtures/templates/cloudfront-MYSERVICE1.json prod --commit (prod only)</code><br>
+<code>ef-cf fixtures/templates/cloudfront-MYSERVICE2.json prod --commit (prod only)</code><br>
+<code>ef-cf fixtures/templates/cloudfront-static.json \<env\> --commit</code><br>
+- DNS records for public-facing endpoints<br>
+_for flexibility in production, we manage the DNS records for public endpoints separately from the resources to which they refer. For example, during maintenance, we may need to point a name away from its usual resource._<br>
+<code>ef-cf fixtures/templates/dns-nonprod-public-endpoints.json \<env\> --commit</code><br>
+<code>ef-cf fixtures/templates/dns-prod-public-endpoints.json prod --commit</code><br>
+- SNS topics for CloudWatch to publish alarms<br>
+<code>ef-cf fixtures/templates/sns-topics.json \<env\> --commit</code><br>
+- Elasticsearch logging<br>
+<code>ef-cf fixtures/templates/logs-elasticsearch.json \<env\> --commit</code><br>
 
-(warning) TBD (script coming)
-CloudFront distributions with their WAFs
-ef-cf fixtures/templates/cloudfront-aaweb.json prod --commit (prod only)
-ef-cf fixtures/templates/cloudfront-api.json <env> --commit
-ef-cf fixtures/templates/cloudfront-ecom.json <env> --commit
-ef-cf fixtures/templates/cloudfront-partner.json prod --commit (prod only)
-ef-cf fixtures/templates/cloudfront-portal.json <env> --commit
-ef-cf fixtures/templates/cloudfront-secure.json prod --commit (prod only)
-ef-cf fixtures/templates/cloudfront-static.json <env> --commit
-ef-cf fixtures/templates/cloudfront-vod.json <env> --commit
-ef-cf fixtures/templates/cloudfront-vod-cdnorigin.json <env> --commit
-ef-cf fixtures/templates/cloudfront-web.json <env> --commit
-ef-cf fixtures/templates/cloudfront-orgchart.json internal --commit
-DNS records for public-facing endpoints
-for flexibility in production, we manage the DNS records for public endpoints separately from the resources to which they refer. For example, during maintenance, we may need to point a name away from its usual resource.
-ef-cf fixtures/templates/dns-nonprod-public-endpoints.json <env> --commit
-ef-cf fixtures/templates/dns-prod-public-endpoints.json prod --commit
-SNS topics for CloudWatch to publish alarms	
-ef-cf fixtures/templates/sns-topics.json <env> --commit
-Elasticsearch logging	ef-cf fixtures/templates/logs-elasticsearch.json <env> --commit
 #### Management services (scope is mgmt environment only)
-Lambdas that keep security groups updated with CloudFront IP addresses
-ef-cf fixtures/templates/update-cfr-security-groups.json mgmt.<ACCOUNT_ALIAS> --commit
+- Lambdas that keep security groups updated with CloudFront IP addresses<br>
+<code>ef-cf fixtures/templates/update-cfr-security-groups.json mgmt.<ACCOUNT_ALIAS> --commit</code><br>
 
 #### Application services (scope is per-environment); repeat for each service
-individual services with their private resources
-"...the ESS service stack...
-... with its RDS, private Redis,
-... service-specific S3 buckets
-... lambda(s)
-... and other service-specific resources"
-ef-cf cloudformation/services/templates/<service_short_name>.json <env> --commit
+- individual services with their private resources
+_eg: "...the MYSERVICE stack... with its private RDS, private Redis, internal DNS entries, ELBs, ..._<br>
+<code>ef-cf cloudformation/services/templates/<service_short_name>.json \<env\> --commit</code><br>
 CloudWatch Alarms for the service	TBD, using fixtures/templates/cloudwatch.json iterating over all services
 Post-stand-up initialization for the service
 e.g. initialize database with (what?). tbd (warning)
