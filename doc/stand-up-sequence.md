@@ -72,8 +72,8 @@ _requires additional setup: at instantiation the VPN creates a pre-shared key th
 _To download a router configuration version of the configuration for a router in the data center, use the web GUI: VPC Dashboard → VPN Connections → select a VPN → Download Configuration. Then select vendor and software version, or use Vendor: Generic, Platform: Generic, Software: Vendor Agnostic for human-readable details._
 <code>ef-cf fixtures/templates/vpn.json \<env\> --commit</code>
 - Roles and security groups for every \<env\>-\<service\><br>
-- Inline policies onto roles from /policy_templates directory<br>
-- Customer-Managed Keys (CMKs) in KMS for every <service>
+Inline policies onto roles from /policy_templates directory<br>
+Customer-Managed Keys (CMKs) in KMS for every <service>
 <code>ef-generate \<env\> --commit</code>
 - Static fixture security groups<br>
 _e.g. set the office ip addresses in the CIDR security group_<br>
