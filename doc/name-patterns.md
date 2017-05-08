@@ -154,7 +154,7 @@ Every queue should have a "RedrivePolicy" that diverts unprocessable objects to 
 in template: <code>{{ENV}}-api-target-data-import-deadletter</code><br>
 rendered: <code>staging-api-target-data-import-deadletter</code><br>
 
-### S3 Bucket Names and Key Paths
+### S3 Bucket Names, Key Paths and Other Patterns for S3
 
 #### Foundations: Relevant S3 Guidance/Restrictions
 See also:
@@ -239,48 +239,47 @@ pattern: <code>&lt;S3PREFIX>-[&lt;env>|global|global.&lt;account>]-&lt;infrastru
 example: <code>mycompany-myproject-global-configs</code>
 
 #### HTTP direct (serves content directly via HTTP, without CloudFront ahead of it
-Per AWS requirements, must be named exactly as the FQDN that is CNAMEd to it
-There's only one case of this pattern at present:
-pattern: &lt;contents>.vrv.co (production) or &lt;contents>.cx-&lt;env>.com (non-production)
-example: partnerfeed.vrv.co (we did not create partnerfeed.cx-&lt;env>.com as there was no need)
-Bucket ownership and environment component of bucket name
-System-wide buckets that hold content for all environments in all accounts
-owned by account: ellation (the production account)
-&lt;env> string: "global"
-example: ellation-cx-global-config
-Environment-specific buckets
-owned by account: whatever account owns the environment
-&lt;env> string: &lt;env_full>, which appends ".account" for mgmt environments (and global envs temporarily)
-example pattern: ellation-cx-&lt;env_full>-credentials
-example actual names: ellation-cx-staging-credentials, ellation-cx-mgmt.ellation-credentials
-HTTP direct buckets follow the same ownership rules as environment-specific buckets; they're just named differently
-example pattern: partnerfeed.&lt;domain>
-example actual name: partnerfeed.vrv.co, owned by the prod account (ellation)
-example name the same bucket in staging: partnerfeed.cx-staging.com, owned by the non-prod account (ellationeng)
-Infrastructure buckets
+Per AWS requirements, the bucket be named exactly as the FQDN that is CNAMEd to it.
+
+pattern: <code>&lt;contents>.mydomain.com or &lt;contents>-mynonprodprefix-&lt;env>.com</code>
+example: <code>media-downloads.mydomain.com</code> (which perhaps only has a prod version since it's a distribution point, not a service)
+
+### Bucket ownership and environment component of bucket name
+#### System-wide buckets that hold content for all environments in all accounts
+- Owned by: production account
+- &lt;env> is: "global"
+- example: mycompany-myproject-global-config
+
+#### Environment-specific buckets
+- owned by: whatever account owns the environment
+- &lt;env> is: &lt;env_full>, which appends ".&lt;account_alias>" for mgmt environments
+- example pattern: <code>mycompany-myproject-&lt;env_full>-credentials</code><br>
+- example actual names:<br>
+<code>mycompany-myproject-staging-credentials</code><br> <code>mycompany-myproject-mgmt.ellation-credentials</code>
+
+#### HTTP direct buckets follow the same ownership rules as environment-specific buckets; they're just named differently
+- example actual name: <code>media-downloads.&lt;mydomain.com></code>
+  - owned by the prod account
+- example actual name, same bucket, in staging: <code>media-downloads.&lt;mynonprodprefix>-staging.com
+  - owned by the non-prod account
+
+### Infrastructure buckets
 These names are reserved for infra and cannot be service names.
-infrastructure_bucket_suffix
-What's in the bucket
--configs
-Application/service configuration data. Configuration buckets are shared; services' configuration files and corresponding file of parameters to localize a service to an environment, are found on a path within a config bucket.
-Written by Jenkins when triggered by a commit to Github; read by the configuration script at instance initialization.
--credentials
-Encrypted credentials apps to use to sign on to RDS, SES, and other services.
-Written by our credential-management tool; read by the configuration script at instance initialization.
--dist
-Build artifacts for all services.
-Written by Jenkins, read by instances at startup to load application code.
--logs
 
-S3 bucket activity logs for the above.
--static	Static content for any service
--versions	Version tracking by service, environment, asset/resource
+| Infrastructure_bucket_suffix | What's in the bucket |
+|:--- |:--- |
+| -configs | Application/service configuration data. Configuration buckets are shared; services' configuration files and corresponding file of parameters to localize a service to an environment, are found on a path within a config bucket.<br>Written by Jenkins when triggered by a commit to Github; read by the configuration script at instance initialization. |
+| -credentials | Encrypted credentials apps to use to sign on to RDS, SES, and other services.<br>Written by our credential-management tool; read by the configuration script at instance initialization. |
+| -dist | Build artifacts for all services.<br>Written by Jenkins, read by instances at startup to load application code. |
+| -logs | S3 bucket activity logs for the above. |
+| -static | Static content for any service |
+| -versions | Version tracking by service, environment, asset/resource |
 
-S3 key-paths for service configuration
+### S3 key-paths for service configuration
 These objects are jointly managed by DevOps (who manage the tooling that places configs on instances) and by service developers (who decide what about their services to be configured). The use case for "configuration" data is service configuration and environment customization, loaded by services as they come up. Config objects are processed during init to build config files that are then used by the apps to start up.
 Config data is stored the ellation_formation repo in the /configs directory.
 Bucket
-s3://ellation-cx-global-configs
+s3://mycompany-myproject-global-configs
 Pattern
 configuration_template_path ::= /&lt;service>/templates/&lt;filename.ext>
 configuration_parameter_path ::= /&lt;service>/parameters/&lt;filename.ext>.parameters.json
@@ -289,29 +288,29 @@ Examples
 /cms-portal/parameters/nginx.conf.parameters.json
 S3 key-paths for Jenkins artifacts (built applications) in the global-dist bucket
 Bucket and top path
-s3://ellation-cx-global-dist/&lt;service>
+s3://mycompany-myproject-global-dist/&lt;service>
 Full path pattern
 artifact_path ::= /&lt;service>/[app]/&lt;artifact>
 [app] would allow the possibility of > 1 build artifact per service – TBD
 S3 key-paths for lambdas in the global-dist bucket
 Bucket and top path
-s3://ellation-cx-global-dist/lambdas
+s3://mycompany-myproject-global-dist/lambdas
 Pattern
 artifact_path ::= /lambdas/[app]/&lt;artifact>
 [app] would allow the possibility of > 1 build artifact per service – TBD
 S3 buckets and key paths for service-owned buckets
 Bucket name in the CloudFormation template:
 if the service has one bucket
-  ellation-cx-{{ENV}}-{{SERVICE}}
+  mycompany-myproject-{{ENV}}-{{SERVICE}}
 if the service has more than one bucket
-  ellation-cx-{{ENV}}-{{SERVICE}}-&lt;content>
+  mycompany-myproject-{{ENV}}-{{SERVICE}}-&lt;content>
 Examples:
-  ellation-cx-staging-cms-ingest
-  ellation-cx-prod-vod-media
-  ellation-cx-proto3-vod-ingest
+  mycompany-myproject-staging-cms-ingest
+  mycompany-myproject-prod-vod-media
+  mycompany-myproject-proto3-vod-ingest
 
 Logging bucket and path
-All logs are captured in the environment's shared "-logs" bucket, ellation-cx-&lt;env>-logs
+All logs are captured in the environment's shared "-logs" bucket, mycompany-myproject-&lt;env>-logs
 /{{SERVICE}}
 or
 /{{SERVICE}}-&lt;content>
@@ -319,23 +318,23 @@ Keys and paths within the bucket should be defined by the service owner in whate
 Key path patterns should be documented in the service runbook as appropriate
 If get or put rates will approach or exceed 100 RPS, see Request Rate and Performance Considerations in the AWS Developer Guide
 S3 key paths for static content in the shared -static buckets
-All services share the static buckets, "ellation-cx-&lt;env>-static"
+All services share the static buckets, "mycompany-myproject-&lt;env>-static"
 Every service has a top-level path that is the name of the service:
 Pattern:
-ellation-cx-&lt;env>-static/&lt;service>
+mycompany-myproject-&lt;env>-static/&lt;service>
 Example:
-in template: ellation-cx-&lt;env>-static/{{SERVICE}}
-rendered: ellation-cx-staging-static/vrvweb
+in template: mycompany-myproject-&lt;env>-static/{{SERVICE}}
+rendered: mycompany-myproject-staging-static/vrvweb
 Logging bucket is shared:
-ellation-cx-&lt;env>-static-logs/
+mycompany-myproject-&lt;env>-static-logs/
 Log path is "{{SERVICE}}/"
 Keys and paths below &lt;service>/ in the static bucket path are arranged entirely at the discretion of the service owner
 Please document key path patterns in the service runbook, so that ops and others can understand the key structure if it becomes necessary to troubleshoot the bucket
 If get or put rates will approach or exceed 100 RPS, see Request Rate and Performance Considerations in the AWS Developer Guide and talk to DevOps. A service-specific S3 bucket may be necessary for high-traffic buckets.
 S3 Bucket LogFilePrefix
 Every environment has a shared "-logs" bucket that all other S3 buckets write their logs to. Each bucket has its own path within the -logs bucket.
-log_bucket_name ::= ellation-cx-&lt;environment>-logs
-example: ellation-cx-staging-logs
+log_bucket_name ::= mycompany-myproject-&lt;environment>-logs
+example: mycompany-myproject-staging-logs
 If a CloudFormation template creates only one S3 bucket and no SQS queues, the bucket's logging path is its service name, usually "s3-service>/"
 In a Cloudformation template, the LogFilePrefix element of LoggingConfiguration of "AWS::S3::Bucket" is written this way:
 {{SERVICE}}/
@@ -343,10 +342,10 @@ For S3 buckets created as fixtures (100% of buckets at this writing), this LogFi
 s3-partnerfeed/
 If a Cloudformation template creates more than one S3 bucket, or the template creates both S3 buckets plus related SQS queues, then the bucket's logging prefix is derived from the bucket name, and {{SERVICE}}/ is not used to define the LogFilePrefix
 To the get the LogFilePath for a bucket in a multi-bucket or bucket-and-SQS template:
-Replace the prefix "ellation-cx-&lt;env>-" in the bucket's name with "s3-".
+Replace the prefix "mycompany-myproject-&lt;env>-" in the bucket's name with "s3-".
 Append a "/"
 Example:
-if the bucket name is: ellation-cx-{{ENV}}-cms-ingest-uploads
+if the bucket name is: mycompany-myproject-{{ENV}}-cms-ingest-uploads
 then the LogFilePrefix is: s3-cms-ingest-uploads/
 Note: if bucket and template naming conventions have been followed, this pattern generates the same LogFilePrefix as {{SERVICE/}} if used in a single-bucket template.
 S3 Key-paths for credentials
