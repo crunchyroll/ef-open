@@ -55,9 +55,8 @@ you give one up accidentally._<br>
 ##### envs are: proto0..protoN, staging, prod, internal, mgmt.<ACCOUNT_ALIAS>, ...
 - CloudFront Origin Access Identities (OAI) (MANUAL)<br>
 Account OAIs (named for their origins)<br>
-<code>ACCOUNT / OAIs (named for their origins)<br>
-myaccount / static.myaccount.com
-</code><br>
+<code>ACCOUNT / OAIs (named for their origins)</code><br>
+<code>myaccount / static.myaccount.com</code><br>
 _Create one OAI per environment for each CloudFront distribution that needs it._<br>
 _An OAI authenticates Cloudfront to S3._<br>
 _Every OAI is named for the origin and environment that it represents (e.g. 'static.myaccount.com')_<br>
@@ -69,7 +68,7 @@ https://console.aws.amazon.com/cloudfront/home?region=us-west-2#oai:
 <code>ef-cf fixtures/templates/network.json \<env\> --commit</code>
 - VPN<br>
 _requires additional setup: at instantiation the VPN creates a pre-shared key that must be manually entered into the VPN endpoint_<br>
-_To download a router configuration version of the configuration for a router in the data center, use the web GUI: VPC Dashboard → VPN Connections → select a VPN → Download Configuration. Then select vendor and software version, or use Vendor: Generic, Platform: Generic, Software: Vendor Agnostic for human-readable details._
+_To download a router configuration version of the configuration for a router in the data center, use the web GUI: VPC Dashboard → VPN Connections → select a VPN → Download Configuration. Then select vendor and software version, or use Vendor: Generic, Platform: Generic, Software: Vendor Agnostic for human-readable details._<br>
 <code>ef-cf fixtures/templates/vpn.json \<env\> --commit</code>
 - Roles and security groups for every \<env\>-\<service\><br>
 Inline policies onto roles from /policy_templates directory<br>
