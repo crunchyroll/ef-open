@@ -333,15 +333,14 @@ Every service has a top-level path that is the name of the service.
 
 Pattern: <code>mycompany-myproject-&lt;env>-static/&lt;service></code><br>
 Example:<br>
-in template: <code>mycompany-myproject-&lt;env>-static/{{SERVICE}}</code>
-fully resolved: <code>mycompany-myproject-staging-static/vrvweb</code>
+in template: <code>mycompany-myproject-{{ENV}}-static/{{SERVICE}}</code><br>
+fully resolved in staging: <code>mycompany-myproject-staging-static/myservice</code>
 
-Logging bucket is shared:
-mycompany-myproject-&lt;env>-static-logs/
-Log path is "{{SERVICE}}/"
-Keys and paths below &lt;service>/ in the static bucket path are arranged entirely at the discretion of the service owner
-Please document key path patterns in the service runbook, so that ops and others can understand the key structure if it becomes necessary to troubleshoot the bucket
-If get or put rates will approach or exceed 100 RPS, see Request Rate and Performance Considerations in the AWS Developer Guide and talk to DevOps. A service-specific S3 bucket may be necessary for high-traffic buckets.
+Logging bucket:
+the logging bucket is shared: <code>mycompany-myproject-&lt;env>-static-logs/</code>
+
+Log path: <code>"{{SERVICE}}/"</code>
+
 S3 Bucket LogFilePrefix
 Every environment has a shared "-logs" bucket that all other S3 buckets write their logs to. Each bucket has its own path within the -logs bucket.
 log_bucket_name ::= mycompany-myproject-&lt;environment>-logs
@@ -416,26 +415,23 @@ dependencies, deployed into S3.
 Note: this is the way forward for all lambdas.
 i-do-something.zip
 
-CloudFormation names
-Stack name
-Pattern: stack_name ::= &lt;env>-&lt;fixture_or_service_name>
-Examples for fixtures: prod-s3, proto1-network, prod-i-do-something
-Examples for services: prod-cx_api, proto2-vod
-Template filename
-Pattern: template_filename ::= &lt;fixture_or_service_name>.json
-Examples: network.json, cx_api.json
-Parameter-file filename
-Pattern: parameter_filename ::= &lt;fixture_or_service_name>.parameters.&lt;env>.json
-Examples: network.parameters.proto0.json, s3.parameters.staging.json
-References inside CloudFormation templates
-CamelCase
-Examples: Vpc, SubnetA, SubnetB, Dns, EssCron
-AMI names
-AMI's are generated from our Packer template inside of Jenkins. There are two Jenkins jobs that will produce AMI's.
-&lt;SERVICE>-ami : This Jenkins job contains the Chef integration pieces necessary to start and bring up the service.
-Example: Jenkins job ess-ami
-&lt;SERVICE>-build: This Jenkins job will take the AMI that was built from step 1 and integrate it with the application code that has been compiled and built in this step.
-Example: Jenkins job ess-build
-The final AMI produced will be of this following pattern:
-Pattern: ami_name ::= &lt;SERVICE>[.&lt;SUBSERVICE>]-release
-Example: ess-release, ess.cassandra-release
+### CloudFormation names
+#### Cloudformation stack name
+- Pattern: <code>stack_name ::= &lt;env>-&lt;fixture_or_service_name></code>
+- Examples for fixtures:
+  - <code>prod-s3, proto1-network</code>
+- Examples for services:
+  - <code>prod-myservice1, proto3-myservice2</code>
+- Template filename:
+  - Pattern: <code>template_filename ::= &lt;fixture_or_service_name>.json</code>
+  - Examples: <code>network.json, cx_api.json</code>
+- Parameter-file filename:
+  - Pattern: <code>parameter_filename ::= &lt;fixture_or_service_name>.parameters.&lt;env>.json</code>
+  - Examples: <code>network.parameters.proto0.json, s3.parameters.staging.json</code>
+- References inside CloudFormation templates:
+  - CamelCase
+  - Examples: <code>Vpc, SubnetA, SubnetB, Dns, EssCron</code>
+
+### AMI names:
+  - Pattern: <code>ami_name ::= &lt;SERVICE>[.&lt;SUBSERVICE>]-release</code>
+  - Example: <code>myservice1-release, myservice2.mysubservice2A-release</code>
