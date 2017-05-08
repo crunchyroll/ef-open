@@ -81,10 +81,12 @@ _e.g. set the office ip addresses in the CIDR security group_<br>
 <code>ef-cf fixtures/templates/s3-logs.json \<env\> --commit</code><br>
 <code>ef-cf fixtures/templates/s3-credentials.json \<env\> --commit</code><br>
 <code>ef-cf fixtures/templates/s3-static.json \<env\> --commit</code><br>
-- Per-environment service-owned S3 buckets (s3-\*), and buckets and queues together (s3-sqs-*) where bucket events create messages in the SQS queues<br>
+- Per-environment service-owned S3 buckets (s3-\*)<br>
+S3 buckets and queues together (s3-sqs-*) where bucket events create messages in the SQS queues<br>
 <code>ef-cf fixtures/templates/s3-MYSERVICE1.json prod --commit (prod only)</code><br>
-<code>ef-cf fixtures/templates/s3-MYSERVICE2-SERVICEBUCKET1.json \<env\> --commit</code><br>
-<code>ef-cf fixtures/templates/s3-MYSERVICE2-SERVICEBUCKET2.json \<env\> --commit</code><br>
+<code>ef-cf fixtures/templates/s3-MYSERVICE2-BUCKET1.json \<env\> --commit</code><br>
+<code>ef-cf fixtures/templates/s3-MYSERVICE2-BUCKET2.json \<env\> --commit</code><br>
+<code>ef-cf fixtures/templates/s3-sqs-MYSERVICE3.json \<env\> --commit</code><br>
 - DNS hosted zones<br>
 _DNS hosted zone glue records for delegated subdomains_<br>
 _MANUAL FOLLOWUP: Update domain NS records in whois if zones were created for the first time or nameservers changed (needs a script)_<br>
