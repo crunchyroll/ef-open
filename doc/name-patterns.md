@@ -276,55 +276,66 @@ These names are reserved for infra and cannot be service names.
 | -versions | Version tracking by service, environment, asset/resource |
 
 ### S3 key-paths for service configuration
-These objects are jointly managed by DevOps (who manage the tooling that places configs on instances) and by service developers (who decide what about their services to be configured). The use case for "configuration" data is service configuration and environment customization, loaded by services as they come up. Config objects are processed during init to build config files that are then used by the apps to start up.
-Config data is stored the ellation_formation repo in the /configs directory.
-Bucket
-s3://mycompany-myproject-global-configs
-Pattern
-configuration_template_path ::= /&lt;service>/templates/&lt;filename.ext>
-configuration_parameter_path ::= /&lt;service>/parameters/&lt;filename.ext>.parameters.json
-Examples
-/cms-portal/templates/nginx.conf
-/cms-portal/parameters/nginx.conf.parameters.json
-S3 key-paths for Jenkins artifacts (built applications) in the global-dist bucket
-Bucket and top path
-s3://mycompany-myproject-global-dist/&lt;service>
-Full path pattern
-artifact_path ::= /&lt;service>/[app]/&lt;artifact>
-[app] would allow the possibility of > 1 build artifact per service – TBD
-S3 key-paths for lambdas in the global-dist bucket
-Bucket and top path
-s3://mycompany-myproject-global-dist/lambdas
-Pattern
-artifact_path ::= /lambdas/[app]/&lt;artifact>
-[app] would allow the possibility of > 1 build artifact per service – TBD
-S3 buckets and key paths for service-owned buckets
-Bucket name in the CloudFormation template:
-if the service has one bucket
-  mycompany-myproject-{{ENV}}-{{SERVICE}}
-if the service has more than one bucket
-  mycompany-myproject-{{ENV}}-{{SERVICE}}-&lt;content>
-Examples:
-  mycompany-myproject-staging-cms-ingest
-  mycompany-myproject-prod-vod-media
-  mycompany-myproject-proto3-vod-ingest
+These objects are jointly managed by DevOps (who manage the tooling that places configs on instances) and by service developers (who decide what about their services to be configured).
 
-Logging bucket and path
-All logs are captured in the environment's shared "-logs" bucket, mycompany-myproject-&lt;env>-logs
-/{{SERVICE}}
+The use case for "configuration" data is service configuration and environment customization, loaded by services as they come up. Config objects are processed during init to build config files that are then used by the apps to start up.
+
+Config data is stored the Infrastructure repo in the /configs directory.
+
+#### Service configuration bucket
+s3://mycompany-myproject-global-configs
+
+##### Service configuration key path pattern
+<code>configuration_template_path ::= /&lt;service>/templates/&lt;filename.ext></code><br>
+<code>configuration_parameter_path ::= /&lt;service>/parameters/&lt;filename.ext>.parameters.json</code>
+
+##### Service configuration key path example
+<code>/myservice1/templates/nginx.conf</code><br>
+<code>/myservice1/parameters/nginx.conf.parameters.json</code>
+
+#### S3 key-paths for Jenkins artifacts (built applications) in the global-dist bucket
+##### Bucket and top path
+- <code>s3://mycompany-myproject-global-dist/&lt;service></code>
+##### Full path pattern
+- <code>artifact_path ::= /&lt;service>/[app]/&lt;artifact></code>
+  - [app] allows for > 1 build artifact per service
+
+#### S3 key-paths for lambdas in the global-dist bucket
+##### Bucket and top path
+- <code>s3://mycompany-myproject-global-dist/lambdas</code>
+##### Full path pattern
+- <code>artifact_path ::= /lambdas/[app]/&lt;artifact></code>
+  - [app] allows for > 1 build artifact per service
+
+#### S3 buckets and key paths for service-owned buckets
+##### Bucket name in the CloudFormation template
+- if the service has one bucket<br><code>mycompany-myproject-{{ENV}}-{{SERVICE}}</code>
+- if the service has more than one bucket<br><code>mycompany-myproject-{{ENV}}-{{SERVICE}}-&lt;content></code>
+
+##### Examples:
+- <code>mycompany-myproject-myservice1-photos<br>mycompany-myproject-prod-myservice2</code>
+
+##### Logging bucket and path for service-owned buckets
+All logs are captured in the environment's shared "-logs" bucket, mycompany-myproject-&lt;env>-logs.
+The path is:
+- <code>/{{SERVICE}}</code>
 or
-/{{SERVICE}}-&lt;content>
-Keys and paths within the bucket should be defined by the service owner in whatever manner is appropriate for the service's needs
-Key path patterns should be documented in the service runbook as appropriate
-If get or put rates will approach or exceed 100 RPS, see Request Rate and Performance Considerations in the AWS Developer Guide
-S3 key paths for static content in the shared -static buckets
-All services share the static buckets, "mycompany-myproject-&lt;env>-static"
-Every service has a top-level path that is the name of the service:
-Pattern:
-mycompany-myproject-&lt;env>-static/&lt;service>
-Example:
-in template: mycompany-myproject-&lt;env>-static/{{SERVICE}}
-rendered: mycompany-myproject-staging-static/vrvweb
+- <code>/{{SERVICE}}-&lt;content></code>
+
+- Keys and paths within the bucket should be defined by the service owner in whatever manner is appropriate for the service's needs
+- Key path patterns should be documented in the service runbook as appropriate
+- If get or put rates will approach or exceed 100 RPS, see Request Rate and Performance Considerations in the AWS Developer Guide
+
+#### S3 key paths for static content in the shared -static buckets
+All services share the static buckets: <code>"mycompany-myproject-&lt;env>-static"</code>
+
+Every service has a top-level path that is the name of the service.
+
+Pattern: <code>mycompany-myproject-&lt;env>-static/&lt;service></code><br>
+Example:<br>
+in template: <code>mycompany-myproject-&lt;env>-static/{{SERVICE}}</code>
+fully resolved: <code>mycompany-myproject-staging-static/vrvweb</code>
+
 Logging bucket is shared:
 mycompany-myproject-&lt;env>-static-logs/
 Log path is "{{SERVICE}}/"
