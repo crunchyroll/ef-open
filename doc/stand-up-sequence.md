@@ -5,12 +5,6 @@
 - S3 bucket and Cloudfront fixture resource mappings (table is also embedded in Name Patterns and Paths)
 
 ### Stand-up sequence
-
-| What | How to stand it up |
-| ---- | ------------------ |
-| thing | thing |
-
-
 #### 1a. Always-present IAM Groups (create once per account)
 _When adding a user to the account via IAM, make the user a member of this group.
 The AllUsers group allows the minimum necessary self-management (password and MFA self-help)
@@ -56,9 +50,12 @@ you give one up accidentally._<br>
 #### 3. Environment-specific fixtures (scope is per-applicable-environment)
 ##### envs are: proto0..protoN, staging, prod, internal, mgmt.<ACCOUNT_ALIAS>, ...
 - CloudFront Origin Access Identities (OAI) (MANUAL)<br>
-Account OAIs (named for their origins)<br>
-<code>ACCOUNT / OAIs (named for their origins)</code><br>
-<code>myaccount / static.myaccount.com</code><br>
+Account OAIs (named for their origins, examples:<br>
+||ACCOUNT || OAIs (named for their origins)||
+| ------- | ------------------------------- |
+| myaccount | static.myaccount-prod.com|
+| myaccount2 | www.myaccount-prod.com |
+
 _Create one OAI per environment for each CloudFront distribution that needs it._<br>
 _An OAI authenticates Cloudfront to S3._<br>
 _Every OAI is named for the origin and environment that it represents (e.g. 'static.myaccount.com')_<br>
