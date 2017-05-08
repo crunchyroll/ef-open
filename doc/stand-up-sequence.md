@@ -73,14 +73,14 @@ _To download a router configuration version of the configuration for a router in
 <code>ef-cf fixtures/templates/vpn.json \<env\> --commit</code>
 - Roles and security groups for every \<env\>-\<service\><br>
 Inline policies onto roles from /policy_templates directory<br>
-Customer-Managed Keys (CMKs) in KMS for every <service>
+Customer-Managed Keys (CMKs) in KMS for every service<br>
 <code>ef-generate \<env\> --commit</code>
 - Static fixture security groups<br>
 _e.g. set the office ip addresses in the CIDR security group_<br>
-<code>ef-cf fixtures/templates/sg.json \<env\> --commit<br>
+<code>ef-cf fixtures/templates/sg.json \<env\> --commit</code><br>
 - Per-environment common S3 buckets<br>
-<code>ef-cf fixtures/templates/s3-logs.json \<env\> --commit<br>
-<code>ef-cf fixtures/templates/s3-credentials.json \<env\> --commit<br>
+<code>ef-cf fixtures/templates/s3-logs.json \<env\> --commit</code><br>
+<code>ef-cf fixtures/templates/s3-credentials.json \<env\> --commit</code><br>
 <code>ef-cf fixtures/templates/s3-static.json \<env\> --commit</code><br>
 - Per-environment service-owned S3 buckets (s3-\*), and buckets and queues together (s3-sqs-*) where bucket events create messages in the SQS queues<br>
 <code>ef-cf fixtures/templates/s3-MYSERVICE1.json prod --commit (prod only)</code><br>
