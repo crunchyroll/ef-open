@@ -1,22 +1,31 @@
 ## Name Patterns and Paths
-General rules for all names
-Unless the pattern explicitly states otherwise, use lowercase characters a-z, digits 0-9, '-', and '_' only in names.
-'-' (hyphen) is a delimiter between fields of a compound name composed of many fields
-examples
-prod-ess
-staging-vod
-Sometimes separator characters cause conflicts in names across AWS resources. For example, RDS names contain "-" (<env>-<service>) and may contain "." if <service> is a sub-service (e.g. "ess.cron"). However, RDS names are also used as DNS names, and therefore cannot contain a ".". In this case, we substitute "-" for the "." such that the first RDS for the "ess.cron" service is named "<env>-ess-cron" rather than "<env>-ess.cron".
-See also: Limitations on AWS IAM Entities and Objects
-Service short names
-Every service and fixture has a short name that identifies it in name strings throughout the architecture, in AWS, config files, and tools.
-Replace <service> in any name pattern with this short name. 
-Short names are anchored in the Service Registry (ellation_formation/service_registry.json) which contains descriptive records for all services, and without which, a service cannot be stood up by ef-cf.
-Examples:
-full service name: Ellation Subscription Service
-shortname: ess
 
-Names for AWS Resources not explicitly defined here 
-Most names are formed as "<env>-<service>" such as "prod-ess" or "proto0-vod".
+### General rules for all names
+
+- Unless the pattern explicitly states otherwise, use lowercase characters a-z, digits 0-9, '-', and '_' only in names.
+- '-' (hyphen) is a delimiter between fields of a compound name composed of many fields<br>
+- Examples:
+  - <code>prod-myservice1</code>
+  - <code>staging-myservice2</code>
+- Sometimes separator characters cause conflicts in names across AWS resources.
+  - For example, RDS names contain "-" (<env>-<service>).
+  - An RDS name could also contain "." if <service> is a sub-service (e.g. "myservice.cron").
+  - However, RDS names are also used as DNS names, and therefore cannot contain a ".".
+  - In this case, substitute "-" for the "." such that the first RDS for the "myservice.cron" service is named "\<env>-myservice-cron" rather than "\<env>-myservice.cron".
+  - See also: Limitations on AWS IAM Entities and Objects<br>
+
+### Service short names
+- Every service and fixture has a short name that identifies it in name strings throughout the architecture in AWS, config files, and tools.
+- Replace \<service\> in any name pattern with this short name.
+- Short names are anchored in the Service Registry (/path/to/your/service_registry.json) which contains descriptive records for all services.
+  - A service without an entry in the sevice registry cannot be stood up by ef-cf.
+- Don't use or abbreviate the word "service" as part of a service's short name
+- Examples:
+  - full service name: Billing Service
+  - shortname: billing
+
+### Names for AWS Resources not explicitly defined here 
+- Most names are formed as "\<env\>-\<service\>" such as "prod-myservice1" or "proto0-myservice2".
 Most names are always used within a context that identifies the type of resource. So it is usually not necessary or useful to include a resource type in the name of the resource.
 In a few cases, we do include resource information in a name. For example, we label security groups that connect dissimilar resources (for example, an ELB to its EC2 instances) so that we can see what's connecting to what. For security group names, we append the name of the resource ("ec2", "lambda", or "elb").
 For resources that don't have naming conventions explicitly written out here, adopt the above pattern. 
