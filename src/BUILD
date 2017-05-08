@@ -1,8 +1,13 @@
 python_binary(
   name = 'ef-cf',
   source = 'ef-cf.py',
+  repositories = [
+    'ef-open',
+    'ellation_formation'
+  ],
   dependencies = [
     ':boto3',
+    ':siteconfig',
     ':tools'
   ]
  )
@@ -53,4 +58,11 @@ python_requirement_library(
 python_library(
   name = 'tools',
   sources = globs('ef_*.py')
+)
+
+python_library(
+  name = 'siteconfig',
+  sources = [
+    'ef_site_config.py'
+  ]
 )

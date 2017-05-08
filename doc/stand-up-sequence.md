@@ -8,6 +8,8 @@
 
 | What | How to stand it up |
 | ---- | ------------------ |
+| thing | thing |
+
 
 #### 1a. Always-present IAM Groups (create once per account)
 _When adding a user to the account via IAM, make the user a member of this group.
