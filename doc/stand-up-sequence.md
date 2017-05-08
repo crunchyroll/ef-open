@@ -23,20 +23,20 @@ plus read access to the production and non-production AWS tooling (architecture,
 
 
 #### 2. Global fixtures (scope is per-account)
-- Attach policies to the group AllUsers	
-<code>ef-cf fixtures/templates/policy-allusers.json global.<ACCOUNT_ALIAS> --commit</code>
-<code>ef-cf fixtures/templates/policy-2fausers.json global.<ACCOUNT_ALIAS> --commit</code>
-- Attach policies to the other IAM Groups	
-<code>ef-cf fixtures/templates/policy-some-group.json global.<ACCOUNT_ALIAS> --commit</code>
+- Attach policies to the group AllUsers<br>
+<code>ef-cf fixtures/templates/policy-allusers.json global.<ACCOUNT_ALIAS> --commit</code><br>
+<code>ef-cf fixtures/templates/policy-2fausers.json global.<ACCOUNT_ALIAS> --commit</code><br>
+- Attach policies to the other IAM Groups<br>
+<code>ef-cf fixtures/templates/policy-some-group.json global.<ACCOUNT_ALIAS> --commit</code><br>
 - Global s3 logging buckets<br>
-<code>ef-cf fixtures/templates/s3-logs.json global.<ACCOUNT_ALIAS> --commit</code>
+<code>ef-cf fixtures/templates/s3-logs.json global.<ACCOUNT_ALIAS> --commit</code><br>
 - Global s3 buckets<br>
-<code>ef-cf fixtures/templates/s3-configs.json global.<ACCOUNT_ALIAS> --commit</code>
+<code>ef-cf fixtures/templates/s3-configs.json global.<ACCOUNT_ALIAS> --commit</code><br>
 - Global Web Application Firewall (WAF) shared rules<br>
 _e.g. to create a shareable rule with office CIDRs_<br>
-<code>ef-cf fixtures/templates/waf-rules.json global.<ACCOUNT_ALIAS> --commit</code>
+<code>ef-cf fixtures/templates/waf-rules.json global.<ACCOUNT_ALIAS> --commit</code><br>
 - SNS topics for each global account<br>
-<code>ef-cf fixtures/templates/sns-topics.json global.<ACCOUNT_ALIAS> --commit</code>
+<code>ef-cf fixtures/templates/sns-topics.json global.<ACCOUNT_ALIAS> --commit</code><br>
 - Elastic IPs<br>
 _Each Elastic IP is designated for use by a specific service in a specific environment.
 However, the set of Elastic IPs itself is owned by the account. We maintain the set of
@@ -44,11 +44,11 @@ Elastic IPs as a global fixture in each account, defined in a single template to
 keep the IPs centrally managed; (2) make it difficult to lose/accidentally rotate out
 elegated IPs due to a code change - there's no way to reclaim an Elastic IP address if
 you give one up accidentally._<br>
-<code>ef-cf fixtures/templates/elasticip.json global.<ACCOUNT_ALIAS> --commit</code>
+<code>ef-cf fixtures/templates/elasticip.json global.<ACCOUNT_ALIAS> --commit</code><br>
 - Roles for the global environments (needed in cloudtrail-logs only)<br>
-<code>ef-generate global.<ACCOUNT_ALIAS> --commit</code>
+<code>ef-generate global.<ACCOUNT_ALIAS> --commit</code><br>
 - CloudTrail alarms for every account<br>
-<code>ef-cf fixtures/templates/cloudtrail-logs.json global.<ACCOUNT_ALIAS> --commit</code>
+<code>ef-cf fixtures/templates/cloudtrail-logs.json global.<ACCOUNT_ALIAS> --commit</code><br>
 
 
 #### 3. Environment-specific fixtures (scope is per-applicable-environment)
