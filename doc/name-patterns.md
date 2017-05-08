@@ -214,39 +214,31 @@ It's OK to define a bucket within a service's template, rather than as a fixture
 #### Table of infrastructure buckets and service buckets that are stood up as fixtures
 <code>S3PREFIX ::= &lt;company>-&lt;prefix></code>
 
-| Template name | Resource belongs<br>to env → | proto0,1,2,3 | staging | prod | mgmt.ellationeng | mgmt.ellation | global.ellation | global.ellationeng |
+| Template name | Resource belongs<br>to env → | proto0,1,2,3 | staging | prod | mgmt.&lt;NONPROD_ALIAS> | mgmt.&lt;PROD_ALIAS> | global.&lt;PROD_ALIAS> | global.&lt;NONPROD_ALIAS> |
 | --- | --- |:---:|:---:|:---:|:---:|:---:|:---:|:---:|
 | **Logging** |
-| s3-logs.json | &lt;S3PREFIX&gt;-<ENV_FULL>-logs | X | X | X | X | X | X | X |
+| s3-logs.json | &lt;S3PREFIX&gt;-&lt;ENV_FULL>-logs | X | X | X | X | X | X | X |
 | **System-wide buckets (all accounts/envs use them)** |
 | s3-configs.json | &lt;S3PREFIX&gt;-global-configs | | | | | | X | |
 | s3-dist.json | &lt;S3PREFIX&gt;-global-dist | | | | | | X | |
 | s3-versions.json | &lt;S3PREFIX&gt;-global-versions | | | | | | X | |
-
-s3-dist.json	ellation-cx-global-dist									X
-s3-versions.json	ellation-cx-global-versions									X
-Per-environment buckets (envs w/ compute resources only)											
-s3-credentials.json	ellation-cx-<ENV_FULL>-credentials	X	X	X	X	X	X	X	X		
-Application environments											
-s3-cms-imagestore.json	ellation-cx-<ENV>-cms-imagestore	X	X	X	X	X	X				
-s3-data-events.json	ellation-cx-<ENV>-data-events	X	X	X	X	X	X				
-s3-partnerfeed.json	partnerfeed.vrv.co						X				
-s3-static.json	ellation-cx-<ENV>-static	X	X	X	X	X	X				
-s3-vod-ingest.json	ellation-cx-<ENV>-vod-ingest	X	X	X	X	X	X				
-s3-vod-media.json	ellation-cx-<ENV>-vod-media	X	X	X	X	X	X				
+| **Per-environment buckets (envs w/ compute resources only)** |
+| s3-credentials.json | &lt;S3PREFIX&gt;-&lt;ENV_FULL>-credentials | X | X | X | X | X | | |
+| **Application environments** |
+| s3-myservice1.json | &lt;S3PREFIX&gt;-&lt;ENV>-myservice1 | X | X | X | | |	| |
+| s3-mywebsite.json | website.mydomain.com | | | X | | | | |
+| s3-static.json | &lt;S3PREFIX&gt;-&lt;ENV>-static | X | X | X | | |	| | |
 
 
-(also shows cloudfront distributions and their envs)
+#### Specific pattern: Service-owned bucket (used by one or more services)
+pattern: <code>&lt;S3PREFIX>-&lt;env>-&lt;service>-[content]</code><br>
+example: <code>mycompany-myproject-prod-myservice-images</code>
 
-Bucket names
-Every bucket name follows one of these patterns:
-Service-owned bucket (used by one or more services, see more detailed example below):
-pattern: ellation-cx-&lt;env>-[service]-&lt;content>
-example: ellation-cx-prod-cms-ingest
-Infrastructure bucket (core component of the ETP architecture)
-pattern: ellation-cx-[&lt;env>|global|global.&lt;account>]-&lt;infrastructure_bucket_suffix>
-example: ellation-cx-global-configs
-HTTP direct (serves content directly via HTTP, without CloudFront ahead of it
+#### Infrastructure bucket (core component of the ETP architecture)
+pattern: <code>&lt;S3PREFIX>-[&lt;env>|global|global.&lt;account>]-&lt;infrastructure_bucket_suffix></code>
+example: <code>mycompany-myproject-global-configs</code>
+
+#### HTTP direct (serves content directly via HTTP, without CloudFront ahead of it
 Per AWS requirements, must be named exactly as the FQDN that is CNAMEd to it
 There's only one case of this pattern at present:
 pattern: &lt;contents>.vrv.co (production) or &lt;contents>.cx-&lt;env>.com (non-production)
