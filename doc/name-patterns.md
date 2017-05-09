@@ -402,7 +402,7 @@ If a type_qualifier is not needed, omit it.
 ### Lambda and lambda-related names
 
 Lambdas are services, so the lambda's name in the infrastructure is the same as any plain service name:<br>
-- pattern: <code>&lt;ENV&gt;-&lt;SERVICE&gt;
+- pattern: <code>&lt;ENV&gt;-&lt;SERVICE&gt;</code>
 - in a CloudFormation template: <code>{{ENV}}-{{SERVICE}}</code>
 
 Lambdas as deployed from source or ZIP files ("build artifacts" in the vernacular):
