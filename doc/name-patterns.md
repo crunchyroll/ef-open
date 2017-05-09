@@ -381,7 +381,7 @@ _Note: if bucket and template naming conventions have been followed, this patter
 - Valid values for &lt;resource>:
   - <code>cloudfront</code> : the cloudfront service (most commonly used to provide a private key used for edge authentication
   - <code>&lt;service></code> : the shortname of any service (AWS or our own) that requires authentication
-  - <code>&lt;database> : the common name of a database in RDS (TBD w/ devs)
+  - <code>&lt;database></code> : the common name of a database in RDS (TBD w/ devs)
 - <code>&lt;type></code> is the description of the actual object stored at this key. Valid values for <code>&lt;type>:</code>
   - <code>rsa_private_key</code>
   - <code>rsa_public_key</code>
