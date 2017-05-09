@@ -352,7 +352,7 @@ Every environment has a shared "-logs" bucket that all other S3 buckets in that 
 - Pattern: <code>log_bucket_name ::= &lt;S3PREFIX&gt;-&lt;environment>-logs</code>
 - Example: <code>mycompany-myproject-staging-logs</code>
 
-If a CloudFormation template creates only one S3 bucket and no SQS queues, the bucket's logging path is its service name, usually <code>s3-&lt;service>/"
+If a CloudFormation template creates only one S3 bucket and no SQS queues, the bucket's logging path is its service name, usually "<code>s3-&lt;service>/</code>"
 
 - How it's written in a CloudFormation template:
   - <code>{{SERVICE}}/</code>
