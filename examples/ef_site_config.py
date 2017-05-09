@@ -22,40 +22,61 @@ class EFSiteConfig:
   """
 
   # Region to work in when no region is otherwise specified (tools only support 1 region at present - this one)
-  DEFAULT_REGION = ""  # your region, like us-west-2
+  #   Example: DEFAULT_REGION = "us-east-1"
+  DEFAULT_REGION = ""
 
   # Repo where tools and all EF data are
-  EF_REPO = "" # your repo, like "github.com/account/repo"
-  EF_REPO_BRANCH = "master" # your branch, we recommend master
+  #   Example: EF_REPO = "github.com/account/repo"
+  EF_REPO = ""
+
+  # Branch in EF_REPO to deploy CloudFormation templates from; probably "master"
+  #   Example: EF_REPO_BRANCH = "master"
+  EF_REPO_BRANCH = ""
 
   # Map environment::account alias (aliases must have matching profiles in .aws/credentials)
+  #   Example, assuming there are 3 AWS account altogether
+  #   "internal": "mycompanyint",
+  #   "prod": "mycompany",
+  #   "proto": "mycompanynonprod",
+  #   "staging": "mycompanynonprod"
   ENV_ACCOUNT_MAP = {
-    "internal": "", # The alias for the account of each environment.
+    "internal": "",
     "prod": "",
     "proto": "",
     "staging": ""
   }
 
-  # Number of prototype environments, numbered 0..N-1
+  # Number of prototype environments, numbered 0..N-1 (4 or fewer recommended)
+  #   Example: PROTO_ENVS = 4
   PROTO_ENVS = 4
 
-  # Bucket where late-bound service configs are found
-  S3_CONFIG_BUCKET = "" #name-of-config-bucket
+  # Bucket where late-bound service configs are found. See doc/name-patterns.md for S3 bucket naming conventions
+  #   Bucket name should be in this form: <S3PREFIX>-global-configs
+  #   Bucket does not have to exist yet (you will need the built tools to create it via CloudFormation)
+  #   Example: S3_CONFIG_BUCKET = "mycompany-myproject-global-configs
+  S3_CONFIG_BUCKET = ""
 
-  # Services in the service registry are clustered into groups, and can be addressed collectively by some tools.
-  # The group "fixtures" is required and will be added to this list in later code; don't list it here.
-  # The usual other groups are "platform_services" and "application_services".
-  # Each group must be contained in an object in the service registry.
+  # Services in the service registry are clustered into groups, and can be addressed collectively by some tools
+  #   The group "fixtures" is required and will be added by code; don't list it here
+  #   The usual other groups are "platform_services", "internal_services", and "application_services"
+  #   Each group must be contained in an object in the service registry.
   SERVICE_GROUPS = {
     "application_services",
     "internal_services",
     "platform_services"
   }
 
-  #### Version-management settings ####
-  # is --noprecheck allowed with ef-version --set and --rollback?
+  ## Version-management settings ##
+  #   is --noprecheck allowed with ef-version --set and --rollback?
   ALLOW_EF_VERSION_SKIP_PRECHECK = True
+
   # Bucket where versions are found
-  S3_VERSION_BUCKET = "" # name of your bucket that holds versions
+  #   Bucket name should be in this form: <S3PREFIX>-global-versions
+  #   Bucket does not have to exist yet (you will need the built tools to create it via CloudFormation)
+  #   Example: S3_VERSION_BUCKET = "mycompany-myproject-global-versions
+  S3_VERSION_BUCKET = ""
+
   # What envs are allowed to have special versions?
-  SPECIAL_VERSION_ENVS = ["proto"] # usually this is just 'proto'
+  #   Usually this only applies to 'proto'
+  #   Example: SPECIAL_VERSION_ENVS = ["proto"]
+  SPECIAL_VERSION_ENVS = ["proto"]

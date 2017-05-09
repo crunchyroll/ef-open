@@ -1,9 +1,11 @@
+from os import environ
+
 python_binary(
   name = 'ef-cf',
   source = 'ef-cf.py',
   dependencies = [
     ':boto3',
-    ':tools'
+    ':ef-open-lib'
   ]
  )
 
@@ -12,7 +14,7 @@ python_binary(
   source = 'ef-check-config.py',
   dependencies = [
     ':boto3',
-    ':tools'
+    ':ef-open-lib'
   ]
 )
 
@@ -21,7 +23,7 @@ python_binary(
   source = 'ef-generate.py',
   dependencies = [
     ':boto3',
-    ':tools'
+    ':ef-open-lib'
   ]
 )
 
@@ -30,7 +32,7 @@ python_binary(
   source = 'ef-resolve-config.py',
   dependencies = [
     ':boto3',
-    ':tools'
+    ':ef-open-lib'
   ]
 )
 
@@ -39,7 +41,7 @@ python_binary(
   source = 'ef-version.py',
   dependencies = [
     ':boto3',
-    ':tools'
+    ':ef-open-lib'
   ]
 )
 
@@ -51,9 +53,9 @@ python_requirement_library(
 )
 
 python_library(
-  name = 'tools',
+  name = 'ef-open-lib',
   dependencies = [
-    'ellation_formation:siteconfig'
+    environ["EF_SITE_CONFIG"]+":siteconfig"
   ],
-  sources = globs('ef_*.py')
+  sources = globs('ef_*.py', exclude=['ef_site_config.py'])
 )
