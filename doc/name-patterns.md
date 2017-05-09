@@ -267,7 +267,7 @@ example: <code>media-downloads.mydomain.com</code> (which perhaps only has a pro
 #### HTTP direct buckets follow the same ownership rules as environment-specific buckets; they're just named differently
 - example actual name: <code>media-downloads.&lt;mydomain.com></code>
   - owned by the prod account
-- example actual name, same bucket, in staging: <code>media-downloads.&lt;mynonprodprefix>-staging.com
+- example actual name, same bucket, in staging: <code>media-downloads.&lt;mynonprodprefix>-staging.com</code>
   - owned by the non-prod account
 
 ### Infrastructure buckets
