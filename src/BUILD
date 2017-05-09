@@ -52,5 +52,8 @@ python_requirement_library(
 
 python_library(
   name = 'tools',
+  dependencies = [
+    'ellation_formation:siteconfig'
+  ],
   sources = globs('ef_*.py')
 )
