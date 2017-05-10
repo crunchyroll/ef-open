@@ -114,7 +114,7 @@ We set the "description" field of the ENI to a uniformly-formatted, unique strin
 #### Pattern for RDS instance names for instances owned by one service
 <code>rds_dns_name ::= rds-&lt;env>-&lt;service>[-&lt;description>]</code><br>
 
-0 Optional &lt;description> distinguishes DBs when more than one RDS belongs to a service
+Optional &lt;description> distinguishes DBs when more than one RDS belongs to a service
 
 #### Pattern for RDS instance names for instances shared by multiple services with no dominant owner
 <code>rds_dns_name ::= rds-&lt;env>-&lt;description></code><br>
