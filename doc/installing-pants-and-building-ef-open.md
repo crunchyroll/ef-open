@@ -30,7 +30,7 @@ Set MY_REPO to your infrastructure repo. Cloudformation templates and parameters
 ```bash
 export MY_REPO=my-repo
 ```
-Change to the directory above all your repos.<br>
+cd to the directory above all the repos.<br>
 Under this directory should be, at least: ef-open/ and $MY_REPO/
 ```bash
 $ cd ~/workspace
