@@ -4,7 +4,7 @@ To build the ef-open tools, you will need to:
  - create and configure "ef_site_config.py" file and accompanying BUILD.siteconfig file in a repo you control
  - export an environment variable to tell pants where ef_site_config.py is
 
-### Installing pants
+### Preliminaries
 From the pants documentation:
 > To set up pants in your repo, we recommend installing our self-contained pants bash script
 > in the root (ie, "buildroot") of your repo. In this example, ~/workspace is the
@@ -24,11 +24,11 @@ For full details and the latest instructions, see [Installing Pants](http://www.
 <code>  my-repo/ef_site_config.py <--- project-specific configuration file</code><br>
 - To get you started, this project provides:<br>
 <code>  ef-open/examples/ef_site_config.py <--- example site config file to copy to my-repo/ef_site_config.py</code>
+<code>  ef-open/examples/BUILD.ef_site_config <--- build file to copy to my-repo/BUILD.ef_site_config</code>
 
-#### 1. Install pants
+### 1. Install pants
 
 ```
-#1. install pants
 $ cd ~/workspace
 $ curl -L -O https://pantsbuild.github.io/setup/pants && chmod +x pants && touch pants.ini
 ```
@@ -45,15 +45,21 @@ Edit ~/workspace/pants.ini to pin the pants version
 pants_version: 1.1.0
 ```
 
-#### Define custom values for your tools to use
+Define custom values for your tools to use
 ```
-
 $ cp ~/workspace/examples/ef_site_config.py ~/workspace/my-repo/ef_site_config.py
 # edit ~/workspace/my-repo/ef_site_config.py and set all values as appropriate for the company/project
-
 ```
 
 
+### 2. Copy and localize ef_site_config.py
+
+
+### 3. Copy in the BUIU
+
+
+
+### 3. Build the tools
 
 
 ## to build all the tools defined in src/BUILD
@@ -76,7 +82,7 @@ $ export EF_SITE_CONFIG=my_repo
 ```
 
 
-Pants references:<br>
+### Pants references
 [https://pantsbuild.github.io/python-readme.html](https://pantsbuild.github.io/python-readme.html)<br>
 [https://pantsbuild.github.io/install.html](https://pantsbuild.github.io/install.html)
 

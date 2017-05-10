@@ -55,7 +55,7 @@ python_requirement_library(
 python_library(
   name = 'ef-open-lib',
   dependencies = [
-    environ["EF_SITE_CONFIG"]+":siteconfig"
+    environ["EF_SITE_CONFIG"]+":efsiteconfig"
   ],
   sources = globs('ef_*.py', exclude=['ef_site_config.py'])
 )
