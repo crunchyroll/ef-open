@@ -91,17 +91,17 @@ Tools will be built in ef-open/dist:<br>
   ef-version.pex
 ```
 
-ef-open also has a script to automate the build, with some error checking<br>
-After building, it renames all the built files to remove the .pex extension
+ef-open provides the script "build-ef-open" to automate the build with some parameter checking<br>
+After a successful build, it removes the '.pex' extension from all the built files.
 
 Syntax:
 ```
 cd <directory_above_repos>
-build-ef-open $MY_REPO
+ef-open/tools/build-ef-open $MY_REPO
 ```
 
 Example:
 ```bash
 $ cd ~/workspace
-$ $ef-open/tools/build-ef-open $MY_REPO
+$ ef-open/tools/build-ef-open $MY_REPO
 ```
