@@ -5,8 +5,8 @@
 - Unless the pattern explicitly states otherwise, use lowercase characters a-z, digits 0-9, '-', and '_' only in names.
 - '-' (hyphen) is a delimiter between fields of a compound name composed of many fields&lt;br>
 - Examples:
-  - &lt;code>prod-myservice1&lt;/code>
-  - &lt;code>staging-myservice2&lt;/code>
+  - <code>prod-myservice1</code>
+  - <code>staging-myservice2</code>
 - Sometimes separator characters cause conflicts in names across AWS resources.
   - For example, RDS names contain "-" (&lt;env>-&lt;service>).
   - An RDS name could also contain "." if &lt;service> is a sub-service (e.g. "myservice.cron").
@@ -16,7 +16,7 @@
 
 ### Service short names
 Every service and fixture has a short name that identifies it in name strings throughout the architecture in AWS, config files, and tools.
-- Replace \&lt;service\> in any name pattern with this short name.
+- Replace &lt;service> in any name pattern with this short name.
 - Short names are anchored in the Service Registry (/service_registry.json in your infra repo) which contains descriptive records for all services.
   - A service without an entry in the service registry cannot be stood up or operated on by ef-open
 - Don't use or abbreviate the word "service" as part of a service's short name
