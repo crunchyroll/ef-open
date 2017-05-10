@@ -103,5 +103,65 @@ ef-open/tools/build-ef-open $MY_REPO
 Example:
 ```bash
 $ cd ~/workspace
-$ ef-open/tools/build-ef-open $MY_REPO
+~/workspace:$ ef-open/tools/build-ef-open $MY_REPO
+
+$ ef-open/tools/build-ef-open my-repo
+fatal: Not a git repository (or any of the parent directories):
+
+15:28:37 00:00 [main]
+               (To run a reporting server: ./pants server)
+15:28:37 00:00   [setup]
+15:28:37 00:00     [parse]fatal: Not a git repository (or any of the parent directories): .git
+
+               Executing tasks in goals: bootstrap -> imports -> unpack-jars -> deferred-sources -> gen -> jvm-platform-validate -> resolve -> compile -> resources -> binary
+15:28:37 00:00   [bootstrap]
+15:28:37 00:00     [substitute-aliased-targets]
+15:28:37 00:00     [jar-dependency-management]
+15:28:37 00:00     [bootstrap-jvm-tools]
+15:28:37 00:00     [provide-tools-jar]
+15:28:37 00:00   [imports]
+15:28:37 00:00     [ivy-imports]
+15:28:37 00:00   [unpack-jars]
+15:28:37 00:00     [unpack-jars]
+15:28:37 00:00   [deferred-sources]
+15:28:37 00:00     [deferred-sources]
+15:28:37 00:00   [gen]
+15:28:37 00:00     [thrift]
+15:28:37 00:00     [protoc]
+15:28:37 00:00     [antlr]
+15:28:37 00:00     [ragel]
+15:28:37 00:00     [jaxb]
+15:28:37 00:00     [wire]
+15:28:37 00:00   [jvm-platform-validate]
+15:28:37 00:00     [jvm-platform-validate]
+15:28:37 00:00   [resolve]
+15:28:37 00:00     [ivy]
+15:28:37 00:00   [compile]
+15:28:37 00:00     [compile-jvm-prep-command]
+15:28:37 00:00       [jvm_prep_command]
+15:28:37 00:00     [compile-prep-command]
+15:28:37 00:00     [compile]
+15:28:37 00:00     [zinc]
+15:28:37 00:00     [jvm-dep-check]
+15:28:37 00:00   [resources]
+15:28:37 00:00     [prepare]
+15:28:37 00:00     [services]
+15:28:37 00:00   [binary]
+15:28:37 00:00     [binary-jvm-prep-command]
+15:28:37 00:00       [jvm_prep_command]
+15:28:37 00:00     [binary-prep-command]
+15:28:37 00:00     [python-binary-create]
+                   created pex copy dist/ef-cf.pex
+                   created pex copy dist/ef-check-config.pex
+                   created pex copy dist/ef-generate.pex
+                   created pex copy dist/ef-resolve-config.pex
+                   created pex copy dist/ef-version.pex
+15:28:37 00:00     [jvm]
+15:28:37 00:00     [dup]
+15:28:38 00:01   [complete]
+               SUCCESS
+
+
+~/workspace:$ ls dist/
+ef-cf			ef-check-config		ef-generate		ef-resolve-config	ef-version
 ```
