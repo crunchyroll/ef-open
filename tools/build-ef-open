@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -x
+
 declare -r SITE_CONFIG_FILE_NAME=ef_site_config.py
 
 fail() {
