@@ -22,10 +22,8 @@ For full details and the latest instructions, see [Installing Pants](http://www.
 <code>  ~/workspace/ef-open <--- ef-open repo, sync'd with ef-open at github</code><br>
 <code>  ~/workspace/my-repo <--- Cloudformation template repo with localized /ef_site_config.py</code><br>
 <code>  ~/workspace/my-repo/ef_site_config.py <--- project-specific configuration file</code><br>
-- Also:<br>
-<code>
-  ~/workspace/examples/ef_site_config.py <--- example site config file to copy to my-repo/ef_site_config.py
-</code>
+- To get you started, this project provides:<br>
+<code>  ~/workspace/examples/ef_site_config.py <--- example site config file to copy to my-repo/ef_site_config.py</code>
 
 #### 1. Install pants
 
