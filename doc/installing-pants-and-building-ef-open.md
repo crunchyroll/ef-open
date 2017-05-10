@@ -15,12 +15,12 @@ For full details and the latest instructions, see [Installing Pants](http://www.
 #### Assumptions in all examples below
 - Common directory above all repos is "~/workspace"
 - The ef-open repo is called "ef-open"
-- The company or project's Cloudformation repo (holding templates and other things) is "my-repo"
-- The company or project's repo is already set up (maybe empty, but it's ready to go)
+- The company or project's Cloudformation repo (holding templates and other things) is named "my-repo"
+- The company or project's Cloudformation repo is already set up (maybe empty, but it's ready to go)
 - Overall structure of stuff discussed here is:<br>
 <code>  ~/workspace <--- Common top-level directory above all repos (pants will be installed here)</code><br>
 <code>  ~/workspace/ef-open <--- ef-open repo, sync'd with ef-open at github</code><br>
-<code>  ~/workspace/my-repo <--- Cloudformation template repo with the project-specific config file my-repo/ef_site_config.py</code><br>
+<code>  ~/workspace/my-repo <--- Cloudformation template repo with localized /ef_site_config.py</code><br>
 <code>  ~/workspace/my-repo/ef_site_config.py <--- project-specific configuration file</code><br>
 - Also:<br>
 <code>
