@@ -2,17 +2,18 @@
 
 fail() {
   echo "$1"
+  echo -e "\nTo call:\n$ cd ~/workspace;
   exit 1
 }
 
+SITE_REPO=$1
 SITE_CONFIG_FILE_NAME=ef_site_config.py
 
+
 # To build, set the env var SITE_CONFIG_PATH=(path to file ef_site_config.py)
-# The file must be at ${SITE_CONFIG_PATH}/ef_site_config.py
+# The file must be at ${SITE_REPO}/ef_site_config.py
 # then ./build
 
-# Example:
-# export SITE_CONFIG_PATH=~/workspace/our_ef_repo/
 
 [ -n "${SITE_CONFIG_PATH}" ] || fail "export SITE_CONFIG_PATH=path to ${SITE_CONFIG_FILE_NAME} before building"
 

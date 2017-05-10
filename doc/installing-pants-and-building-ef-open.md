@@ -26,10 +26,21 @@ For full details and the latest instructions, see [Installing Pants](http://www.
 <code>  ef-open/examples/ef_site_config.py <--- example site config file to copy to my-repo/ef_site_config.py</code>
 <code>  ef-open/examples/BUILD.ef_site_config <--- build file to copy to my-repo/BUILD.ef_site_config</code>
 
+### 0. Prerequisites
+The examples below refer to this env var for easier copy-paste of the scripts below.<br>
+Set MYREPO to your infrastructure repo, where the Cloudformation templates, site config, other local files will be.<br>
+```bash
+export MY_REPO=my-repo
+```
+Change to the directory above all your repos.
+Under this directory should be: ef-open/ and $MY_REPO/
+```bash
+$ cd ~/workspace
+```
+
 ### 1. Install pants
 
 ```bash
-$ cd ~/workspace
 $ curl -L -O https://pantsbuild.github.io/setup/pants && chmod +x pants && touch pants.ini
 ```
 
@@ -39,23 +50,24 @@ $ ./pants -V
 1.1.0
 ```
 
-Edit ~/workspace/pants.ini to pin the pants version
+Edit ~/workspace/pants.ini to pin pants by adding these lines, using the pants version found in the previous step
 ```
 [GLOBAL]
 pants_version: 1.1.0
 ```
 
-### 2. Copy and localize ef_site_config.py; add the build file
+### 2. Copy and localize ef_site_config.py; copy in the pants build file
 
 Define custom values for your tools to use
 ```bash
-$ cp ~/workspace/ef-open/examples/ef_site_config.py ~/workspace/my-repo/ef_site_config.py
-# edit ~/workspace/my-repo/ef_site_config.py, localize all values for the company/project, save
+$ cp ~/workspace/ef-open/examples/ef_site_config.py ~/workspace/$MY_REPO/ef_site_config.py
 ```
+
+EDIT <code>~/workspace/$MY_REPO/ef_site_config.py</code> to localize all values for the company/project, save
 
 Copy in the BUILD file so pants can see your ef_site_config.py
 ```bash
-$ cp ~/workspace/ef-open/examples/BUILD.ef_site_config ~/workspace/my-repo/ef_site_config.py
+$ cp ~/workspace/ef-open/examples/BUILD.ef_site_config ~/workspace/$MY_REPO/ef_site_config.py
 ```
 
 Merge and commit the ef_site_config.py and BUILD.ef_site_config to your repo. You're customized and ready to build.
@@ -64,19 +76,25 @@ Merge and commit the ef_site_config.py and BUILD.ef_site_config to your repo. Yo
 ### 3. Build all the tools defined in ef-open/src/BUILD
 ```bash
 $ cd ~/workspace
-$ export EF_SITE_REPO=my-repo
+$ export EF_SITE_REPO=$MY_REPO
 $ ./pants binary ef-open/src:
 ```
 
 Tools will be built in ef-open/dist:<br>
 ```
-  ef-cf.pex<br>
-  ef-check-config.pex<br>
-  ef-generate.pex<br>
-  ef-resolve-config.pex</code>
-  ef-version.pex</code>
+  ef-cf.pex
+  ef-check-config.pex
+  ef-generate.pex
+  ef-resolve-config.pex
+  ef-version.pex
 ```
 
+### 3a. There's an example script to save the build steps. Copy it to wherever you want, maybe to a /tools dir in your infra repo.
+```bash
+$ mkdir ~/$MY_REPO/tools
+$ cp ~/workspace/ef-open/examples/misc/build-ef-open ~/workspace/$MY_REPO/tools/build-ef-open
+```
+Edit <code>~~/workspace/$MY_REPO/tools/build-ef-open</code> to set the repo name:
 
 
 
