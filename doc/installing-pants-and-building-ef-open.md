@@ -56,21 +56,25 @@ Edit ~/workspace/pants.ini to pin pants by adding these lines, using the pants v
 pants_version: 1.1.0
 ```
 
-### 2. Copy and localize ef_site_config.py; copy in the pants build file
+### 2. Copy and localize ef_site_config.py; copy in the pants BUILD file
 
-Define custom values for your tools to use
+Copy the ef_site_config.py template from ef-open/examples
 ```bash
 $ cp ~/workspace/ef-open/examples/ef_site_config.py ~/workspace/$MY_REPO/ef_site_config.py
 ```
+Define custom values for your tools to use
+- edit <code>~/workspace/$MY_REPO/ef_site_config.py</code>
+- localize all values for the company/project
+- save the updated <code>~/workspace/$MY_REPO/ef_site_config.py</code>
 
-EDIT <code>~/workspace/$MY_REPO/ef_site_config.py</code> to localize all values for the company/project, save
-
-Copy in the BUILD file so pants can see your ef_site_config.py
+Copy in the BUILD file so pants can see your <code>$MY_REPO/ef_site_config.py</code>
 ```bash
-$ cp ~/workspace/ef-open/examples/BUILD.ef_site_config ~/workspace/$MY_REPO/ef_site_config.py
+$ cp ~/workspace/ef-open/examples/BUILD.ef_site_config ~/workspace/$MY_REPO/BUILD.ef_site_config
 ```
 
-Merge and commit the ef_site_config.py and BUILD.ef_site_config to your repo. You're customized and ready to build.
+Merge and commit <code>ef_site_config.py</code> and <code>BUILD.ef_site_config</code> to your repo.
+
+You're customized and ready to build.
 
 
 ### 3. Build all the tools defined in ef-open/src/BUILD
@@ -89,12 +93,14 @@ Tools will be built in ef-open/dist:<br>
   ef-version.pex
 ```
 
-### 3a. There's an example script to save the build steps. Copy it to wherever you want, maybe to a /tools dir in your infra repo.
+There's an example script to automate the 3-step build.<br>
+Copy it to wherever you want, maybe to a /tools dir in your infra repo:
 ```bash
 $ mkdir ~/$MY_REPO/tools
 $ cp ~/workspace/ef-open/examples/misc/build-ef-open ~/workspace/$MY_REPO/tools/build-ef-open
 ```
-Edit <code>~~/workspace/$MY_REPO/tools/build-ef-open</code> to set the repo name:
+- edit <code>~~/workspace/$MY_REPO/tools/build-ef-open</code> to set the REPO_NAME constant
+- save, merge, and commit
 
 
 
