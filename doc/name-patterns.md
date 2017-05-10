@@ -8,11 +8,11 @@
   - <code>prod-myservice1</code>
   - <code>staging-myservice2</code>
 - Sometimes separator characters cause conflicts in names across AWS resources.
-  - For example, RDS names contain "-" (&lt;env>-&lt;service>).
+  - For example, RDS names contain "-" &lt;env>-&lt;service>).
   - An RDS name could also contain "." if &lt;service> is a sub-service (e.g. "myservice.cron").
   - However, RDS names are also used as DNS names, and therefore cannot contain a ".".
-  - In this case, substitute "-" for the "." such that the first RDS for the "myservice.cron" service is named "\&lt;env>-myservice-cron" rather than "\&lt;env>-myservice.cron".
-  - See also: Limitations on AWS IAM Entities and Objects&lt;br>
+  - In this case, substitute "-" for the "." such that the first RDS for the "myservice.cron" service is named "&lt;env>-myservice-cron" rather than "&lt;env>-myservice.cron".
+  - See also: Limitations on AWS IAM Entities and Objects<br>
 
 ### Service short names
 Every service and fixture has a short name that identifies it in name strings throughout the architecture in AWS, config files, and tools.
