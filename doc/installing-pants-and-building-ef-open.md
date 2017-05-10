@@ -22,9 +22,8 @@ For full details and the latest instructions, see [Installing Pants](http://www.
 <code>  ~/workspace/$MY_REPO <--- Cloudformation template repo with localized /ef_site_config.py</code><br>
 <code>  $MY_REPO/ef_site_config.py <--- your project-specific, local configuration file</code><br>
 - To get you started, ef-open provides:<br>
-<code>
-ef-open/examples/ef_site_config.py <--- example site config file to copy to $MY_REPO/ef_site_config.py
-ef-open/examples/BUILD.ef_site_config <--- build file to copy to $MY_REPO/BUILD.ef_site_config</code>
+  <code>ef-open/examples/ef_site_config.py <--- example site config file to copy to $MY_REPO/ef_site_config.py</code>
+  <code>ef-open/examples/BUILD.ef_site_config <--- build file to copy to $MY_REPO/BUILD.ef_site_config</code>
 
 ### 0. Prerequisites
 Set MY_REPO to your infrastructure repo. Cloudformation templates and parameters, site config, other local files will live there.<br>
