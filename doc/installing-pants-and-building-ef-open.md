@@ -10,7 +10,9 @@ From the pants documentation:
 > in the root (ie, "buildroot") of your repo. In this example, ~/workspace is the
 top of all repos. Pants is installed there.
 
-For full details and the latest instructions, see [Installing Pants](http://www.pantsbuild.org/install.html) at pantsbuild.org
+For full details and the latest instructions, see
+- [Installing Pants](http://www.pantsbuild.org/install.html) at pantsbuild.org
+- [Python Projects with Pants](https://pantsbuild.github.io/python-readme.html) at pandsbuild.github.io<br>
 
 #### Assumptions in all examples below
 - Common directory above all repos is <code>~/workspace</code>
@@ -37,7 +39,6 @@ $ cd ~/workspace
 ```
 
 ### 1. Install pants
-
 ```bash
 $ curl -L -O https://pantsbuild.github.io/setup/pants && chmod +x pants && touch pants.ini
 ```
@@ -55,7 +56,6 @@ pants_version: 1.1.0
 ```
 
 ### 2. Copy and localize ef_site_config.py; copy in the pants BUILD file
-
 Copy the ef_site_config.py template from ef-open/examples
 ```bash
 $ cp ~/workspace/ef-open/examples/ef_site_config.py ~/workspace/$MY_REPO/ef_site_config.py
@@ -99,7 +99,7 @@ $ cp ~/workspace/ef-open/examples/misc/build-ef-open ~/workspace/$MY_REPO/tools/
 ```
 
 Syntax:
-```bash
+```
 cd <directory_above_repos>
 build-ef-open <repo_with_ef_site_config.py>
 ```
@@ -109,10 +109,3 @@ Examples:
 $ cd ~/workspace
 $ $MY_REPO/tools/build-ef-open $MY_REPO
 ```
-
-
-
-### Pants references
-[https://pantsbuild.github.io/python-readme.html](https://pantsbuild.github.io/python-readme.html)<br>
-[https://pantsbuild.github.io/install.html](https://pantsbuild.github.io/install.html)
-
