@@ -28,7 +28,7 @@ For full details and the latest instructions, see [Installing Pants](http://www.
 
 ### 1. Install pants
 
-```
+```bash
 $ cd ~/workspace
 $ curl -L -O https://pantsbuild.github.io/setup/pants && chmod +x pants && touch pants.ini
 ```
@@ -45,41 +45,39 @@ Edit ~/workspace/pants.ini to pin the pants version
 pants_version: 1.1.0
 ```
 
+### 2. Copy and localize ef_site_config.py; add the build file
+
 Define custom values for your tools to use
+```bash
+$ cp ~/workspace/ef-open/examples/ef_site_config.py ~/workspace/my-repo/ef_site_config.py
+# edit ~/workspace/my-repo/ef_site_config.py, localize all values for the company/project, save
 ```
-$ cp ~/workspace/examples/ef_site_config.py ~/workspace/my-repo/ef_site_config.py
-# edit ~/workspace/my-repo/ef_site_config.py and set all values as appropriate for the company/project
+
+Copy in the BUILD file so pants can see your ef_site_config.py
+```bash
+$ cp ~/workspace/ef-open/examples/BUILD.ef_site_config ~/workspace/my-repo/ef_site_config.py
 ```
 
-
-### 2. Copy and localize ef_site_config.py
-
-
-### 3. Copy in the BUIU
+Merge and commit the ef_site_config.py and BUILD.ef_site_config to your repo. You're customized and ready to build.
 
 
-
-### 3. Build the tools
-
-
-## to build all the tools defined in src/BUILD
-```
+### 3. Build all the tools defined in ef-open/src/BUILD
+```bash
 $ cd ~/workspace
-$ export EF_SITE_CONFIG=<relpath>
+$ export EF_SITE_REPO=my-repo
 $ ./pants binary ef-open/src:
 ```
-### example building all the tools defined in src/BUILD
-In this example, the directory structure is:
-  workspace/
-    ef_open/
-    my_repo/
 
-The ef_site_config file is in my_repo
+Tools will be built in ef-open/dist:<br>
 ```
-$ cd ~/workspace
-$ export EF_SITE_CONFIG=my_repo
-./pants binary ef-open/src:
+  ef-cf.pex<br>
+  ef-check-config.pex<br>
+  ef-generate.pex<br>
+  ef-resolve-config.pex</code>
+  ef-version.pex</code>
 ```
+
+
 
 
 ### Pants references
