@@ -1,21 +1,24 @@
 #!/usr/bin/env bash
 
+declare -r SITE_CONFIG_FILE_NAME=ef_site_config.py
+
 fail() {
   echo "$1"
-  echo -e "\nTo call:\n$ cd ~/workspace;
   exit 1
 }
 
-SITE_REPO=$1
-SITE_CONFIG_FILE_NAME=ef_site_config.py
+usage() {
+  echo "$(basename $0) builds ef-open .pex files from source"
+  echo -e "USAGE:\n  cd ~/workspace\n  build-ef-open <MY_INFRA_REPO>"
+  echo -e "EXAMPLE:\n  cd ~/workspace\n  build-ef-open my-repo\n"
+}
 
+REPO=$1
 
-# To build, set the env var SITE_CONFIG_PATH=(path to file ef_site_config.py)
-# The file must be at ${SITE_REPO}/ef_site_config.py
-# then ./build
+[ -n "${REPO}" ] || fail "$(usage)"
+[ -d "${REPO}" ] || fail "${REPO} is not a directory"
+cd ${REPO}
 
-
-[ -n "${SITE_CONFIG_PATH}" ] || fail "export SITE_CONFIG_PATH=path to ${SITE_CONFIG_FILE_NAME} before building"
 
 SITE_CONFIG_FILESPEC=${SITE_CONFIG_PATH}/${SITE_CONFIG_FILE_NAME}
 [ -r ${SITE_CONFIG_FILESPEC} ] || fail "can't read ${SITE_CONFIG_FILE_NAME} at ${SITE_CONFIG_PATH}"
