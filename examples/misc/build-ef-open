@@ -17,13 +17,11 @@ REPO=$1
 
 [ -n "${REPO}" ] || fail "$(usage)"
 [ -d "${REPO}" ] || fail "${REPO} is not a directory"
-pushd ${REPO}
+pushd ${REPO} >/dev/null
 toplevel=$(git rev-parse --is-inside-work-tree 2>/dev/null)
 result=$?
-popd
+popd >/dev/null
 [ ${result} -eq 0 ] || fail "${REPO} is not a git repo"
-
-exit 0
 
 
 SITE_CONFIG_FILESPEC=${SITE_CONFIG_PATH}/${SITE_CONFIG_FILE_NAME}
