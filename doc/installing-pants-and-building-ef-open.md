@@ -13,27 +13,25 @@ top of all repos. Pants is installed there.
 For full details and the latest instructions, see [Installing Pants](http://www.pantsbuild.org/install.html) at pantsbuild.org
 
 #### Assumptions in all examples below
-- Common directory above all repos is "~/workspace"
-- The ef-open repo is called "ef-open"
-- The company or project's Cloudformation repo (holding templates and other things) is named "my-repo"
-- The company or project's Cloudformation repo is already set up (maybe empty, but it's ready to go)
+- Common directory above all repos is <code>~/workspace</code>
+- The ef-open repo is called <code>ef-open</code>
+- The company or project's Cloudformation Infrastructure repo is already set up (possibly empty, but it's ready to use).
 - Overall structure of stuff discussed here is:<br>
 <code>  ~/workspace <--- Common top-level directory above all repos (pants will be installed here)</code><br>
 <code>  ~/workspace/ef-open <--- ef-open repo, sync'd with ef-open at github</code><br>
-<code>  ~/workspace/my-repo <--- Cloudformation template repo with localized /ef_site_config.py</code><br>
-<code>  my-repo/ef_site_config.py <--- project-specific configuration file</code><br>
+<code>  ~/workspace/$MY_REPO <--- Cloudformation template repo with localized /ef_site_config.py</code><br>
+<code>  $MY_REPO/ef_site_config.py <--- project-specific configuration file</code><br>
 - To get you started, this project provides:<br>
-<code>  ef-open/examples/ef_site_config.py <--- example site config file to copy to my-repo/ef_site_config.py</code>
-<code>  ef-open/examples/BUILD.ef_site_config <--- build file to copy to my-repo/BUILD.ef_site_config</code>
+<code>  ef-open/examples/ef_site_config.py <--- example site config file to copy to $MY_REPO/ef_site_config.py</code>
+<code>  ef-open/examples/BUILD.ef_site_config <--- build file to copy to $MY_REPO/BUILD.ef_site_config</code>
 
 ### 0. Prerequisites
-The examples below refer to this env var for easier copy-paste of the scripts below.<br>
-Set MYREPO to your infrastructure repo, where the Cloudformation templates, site config, other local files will be.<br>
+Set MY_REPO to your infrastructure repo. Cloudformation templates and parameters, site config, other local files will live there.<br>
 ```bash
 export MY_REPO=my-repo
 ```
-Change to the directory above all your repos.
-Under this directory should be: ef-open/ and $MY_REPO/
+Change to the directory above all your repos.<br>
+Under this directory should be, at least: ef-open/ and $MY_REPO/
 ```bash
 $ cd ~/workspace
 ```
@@ -94,13 +92,23 @@ Tools will be built in ef-open/dist:<br>
 ```
 
 There's an example script to automate the 3-step build.<br>
-Copy it to wherever you want, maybe to a /tools dir in your infra repo:
+Copy it to wherever you want, perhaps a /tools dir in your infra repo:
 ```bash
 $ mkdir ~/$MY_REPO/tools
 $ cp ~/workspace/ef-open/examples/misc/build-ef-open ~/workspace/$MY_REPO/tools/build-ef-open
 ```
-- edit <code>~~/workspace/$MY_REPO/tools/build-ef-open</code> to set the REPO_NAME constant
-- save, merge, and commit
+
+Syntax:
+```bash
+cd <directory_above_repos>
+build-ef-open <repo_with_ef_site_config.py>
+```
+
+Examples:
+```bash
+$ cd ~/workspace
+$ $MY_REPO/tools/build-ef-open $MY_REPO
+```
 
 
 
