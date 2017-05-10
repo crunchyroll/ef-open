@@ -1,36 +1,41 @@
 #!/usr/bin/env bash
-
+set -x
 declare -r SITE_CONFIG_FILE_NAME=ef_site_config.py
 
 fail() {
-  echo "$1"
+  echo -e "$1"
   exit 1
 }
 
 usage() {
   echo "$(basename $0) builds ef-open .pex files from source"
-  echo -e "USAGE:\n  cd ~/workspace\n  build-ef-open <MY_INFRA_REPO>"
-  echo -e "EXAMPLE:\n  cd ~/workspace\n  build-ef-open my-repo\n"
+  echo -e "USAGE:\n  cd ~/workspace\n  ef-open/tools/build-ef-open INFRA_REPO"
+  echo -e "EXAMPLE:\n  cd ~/workspace\n  ef-open/tools/build-ef-open my-repo\n"
+  echo "INFRA_REPO must be the top-level directory of a repo\n"
 }
 
-REPO=$1
+[ -n "$1" ] || fail "$(usage)"
 
-[ -n "${REPO}" ] || fail "$(usage)"
-[ -d "${REPO}" ] || fail "${REPO} is not a directory"
-pushd ${REPO} >/dev/null
-toplevel=$(git rev-parse --is-inside-work-tree 2>/dev/null)
+# INFRA_REPO may have been spec'd w/ a trailing slash. Remove it.
+INFRA_REPO=${1%/}
+SITE_CONFIG_FILESPEC=${INFRA_REPO}/${SITE_CONFIG_FILE_NAME}
+
+# Test that INFRA_REPO is a directory containing a git repo, and that it's the top level of the repo
+[ -d "${INFRA_REPO}" ] || fail "$(usage)"
+pushd ${INFRA_REPO} >/dev/null
+current=$(pwd)
+toplevel=$(git rev-parse --show-toplevel 2>/dev/null)
 result=$?
 popd >/dev/null
-[ ${result} -eq 0 ] || fail "${REPO} is not a git repo"
+[ ${result} -eq 0 ] || fail "${INFRA_REPO} is not a git repo"
+[ "${current}" == "${toplevel}" ] || fail "INFRA_INFRA_REPO '${current}' is not the top-level directory of a repo"
 
-
-SITE_CONFIG_FILESPEC=${SITE_CONFIG_PATH}/${SITE_CONFIG_FILE_NAME}
-[ -r ${SITE_CONFIG_FILESPEC} ] || fail "can't read ${SITE_CONFIG_FILE_NAME} at ${SITE_CONFIG_PATH}"
-
-cp ${SITE_CONFIG_FILESPEC} src/${SITE_CONFIG_FILE_NAME} || fail "Error copying ${SITE_CONFIG_FILESPEC}" to src/
+# Test that the site config file exists at the top of the repo
+[ -r ${SITE_CONFIG_FILESPEC} ] || fail "can't read ${SITE_CONFIG_FILE_NAME} at ${INFRA_REPO}/"
 
 # build
-./pants binary src:
+EF_SITE_REPO=${INFRA_REPO}
+./pants binary ef-open/src:
 [ $? -eq 0 ] || fail "Build failed"
 
 # rename files to remove .pex extension

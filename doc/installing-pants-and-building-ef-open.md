@@ -91,21 +91,17 @@ Tools will be built in ef-open/dist:<br>
   ef-version.pex
 ```
 
-There's an example script to automate the 3-step build.<br>
-Copy it to wherever you want, perhaps a /tools dir in your infra repo:
-```bash
-$ mkdir ~/$MY_REPO/tools
-$ cp ~/workspace/ef-open/examples/misc/build-ef-open ~/workspace/$MY_REPO/tools/build-ef-open
-```
+ef-open also has a script to automate the build, with some error checking<br>
+After building, it renames all the built files to remove the .pex extension
 
 Syntax:
 ```
 cd <directory_above_repos>
-build-ef-open <repo_with_ef_site_config.py>
+build-ef-open $MY_REPO
 ```
 
-Examples:
+Example:
 ```bash
 $ cd ~/workspace
-$ $MY_REPO/tools/build-ef-open $MY_REPO
+$ $ef-open/tools/build-ef-open $MY_REPO
 ```
