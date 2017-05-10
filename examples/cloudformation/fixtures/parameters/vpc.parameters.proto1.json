@@ -1,6 +1,0 @@
-[
-  {
-    "ParameterKey": "VPCCidrBlockParam",
-    "ParameterValue": "10.9.64.0/18"
-  }
-]
