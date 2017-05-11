@@ -14,7 +14,7 @@ For full details and the latest instructions, see
 - [Installing Pants](http://www.pantsbuild.org/install.html) at pantsbuild.org
 - [Python Projects with Pants](https://pantsbuild.github.io/python-readme.html) at pandsbuild.github.io<br>
 
-#### Assumptions in all examples below
+#### Assumptions in all examples and instructions below
 - Common directory above all repos is <code>~/workspace</code>
 - The ef-open repo is called <code>ef-open</code>
 - The company or project's Cloudformation Infrastructure repo is already set up (possibly empty, but it's ready to use).
@@ -24,8 +24,8 @@ For full details and the latest instructions, see
 <code>  ~/workspace/$MY_REPO <--- Cloudformation template repo with localized /ef_site_config.py</code><br>
 <code>  $MY_REPO/ef_site_config.py <--- your project-specific, local configuration file</code><br>
 - To get you started, ef-open provides:<br>
-  <code>ef-open/examples/ef_site_config.py <--- example site config file to copy to $MY_REPO/ef_site_config.py</code><br>
-  <code>ef-open/examples/BUILD.ef_site_config <--- build file to copy to $MY_REPO/BUILD.ef_site_config</code>
+  <code>ef-open/getting-started/ef_site_config.py <--- starter site config file to copy to $MY_REPO/ef_site_config.py</code><br>
+  <code>ef-open/getting-started/BUILD.ef_site_config <--- ready-to-go build file to copy to $MY_REPO/BUILD.ef_site_config</code>
 
 ### 0. Prerequisites
 Set MY_REPO to your infrastructure repo. Cloudformation templates and parameters, site config, other local files will live there.<br>
@@ -56,9 +56,9 @@ pants_version: 1.1.0
 ```
 
 ### 2. Copy and localize ef_site_config.py; copy in the pants BUILD file
-Copy the ef_site_config.py template from ef-open/examples
+Copy the ef_site_config.py template from ef-open/getting-started
 ```bash
-$ cp ~/workspace/ef-open/examples/ef_site_config.py ~/workspace/$MY_REPO/ef_site_config.py
+$ cp ~/workspace/ef-open/getting-started/ef_site_config.py ~/workspace/$MY_REPO/ef_site_config.py
 ```
 Define custom values for your tools to use
 - edit <code>~/workspace/$MY_REPO/ef_site_config.py</code>
@@ -67,7 +67,7 @@ Define custom values for your tools to use
 
 Copy in the BUILD file so pants can see your <code>$MY_REPO/ef_site_config.py</code>
 ```bash
-$ cp ~/workspace/ef-open/examples/BUILD.ef_site_config ~/workspace/$MY_REPO/BUILD.ef_site_config
+$ cp ~/workspace/ef-open/getting-started/BUILD.ef_site_config ~/workspace/$MY_REPO/BUILD.ef_site_config
 ```
 
 Merge and commit <code>ef_site_config.py</code> and <code>BUILD.ef_site_config</code> to your repo.
