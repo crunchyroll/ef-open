@@ -28,6 +28,15 @@ python_binary(
 )
 
 python_binary(
+  name = 'ef-instanceinit',
+  source = 'ef-instanceinit.py',
+  dependencies = [
+    ':boto3',
+    ':ef-open-lib'
+  ]
+)
+
+python_binary(
   name = 'ef-resolve-config',
   source = 'ef-resolve-config.py',
   dependencies = [
