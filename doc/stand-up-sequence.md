@@ -73,9 +73,6 @@ _To download a router configuration version of the configuration for a router in
 Inline policies onto roles from /policy_templates directory<br>
 Customer-Managed Keys (CMKs) in KMS for every service<br>
 <code>ef-generate \<env\> --commit</code>
-- Assumable roles (are in the global environment)<br>
-These are built /after/ ef-generate creates all environment-specific roles, because they may attach policies that involve specific roles in specific environments<br>
-_see assumable-role.json in /examples_<br>
 <code>ef-cf fixtures/templates/NAME-OF-TEMPLATE.json <env> --commit
 - Static fixture security groups<br>
 _e.g. set the office ip addresses in the CIDR security group_<br>
