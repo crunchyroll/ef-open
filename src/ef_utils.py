@@ -216,9 +216,9 @@ def get_account_alias(env):
   # Ordinary env, possibly a proto env ending with a digit that is stripped to look up the alias
   else:
     env_short = env.strip(".0123456789")
-    if not EFConfig.ENV_ACCOUNT_MAP.has_key(env_short):
+    if env_short not in EFConfig.ENV_ACCOUNT_MAP:
       raise ValueError("generic env: {} has no entry in ENV_ACCOUNT_MAP of ef_config.py".format(env_short))
-    return EFConfig.ENV_ACCOUNT_MAP[env_short]
+    return EFConfig.ENV_ACCOUNT_MAP[env_short]["account"]
 
 def get_env_short(env):
   """

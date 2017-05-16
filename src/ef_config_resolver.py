@@ -34,8 +34,8 @@ class EFConfigResolver(object):
       lookup: ENV_SHORT name of an env, one of: 'prod', 'staging', 'proto', or 'internal'
     """
 
-    if EFConfig.ENV_ACCOUNT_MAP.has_key(lookup):
-      return EFConfig.ENV_ACCOUNT_MAP[lookup]
+    if lookup in EFConfig.ENV_ACCOUNT_MAP:
+      return EFConfig.ENV_ACCOUNT_MAP[lookup]["account"]
     else:
       return None
 
