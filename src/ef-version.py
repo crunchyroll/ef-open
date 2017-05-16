@@ -27,6 +27,7 @@ from __future__ import print_function
 import argparse
 from inspect import isfunction
 import json
+from operator import itemgetter
 from os import getenv
 import sys
 
@@ -246,8 +247,6 @@ def handle_args_and_set_context(args):
 
   return context
 
-
-
 def print_if_verbose(message):
   if VERBOSE:
     print(message, file=sys.stderr)
@@ -266,7 +265,7 @@ def precheck_ami_id(context):
   # get the current AMI
   key = "{}/{}".format(context.service_name, context.env)
   print_if_verbose("precheck_ami_id with key: {}".format(key))
-  current_ami=context.versionresolver.lookup("ami-id/norecurse,{}".format(key))
+  current_ami=context.versionresolver.lookup("ami-id,{}".format(key))
   print_if_verbose("ami found: {}".format(current_ami))
 
   # If bootstrapping (this will be the first entry in the version history)
@@ -281,7 +280,7 @@ def precheck_ami_id(context):
   instances_running_ami = context.aws_client("ec2").describe_instances(
     Filters=[{
       'Name': 'image-id',
-      'Values': [ current_ami  ]
+      'Values': [ current_ami ]
     }]
   )["Reservations"]
   if instances_running_ami:
@@ -401,6 +400,27 @@ def cmd_rollback(context):
   context.stable = True
   cmd_set(context)
 
+def _getlatest_ami_id(context):
+  """
+  Get the most recent AMI ID for a service
+  Args:
+    context: a populated EFVersionContext object
+  Returns:
+    ImageId or None if no images exist or on error
+  """
+  try:
+    response = context.aws_client("ec2").describe_images(
+      Filters=[
+        {"Name": "is-public", "Values": ["false"]},
+        {"Name": "name", "Values": [context.service_name + EFConfig.AMI_SUFFIX + "*"]}
+      ])
+  except:
+    return None
+  if len(response["Images"]) > 0:
+    return sorted(response["Images"], key=itemgetter('CreationDate'), reverse=True)[0]["ImageId"]
+  else:
+    return None
+
 def cmd_set(context):
   """
   Set the new "current" value for a key.
@@ -413,8 +433,8 @@ def cmd_set(context):
   if not context.service_registry.service_record(context.service_name):
     fail("service: {} not found in service registry: {}".format(context.service_name, context.service_registry.filespec))
   # Key must be whitelisted
-  if context.key not in context.service_registry.version_keys():
-    fail("key: {} is unknown; see whitelist in version_keys in service registry".format(context.key))
+  if context.key not in EFConfig.VERSION_KEYS:
+    fail("key: {} is unknown; see whitelist in VERSION_KEYS in ef_config".format(context.key))
 
   # If key value is a special symbol, see if this env allows it
   if context.value in EFConfig.SPECIAL_VERSIONS and not context.env_short in EFConfig.SPECIAL_VERSION_ENVS:
@@ -422,9 +442,21 @@ def cmd_set(context):
   # If key value is a special symbol, the record cannot be marked "stable"
   if context.value in EFConfig.SPECIAL_VERSIONS and context.stable:
     fail("special versions such as: {} cannot be marked 'stable'".format(context.value))
-  # If special symbol is "=latest", does this key allow it?
-  if context.value == "=latest" and not context.service_registry.allows_latest(context.key):
-    fail("=latest cannot be used with key: {}".format(context.key))
+
+  # Resolve any references
+  if context.value == "=prod":
+    context.value = context.versionresolver.lookup("{},{}/{}".format(context.key, "prod", context.service_name))
+  elif context.value == "=staging":
+    context.value = context.versionresolver.lookup("{},{}/{}".format(context.key, "staging", context.service_name))
+  elif context.value == "=latest":
+    if not EFConfig.VERSION_KEYS[context.key]["allow_latest"]:
+      fail("=latest cannot be used with key: {}".format(context.key))
+    func_name = "_getlatest_" + context.key.replace("-", "_")
+    if globals().has_key(func_name) and isfunction(globals()[func_name]):
+      context.value = globals()[func_name](context)
+    else:
+      raise RuntimeError("{} version for {}/{} is '=latest' but can't look up because method not found: {}".format(
+        context.key, context.env, context.service_name, func_name))
 
   # precheck to confirm coherent world state before attempting set - whatever that means for the current key type
   try:

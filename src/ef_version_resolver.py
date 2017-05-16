@@ -16,7 +16,6 @@ limitations under the License.
 
 from __future__ import print_function
 
-from operator import itemgetter
 from botocore.client import ClientError
 
 from ef_config import EFConfig
@@ -45,23 +44,8 @@ class EFVersionResolver(object):
 
   # dictionary of boto3 clients: {"ec2":ec2_client, ...}
   __CLIENTS = {}
-  __AMI_SUFFIX = "-release"
 
-  def _getlatest_ami_id(self, env, service_name):
-    try:
-      response = EFVersionResolver.__CLIENTS["ec2"].describe_images(
-        Filters=[
-          {"Name": "is-public", "Values": ["false"]},
-          {"Name": "name", "Values": [service_name + EFVersionResolver.__AMI_SUFFIX + "*"]}
-        ])
-    except:
-      return None
-    if len(response["Images"]) > 0:
-      return sorted(response["Images"], key=itemgetter('CreationDate'), reverse=True)[0]["ImageId"]
-    else:
-      return None
-
-  def _s3_get(self, env, service, key, norecurse=False):
+  def _s3_get(self, env, service, key):
     s3_key = "{}/{}/{}".format(service, env, key)
     try:
       s3_object = EFVersionResolver.__CLIENTS["s3"].get_object(
@@ -77,47 +61,29 @@ class EFVersionResolver(object):
       # Otherwise, an unexpected issue occurred. Stop with error
       raise
     # Else get the value and decide what to do with it
-    s3_value = s3_object["Body"].read().decode(EFConfig.S3_VERSION_CONTENT_ENCODING)
-    if norecurse or s3_value not in EFConfig.SPECIAL_VERSIONS:
-      return s3_value
-    if s3_value == "=prod":
-      return self._s3_get("prod", service, key)
-    elif s3_value == "=staging":
-      return self._s3_get("staging", service, key)
-    elif s3_value == "=latest":
-      method_name = "_getlatest_" + key.replace("-", "_")
-      if hasattr(self, method_name):
-        return getattr(self, method_name)(env, service)
-      else:
-        raise RuntimeError("version for {}/{} is '=latest' but can't look up because method not found: {}".format(
-          env, service, method_name))
+    return s3_object["Body"].read().decode(EFConfig.S3_VERSION_CONTENT_ENCODING)
 
   def lookup(self, token):
     """
-    Return AMI ID if found, None otherwise
+    Return key version if found, None otherwise
     Lookup should look like this:
       pattern:
-      <key>[/norecurse],<env>/<service>
+      <key>,<env>/<service>
       example:
       ami-id,staging/core
-      ami-id/norecurse,staging/core
     """
-    # get search key, either "key," or "key/norecurse,"
+    # get search key and env/service from token
     try:
       key, envservice = token.split(",")
     except ValueError:
       return None
-    # separate key/norecurse if they exist
-    norecurse = str(key).endswith("/norecurse")
-    if norecurse:
-      key = key.split("/")[0]
     # get env, service from value
     try:
       env, service = envservice.split("/")
     except ValueError as e:
       raise RuntimeError("Request:{} can't resolve to env, service. {}".format(envservice, e.message))
 
-    return self._s3_get(env, service, key, norecurse)
+    return self._s3_get(env, service, key)
 
   def __init__(self, clients):
     """
