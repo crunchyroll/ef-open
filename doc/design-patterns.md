@@ -11,8 +11,8 @@ Name Patterns and Paths - for all the patterns for all the names we use (and der
 
 ### Queue message generators and consumers
 - Message generators and message consumers must be separate processes running in separate roles.
-    Compliance with the least-privilege policy: 
-  - Work creators (which write messages into queues) and work consumers (which read and operate on messages in queues) nearly always interact with some external service (database, S3, other services, ...) and nearly always need disparate privileges with those external services. 
+    Compliance with the least-privilege policy:
+  - Work creators (which write messages into queues) and work consumers (which read and operate on messages in queues) nearly always interact with some external service (database, S3, other services, ...) and nearly always need disparate privileges with those external services.
   - Access rights for a service come from the role under which the service runs.
   - Role privileges are granted to instance or Lambdas.
   - Therefore, role privileges are a property of an instance, so different processes must run on different instances, each with the minimum necessary privileges.
