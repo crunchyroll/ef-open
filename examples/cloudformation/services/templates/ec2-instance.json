@@ -1,0 +1,31 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "{{ENV}}-{{SERVICE}}",
+  "Parameters": {
+    "InstanceTypeParam": {
+      "Type": "String"
+    }
+  },
+  "Resources": {
+    "Ec2Instance": {
+      "Type": "AWS::EC2::Instance",
+      "Properties": {
+        "IamInstanceProfile": "{{ENV}}-{{SERVICE}}",
+        "InstanceType": { "Ref": "InstanceTypeParam" },
+        "ImageId": "{{version:ami-id,{{ENV}}/{{SERVICE}}}}",
+        "NetworkInterfaces": [{
+          "AssociatePublicIpAddress": "true",
+          "DeviceIndex": "0",
+          "SubnetId": "{{aws:ec2:subnet/subnet-id,subnet-{{ENV}}-a}}",
+          "GroupSet": [
+            "{{aws:ec2:security-group/security-group-id,{{ENV}}-{{SERVICE}}-ec2}}"
+          ]
+        }],
+        "Tags": [{
+          "Key": "Name",
+          "Value": "{{ENV}}-{{SERVICE}}"
+        }]
+      }
+    }
+  }
+}

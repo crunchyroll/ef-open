@@ -1,0 +1,110 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "{{ENV_FULL}}-{{SERVICE}}",
+  "Conditions": {
+    "EnvIsMgmt": { "Fn::Equals": [ "{{ENV}}", "mgmt" ] },
+    "FullEnvIsMgmtOfProd": { "Fn::Equals": [ "{{ENV_FULL}}", "mgmt.{{efconfig:accountaliasofenv,prod}}" ] },
+    "EnvIsProd": { "Fn::Equals": [ "{{ENV}}", "prod" ] },
+    "EnvIsInternalOrProtoOrStagingOrProd": {
+      "Fn::Or": [
+        { "Fn::Equals": [ "{{ENV}}", "internal" ] },
+        { "Fn::Equals": [ "{{ENV_SHORT}}", "proto" ] },
+        { "Fn::Equals": [ "{{ENV}}", "staging" ] },
+        { "Fn::Equals": [ "{{ENV}}", "prod" ] }
+      ]
+    }
+  },
+  "Resources": {
+    "InternalPrivateDns": {
+      "Type": "AWS::Route53::HostedZone",
+      "Condition": "EnvIsInternalOrProtoOrStagingOrProd",
+      "Properties": {
+        "Name": "mydomainprefix-{{ENV}}.com",
+        "HostedZoneTags": [{
+          "Key": "Name",
+          "Value": "hostedzone-mydomainprefix-{{ENV}}.com"
+        }],
+        "VPCs": [
+          {
+            "VPCId": "{{aws:ec2:vpc/vpc-id,vpc-{{ENV}}}}",
+            "VPCRegion": "{{REGION}}"
+          },
+          {
+            "VPCId": "{{aws:ec2:vpc/vpc-id,vpc-mgmt}}",
+            "VPCRegion": "{{REGION}}"
+          }
+        ]
+      }
+    },
+    "MyPublicDns": {
+      "Type": "AWS::Route53::HostedZone",
+      "Condition": "EnvIsInternalOrProtoOrStagingOrProd",
+      "Properties": {
+        "Name": "mydomainprefix-{{ENV}}.com",
+        "HostedZoneTags": [{
+          "Key": "Name",
+          "Value": "hostedzone-mydomainprefix-{{ENV}}.com"
+        }]
+      }
+    },
+    "MgmtPrivateDns": {
+      "Type": "AWS::Route53::HostedZone",
+      "Condition": "EnvIsMgmt",
+      "Properties": {
+        "Name": "{{ACCOUNT_ALIAS}}.mydomainprefix-{{ENV}}.com",
+        "HostedZoneTags": [{
+          "Key": "Name",
+          "Value": "hostedzone-{{ACCOUNT_ALIAS}}.mydomainprefix-{{ENV}}.com"
+        }],
+        "VPCs": [{
+          "VPCId": "{{aws:ec2:vpc/vpc-id,vpc-{{ENV}}}}",
+          "VPCRegion": "{{REGION}}"
+        }]
+      }
+    },
+    "MgmtPublicDelegatedDns": {
+      "Type": "AWS::Route53::HostedZone",
+      "Condition": "EnvIsMgmt",
+      "Properties": {
+        "Name": "{{ACCOUNT_ALIAS}}.mydomainprefix-{{ENV}}.com",
+        "HostedZoneTags": [{
+          "Key": "Name",
+          "Value": "hostedzone-{{ACCOUNT_ALIAS}}.mydomainprefix-{{ENV}}.com"
+        }]
+      }
+    },
+    "MgmtPublicRootDns": {
+      "Type": "AWS::Route53::HostedZone",
+      "Condition": "FullEnvIsMgmtOfProd",
+      "Properties": {
+        "Name": "mydomainprefix-{{ENV}}.com",
+        "HostedZoneTags": [{
+          "Key": "Name",
+          "Value": "hostedzone-mydomainprefix-{{ENV}}.com"
+        }]
+      }
+    },
+    "MydomainComDns": {
+      "Type": "AWS::Route53::HostedZone",
+      "Condition": "EnvIsProd",
+      "Properties": {
+        "Name": "mydomain.com",
+        "HostedZoneTags": [{
+          "Key": "Name",
+          "Value": "hostedzone-mydomain.com"
+        }]
+      }
+    },
+    "StaticMydomainComDns": {
+      "Type": "AWS::Route53::HostedZone",
+      "Condition": "EnvIsProd",
+      "Properties": {
+        "Name": "mystaticdomain.com",
+        "HostedZoneTags": [{
+          "Key": "Name",
+          "Value": "hostedzone-mystaticdomain.com"
+        }]
+      }
+    }
+  }
+}

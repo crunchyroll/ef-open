@@ -1,0 +1,122 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "{{ENV}}-cloudfront-static",
+  "Conditions": {
+    "EnvIsProd": { "Fn::Equals": [ "{{ENV}}", "prod" ] },
+    "EnvIsNotProd": { "Fn::Not": [ { "Fn::Equals": [ "{{ENV}}", "prod" ] } ] },
+    "EnvIsStagingOrProd": {
+      "Fn::Or": [
+        { "Fn::Equals": [ "{{ENV}}", "staging" ] },
+        { "Fn::Equals": [ "{{ENV}}", "prod" ] }
+      ]
+    }
+  },
+  "Resources": {
+    "CloudfrontDistribution": {
+      "Type": "AWS::CloudFront::Distribution",
+      "DependsOn": "Waf",
+      "Properties": {
+        "DistributionConfig": {
+          "Origins": [
+            {
+              "DomainName": "mybucketprefix-{{ENV}}-static.s3.amazonaws.com",
+              "Id": "Static",
+              "S3OriginConfig": {
+                "OriginAccessIdentity": "origin-access-identity/cloudfront/{{aws:cloudfront:origin-access-identity/oai-id,static.mydomainprefix-{{ENV}}.com}}"
+              }
+            }
+          ],
+          "WebACLId": { "Ref": "Waf" },
+          "Aliases": [
+            { "Fn::If": [ "EnvIsProd", "static.myproddomain.com", "static.mydomainprefix-{{ENV}}.com" ] }
+          ],
+          "CustomErrorResponses": [
+            { "ErrorCode": "400", "ErrorCachingMinTTL": "30" },
+            { "ErrorCode": "403", "ErrorCachingMinTTL": "30" },
+            { "ErrorCode": "404", "ErrorCachingMinTTL": "30" },
+            { "ErrorCode": "405", "ErrorCachingMinTTL": "30" },
+            { "ErrorCode": "414", "ErrorCachingMinTTL": "30" },
+            { "ErrorCode": "500", "ErrorCachingMinTTL": "10" },
+            { "ErrorCode": "501", "ErrorCachingMinTTL": "10" },
+            { "ErrorCode": "502", "ErrorCachingMinTTL": "10" },
+            { "ErrorCode": "503", "ErrorCachingMinTTL": "10" },
+            { "ErrorCode": "504", "ErrorCachingMinTTL": "10" }
+          ],
+          "DefaultRootObject": "index.html",
+          "Logging": {
+            "IncludeCookies": false,
+            "Bucket": "mybucketprefix-{{ENV_FULL}}-logs.s3.amazonaws.com",
+            "Prefix": "{{SERVICE}}/"
+          },
+          "DefaultCacheBehavior": {
+            "TargetOriginId": "Static",
+            "AllowedMethods": [ "GET", "HEAD" ],
+            "Compress": true,
+            "DefaultTTL": 60,
+            "MinTTL": 30,
+            "MaxTTL": 31536000,
+            "SmoothStreaming": false,
+            "ForwardedValues": {
+              "QueryString": false,
+              "Cookies": { "Forward" : "none" }
+            },
+            "ViewerProtocolPolicy": "allow-all"
+          },
+          "PriceClass": "PriceClass_100",
+          "Enabled": true,
+          "ViewerCertificate": {
+            "AcmCertificateArn" : { "Fn::If": [
+              "EnvIsProd",
+                "{{aws:acm:certificate-arn,us-east-1/myproddomain.com,NONE}}",
+                "{{aws:acm:certificate-arn,us-east-1/mydomainprefix-{{ENV}}.com,NONE}}"
+              ]
+            },
+            "MinimumProtocolVersion" : "TLSv1",
+            "SslSupportMethod" : "sni-only"
+          }
+        }
+      }
+    },
+    "Waf": {
+      "Type": "AWS::WAF::WebACL",
+      "Properties" : {
+        "Name": "{{ENV}}-StaticAcl",
+        "DefaultAction": {
+          "Type": { "Fn::If": [ "EnvIsProd", "ALLOW", "BLOCK" ] }
+        },
+        "MetricName": "{{ENV}}StaticWaf",
+        "Rules": [
+          { "Fn::If": [
+              "EnvIsProd",
+              { "Ref": "AWS::NoValue" },
+              {
+                "Priority": 1,
+                "RuleId": "{{aws:waf:rule-id,global-OfficeCidr}}",
+                "Action": {
+                  "Type": "ALLOW"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "Dns": {
+      "Type": "AWS::Route53::RecordSetGroup",
+      "Condition": "EnvIsNotProd",
+      "Properties": {
+        "HostedZoneId": "{{aws:route53:public-hosted-zone-id,mydomainprefix-{{ENV}}.com.,NONE}}",
+        "RecordSets": [
+          {
+            "Name": "static.mydomainprefix-{{ENV}}.com",
+            "Type": "A",
+            "AliasTarget": {
+              "HostedZoneId": "Z2FDTNDATAQYW2",
+              "DNSName": { "Fn::GetAtt": [ "CloudfrontDistribution", "DomainName" ] }
+            }
+          }
+        ]
+      }
+    }
+  }
+}

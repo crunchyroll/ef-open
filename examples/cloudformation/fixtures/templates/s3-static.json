@@ -1,0 +1,65 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Resources": {
+    "S3BucketStatic": {
+      "Type": "AWS::S3::Bucket",
+      "DeletionPolicy": "Retain",
+      "Properties": {
+        "AccessControl": "Private",
+        "BucketName": "mybucketprefix-{{ENV}}-static",
+        "LoggingConfiguration": {
+          "DestinationBucketName": "mybucketprefix-{{ENV_FULL}}-logs",
+          "LogFilePrefix": "{{SERVICE}}/"
+        },
+        "WebsiteConfiguration": {
+          "ErrorDocument": "index.html",
+          "IndexDocument": "index.html"
+        }
+      }
+    },
+    "S3BucketStaticPolicy": {
+      "Type": "AWS::S3::BucketPolicy",
+      "DependsOn": "S3BucketStatic",
+      "Properties": {
+        "Bucket": {
+          "Ref": "S3BucketStatic"
+        },
+        "PolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Sid": "sid1",
+              "Principal": "*",
+              "Action": "s3:GetObject",
+              "Effect": "Allow",
+              "Resource": [
+                "arn:aws:s3:::mybucketprefix-{{ENV}}-static/*"
+              ],
+              "Condition": {
+                "IpAddress": {
+                  "aws:SourceIp": [
+                    "1.1.1.1/32",
+                    "2.2.2.3/32",
+                    "3.3.3.0/24"
+                  ]
+                }
+              }
+            },
+            {
+              "Sid": "sid2",
+              "Principal": {
+                "CanonicalUser": "{{aws:cloudfront:origin-access-identity/oai-canonical-user-id,static.mydomainprefix-{{ENV}}.com,NONE}}"
+              },
+              "Action": "s3:GetObject",
+              "Effect": "Allow",
+              "Resource": [
+                "arn:aws:s3:::mybucketprefix-{{ENV}}-static",
+                "arn:aws:s3:::mybucketprefix-{{ENV}}-static/*"
+              ]
+            }
+          ]
+        }
+      }
+    }
+  }
+}
