@@ -10,7 +10,7 @@ Wants=cloud-config.target
 
 [Service]
 Type=oneshot
-ExecStart=/usr/bin/python /usr/local/bin/ef-instanceinit.py
+ExecStart=/usr/bin/python /usr/local/bin/ef-instanceinit
 RemainAfterExit=yes
 StandardOutput=journal+console
 TimeoutStartSec=120
