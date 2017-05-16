@@ -81,7 +81,7 @@ You're customized and ready to build.
 
 ### BUILD: Build all the ef-open tools
 #### Run pants directly...
-```bash
+```
 $ cd ~/workspace
 $ export EF_SITE_REPO=<REPO>
 $ ./pants binary ef-open/src:
@@ -111,8 +111,9 @@ Example:
 $ MY_REPO=our_infra_repo  # infra repo must be at ~/workspace/$MY_REPO
 $ cd ~/workspace
 ~/workspace:$ ef-open/tools/build-ef-open $MY_REPO
-
 $ ef-open/tools/build-ef-open my-repo
+```
+```
 fatal: Not a git repository (or any of the parent directories):
 
 15:28:37 00:00 [main]
