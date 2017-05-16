@@ -113,6 +113,7 @@ $ cd ~/workspace
 ~/workspace:$ ef-open/tools/build-ef-open $MY_REPO
 $ ef-open/tools/build-ef-open my-repo
 ```
+(ignore that fatal message)
 ```
 fatal: Not a git repository (or any of the parent directories):
 
