@@ -34,21 +34,39 @@ class EFSiteConfig:
   EF_REPO_BRANCH = ""
 
   # Map environment::account alias (aliases must have matching profiles in .aws/credentials)
-  #   Example, assuming there are 3 AWS account altogether
-  #   "internal": "mycompanyint",
-  #   "prod": "mycompany",
-  #   "proto": "mycompanynonprod",
-  #   "staging": "mycompanynonprod"
-  ENV_ACCOUNT_MAP = {
-    "internal": "",
-    "prod": "",
-    "proto": "",
-    "staging": ""
-  }
-
-  # Number of prototype environments, numbered 0..N-1 (4 or fewer recommended)
+  #   Include:
+  #     "account" - account alias
+  #     "number" - Number of named environments, numbered 0..N-1 (4 or fewer recommended)
   #   Example: PROTO_ENVS = 4
-  PROTO_ENVS = 4
+  #   Example, assuming there are 3 AWS accounts altogether
+  #   "internal": {
+  #     "account": "mycompanyint"
+  #   },
+  #   "prod": {
+  #     "account": "mycompany"
+  #   },
+  #   "proto": {
+  #     "account": "mycompanynonprod",
+  #     "number": 4
+  #   }.
+  #   "staging": {
+  #     "account": "mycompanynonprod"
+  #   }
+
+  ENV_ACCOUNT_MAP = {
+    "internal": {
+      "account": ""
+    },
+    "prod": {
+      "account": ""
+    },
+    "proto": {
+      "account": ""
+    },
+    "staging": {
+      "account": ""
+    }
+  }
 
   # Bucket where late-bound service configs are found. See doc/name-patterns.md for S3 bucket naming conventions
   #   Bucket name should be in this form: <S3PREFIX>-global-configs
