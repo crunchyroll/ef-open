@@ -80,6 +80,7 @@ You're customized and ready to build.
 
 
 ### BUILD: Build all the ef-open tools
+#### Run pants directly...
 ```bash
 $ cd ~/workspace
 $ export EF_SITE_REPO=<REPO>
@@ -95,6 +96,7 @@ Tools will be built in ef-open/dist:<br>
   ef-version.pex
 ```
 
+#### ... or use the helper script, "build-ef-open"
 ef-open also provides the script "build-ef-open" to automate the above with some parameter checking<br>
 After a successful build, the build-ef-open script also removes the '.pex' extension from all the built files.
 
