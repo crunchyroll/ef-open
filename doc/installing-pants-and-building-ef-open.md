@@ -4,7 +4,7 @@ To build the ef-open tools, you will need to...
    - do this once on every system that will build with pants (your laptop, Jenkins, ...)
  - CUSTOMIZE: create and configure "ef_site_config.py" file and accompanying BUILD.siteconfig file in your infrastructure repo
    - do this just once per repo
- - BUILD export an environment variable to tell pants where ef_site_config.py is, and build
+ - BUILD: export an environment variable to tell pants where ef_site_config.py is, and build
    - do this every time you build the tools
    - ef-open also provides a simple helper script to check the setup and perform the pants build
 
@@ -20,9 +20,9 @@ For full details and the latest instructions, see
 
 #### Assumptions in all examples and instructions below
 - Common directory above all repos is <code>~/workspace</code>
-- The ef-open repo is called <code>ef-open</code>
-- The company or project's Cloudformation Infrastructure repo is already set up (possibly empty, but it's ready to use).
-We just call it &lt;REPO&gt; here.
+- The ef-open repo is called <code>ef-open</code> at <code>~/workspace/ef-open</code>
+- The company or project's Cloudformation Infrastructure repo is already set up (possibly empty, but it's ready to use) at <code>~/workspace/&lt;REPO&gt;</code>.
+Call it whatever you like. This documentation refers to it as <code>&lt;REPO&gt;</code>.
 - Overall structure of stuff discussed here is:<br>
 <code>  ~/workspace <--- Common top-level directory above all repos (pants will be installed here)</code><br>
 <code>  ~/workspace/ef-open <--- ef-open repo, sync'd with ef-open at github</code><br>
@@ -35,12 +35,8 @@ We just call it &lt;REPO&gt; here.
 ### INSTALL: install pants
 *Do this on any system that will build the tools, such as tool maintainers' laptops, and Jenkins*
 
-<code>cd</code> to the directory above all the repos. 
-Under this directory should be, at least:<br>
-<code>ef-open/</code> and <code>your_infrastructure_repo/</code> which we call "&lt;repo&gt;" below
-</code>
-
-Download and install pants:
+<code>cd</code> to the directory above all the repos, which in these examples is <code>~/workspace</code>, then
+download and install pants:
 ```bash
 $ cd ~/workspace
 $ curl -L -O https://pantsbuild.github.io/setup/pants && chmod +x pants && touch pants.ini
