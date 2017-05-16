@@ -41,7 +41,7 @@ class EFConfig(EFSiteConfig):
   ENV_LIST = []
   VALID_ENV_REGEX = ""
   for env in EFSiteConfig.ENV_ACCOUNT_MAP.keys():
-    if "number" in EFSiteConfig.ENV_ACCOUNT_MAP[env]:
+    if "number" in EFSiteConfig.ENV_ACCOUNT_MAP[env] and EFSiteConfig.ENV_ACCOUNT_MAP[env]["number"] > 1:
       ENV_LIST.extend((lambda env=env: [env + str(x) for x in range(EFSiteConfig.ENV_ACCOUNT_MAP[env]["number"])])())
       VALID_ENV_REGEX += "{}[0-{}]|".format(env, EFSiteConfig.ENV_ACCOUNT_MAP[env]["number"] - 1)
     else:
