@@ -34,7 +34,7 @@ popd >/dev/null
 [ -r ${SITE_CONFIG_FILESPEC} ] || fail "can't read ${SITE_CONFIG_FILE_NAME} at ${INFRA_REPO}/"
 
 # build
-EF_SITE_REPO=${INFRA_REPO}
+export EF_SITE_REPO=${INFRA_REPO}
 ./pants binary ef-open/src:
 [ $? -eq 0 ] || fail "Build failed"
 
