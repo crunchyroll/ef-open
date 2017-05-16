@@ -28,7 +28,7 @@ toplevel=$(git rev-parse --show-toplevel 2>/dev/null)
 result=$?
 popd >/dev/null
 [ ${result} -eq 0 ] || fail "${INFRA_REPO} is not a git repo"
-[ "${current}" == "${toplevel}" ] || fail "INFRA_INFRA_REPO '${current}' is not the top-level directory of a repo"
+[ "${current}" == "${toplevel}" ] || fail "INFRA_REPO '${current}' is not the top-level directory of a repo"
 
 # Test that the site config file exists at the top of the repo
 [ -r ${SITE_CONFIG_FILESPEC} ] || fail "can't read ${SITE_CONFIG_FILE_NAME} at ${INFRA_REPO}/"

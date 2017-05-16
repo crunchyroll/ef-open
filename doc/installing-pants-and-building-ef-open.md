@@ -1,8 +1,12 @@
 ## Installing pants and building ef-open tools
-To build the ef-open tools, you will need to:
- - install pants on the path above the repos, typically "at the top directory of the workspace"
- - create and configure "ef_site_config.py" file and accompanying BUILD.siteconfig file in a repo you control
- - export an environment variable to tell pants where ef_site_config.py is
+To build the ef-open tools, you will need to...
+ - INSTALL: install pants "at the top directory of the workspace"
+   - do this once on every system that will build with pants (your laptop, Jenkins, ...)
+ - CUSTOMIZE: create and configure "ef_site_config.py" file and accompanying BUILD.siteconfig file in your infrastructure repo
+   - do this just once per repo
+ - BUILD export an environment variable to tell pants where ef_site_config.py is, and build
+   - do this every time you build the tools
+   - ef-open also provides a simple helper script to check the setup and perform the pants build
 
 ### Preliminaries
 From the pants documentation:
@@ -18,56 +22,60 @@ For full details and the latest instructions, see
 - Common directory above all repos is <code>~/workspace</code>
 - The ef-open repo is called <code>ef-open</code>
 - The company or project's Cloudformation Infrastructure repo is already set up (possibly empty, but it's ready to use).
+We just call it &lt;REPO&gt; here.
 - Overall structure of stuff discussed here is:<br>
 <code>  ~/workspace <--- Common top-level directory above all repos (pants will be installed here)</code><br>
 <code>  ~/workspace/ef-open <--- ef-open repo, sync'd with ef-open at github</code><br>
-<code>  ~/workspace/$MY_REPO <--- Cloudformation template repo with localized /ef_site_config.py</code><br>
-<code>  $MY_REPO/ef_site_config.py <--- your project-specific, local configuration file</code><br>
+<code>  ~/workspace/&lt;REPO&gt; <--- your infrastructure repo with localized /ef_site_config.py</code><br>
+<code>  &lt;REPO&gt;/ef_site_config.py <--- your project/company-specific ef-open configuration file</code><br>
 - To get you started, ef-open provides:<br>
-  <code>ef-open/getting-started/ef_site_config.py <--- starter site config file to copy to $MY_REPO/ef_site_config.py</code><br>
-  <code>ef-open/getting-started/BUILD.ef_site_config <--- ready-to-go build file to copy to $MY_REPO/BUILD.ef_site_config</code>
+  <code>ef-open/getting-started/ef_site_config.py <--- starter site config file to copy to &lt;REPO&gt;/ef_site_config.py</code><br>
+  <code>ef-open/getting-started/BUILD.ef_site_config <--- ready-to-go build file to copy to &lt;REPO&gt;/BUILD.ef_site_config</code>
 
-### 0. Prerequisites
-Set MY_REPO to your infrastructure repo. Cloudformation templates and parameters, site config, other local files will live there.<br>
-```bash
-export MY_REPO=my-repo
-```
-cd to the directory above all the repos.<br>
-Under this directory should be, at least: ef-open/ and $MY_REPO/
+### INSTALL: install pants
+*Do this on any system that will build the tools, such as tool maintainers' laptops, and Jenkins*
+
+<code>cd</code> to the directory above all the repos. 
+Under this directory should be, at least:<br>
+<code>ef-open/</code> and <code>your_infrastructure_repo/</code> which we call "&lt;repo&gt;" below
+</code>
+
+Download and install pants:
 ```bash
 $ cd ~/workspace
-```
-
-### 1. Install pants
-```bash
 $ curl -L -O https://pantsbuild.github.io/setup/pants && chmod +x pants && touch pants.ini
 ```
 
-Check that pants runs and get the current version
+Check that pants runs and get the installed version:
 ```
 $ ./pants -V
 1.1.0
 ```
 
-Edit ~/workspace/pants.ini to pin pants by adding these lines, using the pants version found in the previous step
+Edit ~/workspace/pants.ini to pin the pants version by adding these lines, using the pants version from the previous step
 ```
 [GLOBAL]
 pants_version: 1.1.0
 ```
 
-### 2. Copy and localize ef_site_config.py; copy in the pants BUILD file
+Pants is now installed.
+
+
+### CUSTOMIZE: configure ef-open for your AWS environment<BR>
+*Do this once for each infrastructure repo*
+
 Copy the ef_site_config.py template from ef-open/getting-started
 ```bash
-$ cp ~/workspace/ef-open/getting-started/ef_site_config.py ~/workspace/$MY_REPO/ef_site_config.py
+$ cp ~/workspace/ef-open/getting-started/ef_site_config.py ~/workspace/<REPO>/ef_site_config.py
 ```
-Define custom values for your tools to use
-- edit <code>~/workspace/$MY_REPO/ef_site_config.py</code>
-- localize all values for the company/project
-- save the updated <code>~/workspace/$MY_REPO/ef_site_config.py</code>
+Define custom values for your tooling
+- edit <code>~/workspace/&lt;REPO&gt;/ef_site_config.py</code>
+- localize all values for the company/project following the examples in comments there
+- save the updated <code>~/workspace/&lt;REPO&gt;/ef_site_config.py</code>
 
-Copy in the BUILD file so pants can see your <code>$MY_REPO/ef_site_config.py</code>
+Copy in the BUILD file so pants can use your <code>&lt;REPO&gt;/ef_site_config.py</code>
 ```bash
-$ cp ~/workspace/ef-open/getting-started/BUILD.ef_site_config ~/workspace/$MY_REPO/BUILD.ef_site_config
+$ cp ~/workspace/ef-open/getting-started/BUILD.ef_site_config ~/workspace/<REPO>/BUILD.ef_site_config
 ```
 
 Merge and commit <code>ef_site_config.py</code> and <code>BUILD.ef_site_config</code> to your repo.
@@ -75,10 +83,10 @@ Merge and commit <code>ef_site_config.py</code> and <code>BUILD.ef_site_config</
 You're customized and ready to build.
 
 
-### 3. Build all the tools defined in ef-open/src/BUILD
+### BUILD: Build all the ef-open tools
 ```bash
 $ cd ~/workspace
-$ export EF_SITE_REPO=$MY_REPO
+$ export EF_SITE_REPO=<REPO>
 $ ./pants binary ef-open/src:
 ```
 
@@ -91,17 +99,18 @@ Tools will be built in ef-open/dist:<br>
   ef-version.pex
 ```
 
-ef-open provides the script "build-ef-open" to automate the build with some parameter checking<br>
-After a successful build, it removes the '.pex' extension from all the built files.
+ef-open also provides the script "build-ef-open" to automate the above with some parameter checking<br>
+After a successful build, the build-ef-open script also removes the '.pex' extension from all the built files.
 
 Syntax:
 ```
 cd <directory_above_repos>
-ef-open/tools/build-ef-open $MY_REPO
+ef-open/tools/build-ef-open <REPO>
 ```
 
 Example:
 ```bash
+$ MY_REPO=our_infra_repo  # infra repo must be at ~/workspace/$MY_REPO
 $ cd ~/workspace
 ~/workspace:$ ef-open/tools/build-ef-open $MY_REPO
 
