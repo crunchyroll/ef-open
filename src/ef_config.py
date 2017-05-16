@@ -33,17 +33,25 @@ class EFConfig(EFSiteConfig):
   POLICY_TEMPLATE_PATH_SUFFIX = "/policy_templates/"
   # the service group 'fixtures' always exists
   EFSiteConfig.SERVICE_GROUPS.add("fixtures")
-  VALID_ENV_REGEX = "prod|staging|proto[0-{}]|global|mgmt|internal".format(EFSiteConfig.PROTO_ENVS - 1)
 
   # Convenient list of all mapped accounts
-  ACCOUNT_ALIAS_LIST = set(EFSiteConfig.ENV_ACCOUNT_MAP.values())
+  ACCOUNT_ALIAS_LIST = set(x["account"] for x in EFSiteConfig.ENV_ACCOUNT_MAP.values())
 
   # Convenient list of all possible valid environments
-  ENV_LIST = ["prod", "staging", "internal"]
+  ENV_LIST = []
+  VALID_ENV_REGEX = ""
+  for env in EFSiteConfig.ENV_ACCOUNT_MAP.keys():
+    if "number" in EFSiteConfig.ENV_ACCOUNT_MAP[env]:
+      ENV_LIST.extend((lambda env=env: [env + str(x) for x in range(EFSiteConfig.ENV_ACCOUNT_MAP[env]["number"])])())
+      VALID_ENV_REGEX += "{}[0-{}]|".format(env, EFSiteConfig.ENV_ACCOUNT_MAP[env]["number"] - 1)
+    else:
+      ENV_LIST.append(env)
+      VALID_ENV_REGEX += "{}|".format(env)
+
   ENV_LIST.extend("global." + x for x in ACCOUNT_ALIAS_LIST)
   ENV_LIST.extend("mgmt." + x for x in ACCOUNT_ALIAS_LIST)
-  ENV_LIST.extend("proto" + str(x) for x in range(EFSiteConfig.PROTO_ENVS))
   ENV_LIST = sorted(ENV_LIST)
+  VALID_ENV_REGEX += "global|mgmt"
 
   # These environments are for account-wide resources; they have a ".<ACCOUNT_ALIAS>" suffix
   ACCOUNT_SCOPED_ENVS = ["global", "mgmt"]
