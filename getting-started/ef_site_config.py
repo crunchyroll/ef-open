@@ -43,7 +43,7 @@ class EFSiteConfig:
     "internal": "",
     "prod": "",
     "proto": "",
-    "staging": "",
+    "staging": ""
   }
 
   # Map environment::number for environments that support multiple ephemeral replicas
