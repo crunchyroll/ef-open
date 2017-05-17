@@ -16,7 +16,7 @@ above all repos. Pants has a .ini file there, and will make some visible and inv
 directories inside this directory.
 
 For full details and the latest instructions, see
-- [Installing Pants](http://www.pantsbuild.org/install.html) at pantsbuild.org
+- ~~[Installing Pants](http://www.pantsbuild.org/install.html) at pantsbuild.org~~
 - [Python Projects with Pants](https://pantsbuild.github.io/python-readme.html) at pandsbuild.github.io<br>
 - tl;dr-style instructions appear below
 
