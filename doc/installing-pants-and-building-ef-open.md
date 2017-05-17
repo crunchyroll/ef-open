@@ -58,11 +58,10 @@ Check that pants runs, and get the version number of what was just installed
 $ which pants
 /usr/local/bin/pants
 
-pants -V
+$ pants -V
 1.2.1
 ```
-
-Edit ~/workspace/pants.ini to pin the pants version by adding these lines, using the pants version from the previous step
+Edit ~/workspace/pants.ini to pin the pants version by adding these lines, using the pants version found in the previous step
 ```
 [GLOBAL]
 pants_version: 1.2.1
