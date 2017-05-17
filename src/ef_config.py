@@ -35,15 +35,21 @@ class EFConfig(EFSiteConfig):
   EFSiteConfig.SERVICE_GROUPS.add("fixtures")
 
   # Convenient list of all mapped accounts
-  ACCOUNT_ALIAS_LIST = set(x["account"] for x in EFSiteConfig.ENV_ACCOUNT_MAP.values())
+  ACCOUNT_ALIAS_LIST = set(x for x in EFSiteConfig.ENV_ACCOUNT_MAP.values())
+
+  # These environments are for account-wide resources; they have a ".<ACCOUNT_ALIAS>" suffix
+  ACCOUNT_SCOPED_ENVS = ["global", "mgmt"]
+
+  # Protected environments are unique and non-ephemeral
+  PROTECTED_ENVS = ["prod"] + ACCOUNT_SCOPED_ENVS
 
   # Convenient list of all possible valid environments
   ENV_LIST = []
   VALID_ENV_REGEX = ""
   for env in EFSiteConfig.ENV_ACCOUNT_MAP.keys():
-    if "number" in EFSiteConfig.ENV_ACCOUNT_MAP[env] and EFSiteConfig.ENV_ACCOUNT_MAP[env]["number"] > 1:
-      ENV_LIST.extend((lambda env=env: [env + str(x) for x in range(EFSiteConfig.ENV_ACCOUNT_MAP[env]["number"])])())
-      VALID_ENV_REGEX += "{}[0-{}]|".format(env, EFSiteConfig.ENV_ACCOUNT_MAP[env]["number"] - 1)
+    if env not in PROTECTED_ENVS and env in EFSiteConfig.EPHEMERAL_ENVS:
+      ENV_LIST.extend((lambda env=env: [env + str(x) for x in range(EFSiteConfig.EPHEMERAL_ENVS[env])])())
+      VALID_ENV_REGEX += "{}[0-{}]|".format(env, EFSiteConfig.EPHEMERAL_ENVS[env] - 1)
     else:
       ENV_LIST.append(env)
       VALID_ENV_REGEX += "{}|".format(env)
@@ -52,9 +58,6 @@ class EFConfig(EFSiteConfig):
   ENV_LIST.extend("mgmt." + x for x in ACCOUNT_ALIAS_LIST)
   ENV_LIST = sorted(ENV_LIST)
   VALID_ENV_REGEX += "global|mgmt"
-
-  # These environments are for account-wide resources; they have a ".<ACCOUNT_ALIAS>" suffix
-  ACCOUNT_SCOPED_ENVS = ["global", "mgmt"]
 
   ## Version system
   # suffix used for naming deployable service AMIs
