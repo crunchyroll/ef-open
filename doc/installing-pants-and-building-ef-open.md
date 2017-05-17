@@ -2,35 +2,37 @@
 To build the ef-open tools, you will need to...
  - INSTALL: install pants "at the top directory of the workspace"
    - do this once on every system that will build with pants (your laptop, Jenkins, ...)
- - CUSTOMIZE: create and configure "ef_site_config.py" file and accompanying BUILD.siteconfig file in your infrastructure repo
+ - CUSTOMIZE: configure "ef_site_config.py" in your infrastructure repo, and copy in the provided BUILD.siteconfig
    - do this just once per repo
- - BUILD: export an environment variable to tell pants where ef_site_config.py is, and build
+ - BUILD: export an environment variable to tell pants where ef_site_config.py is, and run pants
    - do this every time you build the tools
-   - ef-open also provides a simple helper script to check the setup and perform the pants build
+   - ef-open also provides a simple example helper script to check the setup and build with pants
 
 ### Preliminaries
 From the pants documentation:
 > To set up pants in your repo, we recommend installing our self-contained pants bash script
-> in the root (ie, "buildroot") of your repo. In this example, ~/workspace is the
-top of all repos. Pants is installed there.
+> in the root (ie, "buildroot") of your repo.
+
+In this example, <code>~/workspace</code> is the top of all repos. Pants is installed there.
 
 For full details and the latest instructions, see
 - [Installing Pants](http://www.pantsbuild.org/install.html) at pantsbuild.org
 - [Python Projects with Pants](https://pantsbuild.github.io/python-readme.html) at pandsbuild.github.io<br>
+- tl;dr-style instructions appear below
 
 #### Assumptions in all examples and instructions below
-- Common directory above all repos is <code>~/workspace</code>
+- The common directory above all repos is <code>~/workspace</code>
 - The ef-open repo is called <code>ef-open</code> at <code>~/workspace/ef-open</code>
-- The company or project's Cloudformation Infrastructure repo is already set up (possibly empty, but it's ready to use) at <code>~/workspace/&lt;REPO&gt;</code>.
+- The company or project's Cloudformation Infrastructure repo is already set up (possibly empty, but ready to use) at <code>~/workspace/&lt;REPO&gt;</code>.<br>
 Call it whatever you like. This documentation refers to it as <code>&lt;REPO&gt;</code>.
 - Overall structure of stuff discussed here is:<br>
-<code>  ~/workspace <--- Common top-level directory above all repos (pants will be installed here)</code><br>
-<code>  ~/workspace/ef-open <--- ef-open repo, sync'd with ef-open at github</code><br>
-<code>  ~/workspace/&lt;REPO&gt; <--- your infrastructure repo with localized /ef_site_config.py</code><br>
-<code>  &lt;REPO&gt;/ef_site_config.py <--- your project/company-specific ef-open configuration file</code><br>
+<code>  ~/workspace</code> <--- Common top-level directory above all repos (Installed pants here and cd to here to build)<br>
+<code>  ~/workspace/ef-open</code> <--- ef-open repo, sync'd with ef-open at github<br>
+<code>  ~/workspace/&lt;REPO&gt;</code> <--- your infrastructure repo with localized /ef_site_config.py<br>
+<code>  &lt;REPO&gt;/ef_site_config.py</code> <--- your project/company-specific ef-open configuration file<br>
 - To get you started, ef-open provides:<br>
-  <code>ef-open/getting-started/ef_site_config.py <--- starter site config file to copy to &lt;REPO&gt;/ef_site_config.py</code><br>
-  <code>ef-open/getting-started/BUILD.ef_site_config <--- ready-to-go build file to copy to &lt;REPO&gt;/BUILD.ef_site_config</code>
+  <code>ef-open/getting-started/ef_site_config.py</code> <--- starter site config file to copy to &lt;REPO&gt;/ef_site_config.py<br>
+  <code>ef-open/getting-started/BUILD.ef_site_config</code> <--- ready-to-go build file to copy to &lt;REPO&gt;/BUILD.ef_site_config
 
 ### INSTALL: install pants
 *Do this on any system that will build the tools, such as tool maintainers' laptops, and Jenkins*
@@ -108,10 +110,8 @@ ef-open/tools/build-ef-open <REPO>
 
 Example:
 ```bash
-$ MY_REPO=our_infra_repo  # infra repo must be at ~/workspace/$MY_REPO
 $ cd ~/workspace
-~/workspace:$ ef-open/tools/build-ef-open $MY_REPO
-$ ef-open/tools/build-ef-open my-repo
+$ ef-open/tools/build-ef-open our_infra_repo
 ```
 (ignore that fatal message)
 ```
