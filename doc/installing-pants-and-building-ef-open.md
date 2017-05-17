@@ -9,11 +9,11 @@ To build the ef-open tools, you will need to...
    - ef-open also provides a simple example helper script to check the setup and build with pants
 
 ### Preliminaries
-From the pants documentation:
-> To set up pants in your repo, we recommend installing our self-contained pants bash script
-> in the root (ie, "buildroot") of your repo.
+These instructions use pip to install pants from Pypi to /usr/local/bin
 
-In this example, <code>~/workspace</code> is the top of all repos. Pants is installed there.
+In the instructions and examples below, <code>~/workspace</code> is the common directory
+above all repos. Pants has a .ini file there, and will make some visible and invisible (dot-file)
+directories inside this directory.
 
 For full details and the latest instructions, see
 - [Installing Pants](http://www.pantsbuild.org/install.html) at pantsbuild.org
@@ -23,7 +23,7 @@ For full details and the latest instructions, see
 #### Assumptions in all examples and instructions below
 - The common directory above all repos is <code>~/workspace</code>
 - The ef-open repo is called <code>ef-open</code> at <code>~/workspace/ef-open</code>
-- The company or project's Cloudformation Infrastructure repo is already set up (possibly empty, but ready to use) at <code>~/workspace/&lt;REPO&gt;</code>.<br>
+- The company or project's Cloudformation infrastructure repo is already set up (possibly empty, but ready to use) at <code>~/workspace/&lt;REPO&gt;</code>.<br>
 Call it whatever you like. This documentation refers to it as <code>&lt;REPO&gt;</code>.
 - Overall structure of stuff discussed here is:<br>
 <code>  ~/workspace</code> <--- Common top-level directory above all repos (Installed pants here and cd to here to build)<br>
@@ -38,26 +38,39 @@ Call it whatever you like. This documentation refers to it as <code>&lt;REPO&gt;
 *Do this on any system that will build the tools, such as tool maintainers' laptops, and Jenkins*
 
 <code>cd</code> to the directory above all the repos, which in these examples is <code>~/workspace</code>, then
-download and install pants:
+Use pip to install pants locally, or chef or other configuration tool to install it on a build server.
+The maintainers of ef-open presently use version 1.2.1 of pants. The BUILD files for ef-open are not complex,
+and will probably work ok with other versions of pants.
 ```bash
+# to install version 1.2.1 specifically:
 $ cd ~/workspace
-$ curl -L -O https://pantsbuild.github.io/setup/pants && chmod +x pants && touch pants.ini
+$ sudo pip install pantsbuild.pants==1.2.1
+$ touch pants  # pants demands a file with this name in the cwd, even if the binary is really somewhere else
+
+# or to install the latest version:
+$ cd ~/workspace
+$ sudo pip install pantsbuild.pants
+$ touch pants  # pants demands a file with this name in the cwd, even if the binary is really somewhere else
 ```
 
-Check that pants runs and get the installed version:
+Check that pants runs, and get the version number of what was just installed
 ```
-$ ./pants -V
-1.1.0
+$ which pants
+/usr/local/bin/pants
+
+pants -V
+1.2.1
 ```
 
 Edit ~/workspace/pants.ini to pin the pants version by adding these lines, using the pants version from the previous step
 ```
 [GLOBAL]
-pants_version: 1.1.0
+pants_version: 1.2.1
 ```
 
-Pants is now installed.
-
+Pants is now installed. It should be on your path, so in the examples below we'll
+call it without literally including the path. On a server, you may need or prefer
+to specify the full path to the binary when running pants.
 
 ### CUSTOMIZE: configure ef-open for your AWS environment<BR>
 *Do this once for each infrastructure repo*
@@ -86,7 +99,7 @@ You're customized and ready to build.
 ```
 $ cd ~/workspace
 $ export EF_SITE_REPO=<REPO>
-$ ./pants binary ef-open/src:
+$ pants binary ef-open/src:
 ```
 
 Tools will be built in ef-open/dist:<br>
@@ -113,7 +126,7 @@ Example:
 $ cd ~/workspace
 $ ef-open/tools/build-ef-open our_infra_repo
 ```
-(ignore that fatal message)
+(ignore the fatal message below)
 ```
 fatal: Not a git repository (or any of the parent directories):
 
