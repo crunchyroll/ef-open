@@ -217,8 +217,8 @@ def get_account_alias(env):
   else:
     env_short = env.strip(".0123456789")
     if env_short not in EFConfig.ENV_ACCOUNT_MAP:
-      raise ValueError("generic env: {} has no entry in ENV_ACCOUNT_MAP of ef_config.py".format(env_short))
-    return EFConfig.ENV_ACCOUNT_MAP[env_short]["account"]
+      raise ValueError("generic env: {} has no entry in ENV_ACCOUNT_MAP of ef_site_config.py".format(env_short))
+    return EFConfig.ENV_ACCOUNT_MAP[env_short]
 
 def get_env_short(env):
   """
