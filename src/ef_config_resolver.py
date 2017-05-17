@@ -35,7 +35,7 @@ class EFConfigResolver(object):
     """
 
     if lookup in EFConfig.ENV_ACCOUNT_MAP:
-      return EFConfig.ENV_ACCOUNT_MAP[lookup]["account"]
+      return EFConfig.ENV_ACCOUNT_MAP[lookup]
     else:
       return None
 
