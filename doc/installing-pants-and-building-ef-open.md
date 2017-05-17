@@ -9,16 +9,18 @@ To build the ef-open tools, you will need to...
    - ef-open also provides a simple example helper script to check the setup and build with pants
 
 ### Preliminaries
-These instructions use pip to install pants from Pypi to /usr/local/bin
+As the time this was written, the pants installation instructions at [http://www.pantsbuild.org/install.html](http://www.pantsbuild.org/install.html)
+were not in sync with the newer instructions in the pants repo at [https://github.com/pantsbuild/pants/blob/master/README.md](https://github.com/pantsbuild/pants/blob/master/README.md) and in fact will install an older version of pants.
 
-In the instructions and examples below, <code>~/workspace</code> is the common directory
-above all repos. Pants has a .ini file there, and will make some visible and invisible (dot-file)
-directories inside this directory.
+Accordingly, these instructions use pip to install pants from PyPI to /usr/local/bin, per the note about PyPI in the README.md.
+
+In the instructions and examples below, <code>~/workspace</code> is the common directory above all repos.<br>
+Pants has a .ini file there, and will make some visible and invisible (dot-file) directories inside it.
 
 For full details and the latest instructions, see
-- ~~[Installing Pants](http://www.pantsbuild.org/install.html) at pantsbuild.org~~
-- [Python Projects with Pants](https://pantsbuild.github.io/python-readme.html) at pandsbuild.github.io<br>
-- tl;dr-style instructions appear below
+- [Installing Packages](http://www.pantsbuild.org/install.html) at python.org (for pip, if you don't have it)
+- [pantsbuild/README.md](https://github.com/pantsbuild/pants/blob/master/README.md)
+- [Python Projects with Pants](https://pantsbuild.github.io/python-readme.html) at pandsbuild.github.io<br
 
 #### Assumptions in all examples and instructions below
 - The common directory above all repos is <code>~/workspace</code>
@@ -38,26 +40,29 @@ Call it whatever you like. This documentation refers to it as <code>&lt;REPO&gt;
 *Do this on any system that will build the tools, such as tool maintainers' laptops, and Jenkins*
 
 <code>cd</code> to the directory above all the repos, which in these examples is <code>~/workspace</code>, then
-Use pip to install pants locally, or chef or other configuration tool to install it on a build server.
-The maintainers of ef-open presently use version 1.2.1 of pants. The BUILD files for ef-open are not complex,
-and will probably work ok with other versions of pants.
+use pip to install pants... or use chef or other configuration tool to install it on a build server.
+
+The maintainers of ef-open currently build ef-open with version 1.2.1 of pants. The BUILD files for ef-open are not complex,
+and will probably work with other versions of pants.
 ```bash
 # to install version 1.2.1 specifically:
 $ cd ~/workspace
 $ sudo pip install pantsbuild.pants==1.2.1
-$ touch pants  # pants demands a file with this name in the cwd, even if the binary is really somewhere else
+$ touch pants  # pants requires a file with this name in the cwd, even if the binary is really somewhere else
 
 # or to install the latest version:
 $ cd ~/workspace
 $ sudo pip install pantsbuild.pants
-$ touch pants  # pants demands a file with this name in the cwd, even if the binary is really somewhere else
+$ touch pants  # pants requires a file with this name in the cwd, even if the binary is really somewhere else
 ```
 
-Check that pants runs, and get the version number of what was just installed
+Check that pants runs, and get its version number
 ```
 $ which pants
 /usr/local/bin/pants
-
+```
+It's on the search path so you shouldn't need to call it out explicitly if this is the only copy you have
+```
 $ pants -V
 1.2.1
 ```
@@ -68,8 +73,8 @@ pants_version: 1.2.1
 ```
 
 Pants is now installed. It should be on your path, so in the examples below we'll
-call it without literally including the path. On a server, you may need or prefer
-to specify the full path to the binary when running pants.
+call it without a path.<br>
+On a build server, you may need or prefer to specify the full path to the pants binary.
 
 ### CUSTOMIZE: configure ef-open for your AWS environment<BR>
 *Do this once for each infrastructure repo*
