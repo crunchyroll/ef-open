@@ -31,7 +31,7 @@ class EFConfigResolver(object):
     """
     Return account alias of the account that hosts the env named in lookup, None otherwise
     Params:
-      lookup: ENV_SHORT name of an env, one of: 'prod', 'staging', 'proto', or 'internal'
+      lookup: ENV_SHORT name of an env, such as: 'prod' or 'proto'
     """
 
     if lookup in EFConfig.ENV_ACCOUNT_MAP:

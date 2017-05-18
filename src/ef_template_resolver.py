@@ -98,13 +98,13 @@ class EFTemplateResolver(object):
           "myvarA2": "myvalueA2",
           ...
   Valid <env> values are:
-    "default", "prod", "staging", "proto", "proto<0>".."proto<N>", "internal", "localvm"
+    "default", "prod", "staging", "proto", "proto<0>".."proto<N>", "localvm", etc.
   <env> sections are evaluated hierarchically, in this order:
     1) "default" - optional; if present is always applied first
-    2) the general environment: "prod", "staging", "proto" ("any proto<0>..<N>"), or "internal"
-    3) "proto<N>" - the specific proto environment, if any
-  The "proto" env evaluation happens as it does to allow "proto" to set generic values for allow
-  prototype environments. Then proto<N> values can be applied to a set of proto envs if necessary
+    2) the general environment: "prod", "staging", "proto" ("any proto<0>..<N>"), etc.
+    3) "proto<N>" - the specific ephemeral environment, if any
+  The ephemeral env evaluation happens to allow for example, "proto" to set generic values for all
+  proto<N> environments. Then proto<N> values can be applied to specific proto envs if necessary
   to customize for the specific environment.
 
   """
@@ -168,9 +168,9 @@ class EFTemplateResolver(object):
       {{ACCOUNT}}       - AWS account number
                           CloudFormation can use this or the AWS::AccountID pseudo param
       {{ACCOUNT_ALIAS}} - AWS account alias
-      {{ENV}}           - environment: global, mgmt, prod, staging, proto<N>, internal
-      {{ENV_SHORT}}     - env with <N> trimmed: global, prod, staging, proto, internal
-      {{ENV_FULL}}      - env fully qualified: prod, staging, proto<N>, internal, mgmt.<account_alias>, global.<account_alias>
+      {{ENV}}           - environment: mgmt, prod, staging, proto<N>, etc.
+      {{ENV_SHORT}}     - env with <N> or account trimmed: mgmt, prod, staging, proto, etc.
+      {{ENV_FULL}}      - env fully qualified: prod, staging, proto<N>, mgmt.<account_alias>, etc.
       {{FUNCTION_NAME}} - only for lambdas
       {{INSTANCE_ID}}   - only for ec2
       {{REGION}}        - the region currently being worked in

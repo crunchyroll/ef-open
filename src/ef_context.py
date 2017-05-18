@@ -28,10 +28,9 @@ class EFContext(object):
   def __init__(self):
     # service environment
     self._account_alias = None
-    self._env = None # prod, staging, proto<n>, global, mgmt, internal -- the name used in AWS
-    self._env_short = None # prod, staging, proto, global, mgmt, internal -- the generic name for matching when templating
-    # _env_full deals with naming differences for "proto<n>", "global.<alias>", "mgmt.<alias>" in the service registry
-    self._env_full = None # prod, staging, proto, global.<account_alias>, mgmt.<account_alias>, internal -- name found in SR
+    self._env = None # the name used in AWS -- e.g. prod, proto<n>, mgmt
+    self._env_short = None # the generic name -- e.g. prod, proto, mgmt
+    self._env_full = None # name found in SR -- e.g. prod, proto, mgmt.<account_alias>
     self._service = None
     # Service registry object
     self._service_registry = None
@@ -57,7 +56,8 @@ class EFContext(object):
     """
     Sets context.env, context.env_short, and context.account_alias if env is valid
     For envs of the form "global.<account>" and "mgmt.<account_alias>",
-    env is captured as "global" or "mgmt" and account_alias is parsed out of the full env rather than looked up
+    env is captured as "global" or "mgmt" and account_alias is parsed
+    out of the full env rather than looked up
     Args:
       value: the fully-qualified env value
     Raises:
@@ -78,12 +78,12 @@ class EFContext(object):
 
   @property
   def env_short(self):
-    """Short (generic) name of the environment, e.g. 'prod' or 'proto' or 'global'"""
+    """Short (generic) name of the environment, e.g. 'prod' or 'proto' or 'mgmt'"""
     return self._env_short
 
   @property
   def env_full(self):
-    """Name of the environment as expected in the service registry, e.g. 'prod' or 'proto' or 'global.ellationeng'"""
+    """Name of the environment as expected in the service registry, e.g. 'prod' or 'proto' or 'mgmt.ellationeng'"""
     return self._env_full
 
   @property

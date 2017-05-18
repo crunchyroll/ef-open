@@ -202,7 +202,7 @@ def get_account_alias(env):
   """
   Given an env, return <account_alias> if env is valid
   Args:
-    env: an environment, one of "prod", "staging", "proto<N>", "internal", "global.<account_alias>", or "mgmt.<account_alias>"
+    env: an environment, such as "prod", "staging", "proto<N>", "mgmt.<account_alias>"
   Returns:
     the alias of the AWS account that holds the env
   Raises:
@@ -224,9 +224,9 @@ def get_env_short(env):
   """
   Given an env, return <env_short> if env is valid
   Args:
-    env: an environment, one of "prod", "staging", "proto<N>", "internal", "global.<account_alias>", or "mgmt.<account_alias>"
+    env: an environment, such as "prod", "staging", "proto<N>", "mgmt.<account_alias>"
   Returns:
-    the shortname of the env, one of "prod", "staging", "proto", "internal", "global", or "mgmt"
+    the shortname of the env, such as "prod", "staging", "proto", "mgmt"
   Raises:
     ValueError if env is misformatted or doesn't name a known environment
   """
