@@ -60,11 +60,22 @@ Check that pants runs, and get its version number
 $ which pants
 /usr/local/bin/pants
 ```
+
 It's on the search path so you shouldn't need to call it out explicitly if this is the only copy you have
 ```
 $ pants -V
 1.2.1
 ```
+If pants won't run on your OS/X installation, take a look at the discussion here:
+[https://apple.stackexchange.com/questions/209572/how-to-use-pip-after-the-os-x-el-capitan-upgrade](https://apple.stackexchange.com/questions/209572/how-to-use-pip-after-the-os-x-el-capitan-upgrade)
+
+For us, this step from the conversation above solved a versioning issue (old version found first) caused by a python path problem in OS/X:<br>
+<code>
+$ sudo cat > /Library/Python/2.7/site-packages/fix_mac_path.pth<br>
+import sys; std_paths=[p for p in sys.path if p.startswith('/System/') and not '/Extras/' in p]; sys.path=[p for p in sys.path if not p.startswith('/System/')]+std_paths<br>
+^D
+</code>
+
 Edit ~/workspace/pants.ini to pin the pants version by adding these lines, using the pants version found in the previous step
 ```
 [GLOBAL]
