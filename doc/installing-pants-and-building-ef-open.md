@@ -58,8 +58,8 @@ $ ./pants -V
 1.2.1
 ```
 
-Edit <code>~/workspace/pants.ini</code> to add these lines to pin the pants version, using the version number found in the previous step.<br>
-Note: If this file is created _before_ pants is installed, pants will self-update if necessary to the desired version and stay there.
+Edit <code>~/workspace/pants.ini</code> to add these lines to pin the pants version, using the version number from the previous step.<br>
+Note: When pants_version is change in pants.ini, pants will self-update if necessary to the desired version and stay there.
 ```
 [GLOBAL]
 pants_version: 1.2.1
