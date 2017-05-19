@@ -35,7 +35,7 @@ class EFConfig(EFSiteConfig):
   EFSiteConfig.SERVICE_GROUPS.add("fixtures")
 
   # Convenient list of all mapped accounts
-  ACCOUNT_ALIAS_LIST = set(x for x in EFSiteConfig.ENV_ACCOUNT_MAP.values())
+  ACCOUNT_ALIAS_LIST = set(EFSiteConfig.ENV_ACCOUNT_MAP.values())
 
   # These environments are for account-wide resources; they have a ".<ACCOUNT_ALIAS>" suffix
   ACCOUNT_SCOPED_ENVS = ["global", "mgmt"]

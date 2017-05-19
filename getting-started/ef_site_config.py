@@ -47,7 +47,7 @@ class EFSiteConfig:
 
   # Map environment::number for environments that support multiple ephemeral replicas
   # Resolves as proto<0..N> up to number - 1 (proto0, proto1, proto2, proto3 for N = 4)
-  # prod and account scoped envs are not allowed
+  # prod and account scoped envs are not allowed to be ephemeral
   #   "myephemeralenv": Int,
   #   "proto": Int
   EPHEMERAL_ENVS = {
