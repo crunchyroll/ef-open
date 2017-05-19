@@ -1,63 +1,71 @@
 ## Installing pants and building ef-open tools
 To build the ef-open tools, you will need to...
- - INSTALL: install pants "at the top directory of the workspace"
-   - do this once on every system that will build with pants (your laptop, Jenkins, ...)
- - CUSTOMIZE: configure "ef_site_config.py" in your infrastructure repo, and copy in the provided BUILD.siteconfig
-   - do this just once per repo
- - BUILD: export an environment variable to tell pants where ef_site_config.py is, and run pants
-   - do this every time you build the tools
-   - ef-open also provides a simple example helper script to check the setup and build with pants
+
+| What | Where | When |
+| --- | --- | --- |
+| INSTALL:<br>install pants | on every system that will use pants to build (your laptop, Jenkins, ...) | once per system |
+| CUSTOMIZE:<br>configure "ef_site_config.py"<br>copy in the provided BUILD.siteconfig | your infrastructure repo(s) | once per repo initially (and later to change a value in ef_site_config.py) |
+| BUILD:<br>export an environment variable to tell pants where ef_site_config.py is, then run pants<br>_or_<br>use the example script, <code>tools/build-ef-open</code> that checks setup and runs pants | any pants-capable system | every time you build ef-open<br>(whenever there's an update to /src or your revise your ef_site_config.py) |
 
 ### Preliminaries
-From the pants documentation:
-> To set up pants in your repo, we recommend installing our self-contained pants bash script
-> in the root (ie, "buildroot") of your repo.
 
-In this example, <code>~/workspace</code> is the top of all repos. Pants is installed there.
-
-For full details and the latest instructions, see
+Below are tl;dr instructions that have worked for the ef-open maintainers.<br>
+For full details and the latest instructions, see:
 - [Installing Pants](http://www.pantsbuild.org/install.html) at pantsbuild.org
-- [Python Projects with Pants](https://pantsbuild.github.io/python-readme.html) at pandsbuild.github.io<br>
-- tl;dr-style instructions appear below
+- [pantsbuild/README.md](https://github.com/pantsbuild/pants/blob/master/README.md) at github.com/pantsbuild
+- [Python Projects with Pants](https://pantsbuild.github.io/python-readme.html) at pantsbuild.github.io
 
-#### Assumptions in all examples and instructions below
+#### Assumptions in the examples and instructions below
 - The common directory above all repos is <code>~/workspace</code>
+  - Pants has a <code>pants.ini</code> file there, and will make some visible and invisible (dot-file) directories inside it.
 - The ef-open repo is called <code>ef-open</code> at <code>~/workspace/ef-open</code>
-- The company or project's Cloudformation Infrastructure repo is already set up (possibly empty, but ready to use) at <code>~/workspace/&lt;REPO&gt;</code>.<br>
+- Your company or project's Cloudformation infrastructure repo is already set up (possibly empty, but ready to use) at <code>~/workspace/&lt;REPO&gt;</code>.<br>
 Call it whatever you like. This documentation refers to it as <code>&lt;REPO&gt;</code>.
 - Overall structure of stuff discussed here is:<br>
-<code>  ~/workspace</code> <--- Common top-level directory above all repos (Installed pants here and cd to here to build)<br>
+<code>  ~/workspace</code> <--- Common top-level directory above all repos (Install pants here; cd to here to build)<br>
 <code>  ~/workspace/ef-open</code> <--- ef-open repo, sync'd with ef-open at github<br>
-<code>  ~/workspace/&lt;REPO&gt;</code> <--- your infrastructure repo with localized /ef_site_config.py<br>
-<code>  &lt;REPO&gt;/ef_site_config.py</code> <--- your project/company-specific ef-open configuration file<br>
+<code>  ~/workspace/&lt;REPO&gt;</code> <--- your infrastructure repo where CloudFormation templatesa and other ef-open files go<br>
+<code>  ~/workspace/&lt;REPO&gt;/ef_site_config.py</code> <--- your project/company-specific ef-open configuration file<br>
 - To get you started, ef-open provides:<br>
-  <code>ef-open/getting-started/ef_site_config.py</code> <--- starter site config file to copy to &lt;REPO&gt;/ef_site_config.py<br>
-  <code>ef-open/getting-started/BUILD.ef_site_config</code> <--- ready-to-go build file to copy to &lt;REPO&gt;/BUILD.ef_site_config
+  <code>ef-open/getting-started/ef_site_config.py</code> <--- starter site config file to copy to <code>&lt;REPO&gt;/ef_site_config.py</code> and then customize<br>
+  <code>ef-open/getting-started/BUILD.ef_site_config</code> <--- ready-to-go build file to copy to <code>&lt;REPO&gt;/BUILD.ef_site_config</code>
 
 ### INSTALL: install pants
-*Do this on any system that will build the tools, such as tool maintainers' laptops, and Jenkins*
+*Do this on any system that will build the ef-open tools, such as tool maintainers' laptops, and Jenkins*
 
 <code>cd</code> to the directory above all the repos, which in these examples is <code>~/workspace</code>, then
-download and install pants:
+install pants there following the instructions below... or use chef or other configuration tool to install it on
+a build server.
+
+The maintainers of ef-open currently build ef-open with version 1.2.1 of pants. The BUILD files for ef-open are not complex,
+and will probably work with other versions of pants. You can also install pants elsewhere (such as to /usr/local/bin). In
+this document, it's installed into <code>~/workspace</code>.
+
 ```bash
 $ cd ~/workspace
 $ curl -L -O https://pantsbuild.github.io/setup/pants && chmod +x pants && touch pants.ini
 ```
 
-Check that pants runs and get the installed version:
-```
-$ ./pants -V
-1.1.0
+Run pants the first time, and it will self-update to the latest version.<br>
+If this returns a message like "No goals specified." then your copy of pants is current.
+```bash
+$ ./pants
 ```
 
-Edit ~/workspace/pants.ini to pin the pants version by adding these lines, using the pants version from the previous step
+Get the pants version number
+```
+$ ./pants -V
+1.2.1
+```
+
+Edit <code>~/workspace/pants.ini</code> to add these lines to pin the pants version, using the version number from the previous step.<br>
+Note: When pants_version is changed in pants.ini, pants will self-update if necessary to the desired version and stay there.
 ```
 [GLOBAL]
-pants_version: 1.1.0
+pants_version: 1.2.1
 ```
 
 Pants is now installed.
-
 
 ### CUSTOMIZE: configure ef-open for your AWS environment<BR>
 *Do this once for each infrastructure repo*
@@ -66,9 +74,9 @@ Copy the ef_site_config.py template from ef-open/getting-started
 ```bash
 $ cp ~/workspace/ef-open/getting-started/ef_site_config.py ~/workspace/<REPO>/ef_site_config.py
 ```
-Define custom values for your tooling
+Define custom values for your AWS account and configuration
 - edit <code>~/workspace/&lt;REPO&gt;/ef_site_config.py</code>
-- localize all values for the company/project following the examples in comments there
+- localize all values for the company/project following the examples in comments in the file
 - save the updated <code>~/workspace/&lt;REPO&gt;/ef_site_config.py</code>
 
 Copy in the BUILD file so pants can use your <code>&lt;REPO&gt;/ef_site_config.py</code>
@@ -76,7 +84,7 @@ Copy in the BUILD file so pants can use your <code>&lt;REPO&gt;/ef_site_config.p
 $ cp ~/workspace/ef-open/getting-started/BUILD.ef_site_config ~/workspace/<REPO>/BUILD.ef_site_config
 ```
 
-Merge and commit <code>ef_site_config.py</code> and <code>BUILD.ef_site_config</code> to your repo.
+Merge and commit <code>ef_site_config.py</code> and <code>BUILD.ef_site_config</code> to your infrastructure repo.
 
 You're customized and ready to build.
 
@@ -86,7 +94,7 @@ You're customized and ready to build.
 ```
 $ cd ~/workspace
 $ export EF_SITE_REPO=<REPO>
-$ ./pants binary ef-open/src:
+$ pants binary ef-open/src:
 ```
 
 Tools will be built in ef-open/dist:<br>
@@ -113,7 +121,7 @@ Example:
 $ cd ~/workspace
 $ ef-open/tools/build-ef-open our_infra_repo
 ```
-(ignore that fatal message)
+(ignore the fatal message below)
 ```
 fatal: Not a git repository (or any of the parent directories):
 

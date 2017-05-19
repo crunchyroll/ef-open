@@ -33,20 +33,31 @@ class EFConfig(EFSiteConfig):
   POLICY_TEMPLATE_PATH_SUFFIX = "/policy_templates/"
   # the service group 'fixtures' always exists
   EFSiteConfig.SERVICE_GROUPS.add("fixtures")
-  VALID_ENV_REGEX = "prod|staging|proto[0-{}]|global|mgmt|internal".format(EFSiteConfig.PROTO_ENVS - 1)
 
   # Convenient list of all mapped accounts
   ACCOUNT_ALIAS_LIST = set(EFSiteConfig.ENV_ACCOUNT_MAP.values())
 
-  # Convenient list of all possible valid environments
-  ENV_LIST = ["prod", "staging", "internal"]
-  ENV_LIST.extend("global." + x for x in ACCOUNT_ALIAS_LIST)
-  ENV_LIST.extend("mgmt." + x for x in ACCOUNT_ALIAS_LIST)
-  ENV_LIST.extend("proto" + str(x) for x in range(EFSiteConfig.PROTO_ENVS))
-  ENV_LIST = sorted(ENV_LIST)
-
   # These environments are for account-wide resources; they have a ".<ACCOUNT_ALIAS>" suffix
   ACCOUNT_SCOPED_ENVS = ["global", "mgmt"]
+
+  # Protected environments are unique and non-ephemeral
+  PROTECTED_ENVS = ["prod"] + ACCOUNT_SCOPED_ENVS
+
+  # Convenient list of all possible valid environments
+  ENV_LIST = []
+  VALID_ENV_REGEX = ""
+  for env in EFSiteConfig.ENV_ACCOUNT_MAP.keys():
+    if env not in PROTECTED_ENVS and env in EFSiteConfig.EPHEMERAL_ENVS:
+      ENV_LIST.extend((lambda env=env: [env + str(x) for x in range(EFSiteConfig.EPHEMERAL_ENVS[env])])())
+      VALID_ENV_REGEX += "{}[0-{}]|".format(env, EFSiteConfig.EPHEMERAL_ENVS[env] - 1)
+    else:
+      ENV_LIST.append(env)
+      VALID_ENV_REGEX += "{}|".format(env)
+
+  ENV_LIST.extend("global." + x for x in ACCOUNT_ALIAS_LIST)
+  ENV_LIST.extend("mgmt." + x for x in ACCOUNT_ALIAS_LIST)
+  ENV_LIST = sorted(ENV_LIST)
+  VALID_ENV_REGEX += "global|mgmt"
 
   ## Version system
   # suffix used for naming deployable service AMIs

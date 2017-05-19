@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
 declare -r SITE_CONFIG_FILE_NAME=ef_site_config.py
+declare -r PANTS=./pants
 
 fail() {
   echo -e "$1"
@@ -15,6 +16,8 @@ usage() {
 }
 
 [ -n "$1" ] || fail "$(usage)"
+
+[ -x "${PANTS}" ] || fail "No pants executable at ${PANTS}. Run this tool from the directory above all repos."
 
 # INFRA_REPO may have been spec'd w/ a trailing slash. Remove it.
 INFRA_REPO=${1%/}
@@ -34,8 +37,8 @@ popd >/dev/null
 [ -r ${SITE_CONFIG_FILESPEC} ] || fail "can't read ${SITE_CONFIG_FILE_NAME} at ${INFRA_REPO}/"
 
 # build
-EF_SITE_REPO=${INFRA_REPO}
-./pants binary ef-open/src:
+export EF_SITE_REPO=${INFRA_REPO}
+${PANTS} binary ef-open/src:
 [ $? -eq 0 ] || fail "Build failed"
 
 # rename files to remove .pex extension
