@@ -34,7 +34,6 @@ class EFSiteConfig:
   EF_REPO_BRANCH = ""
 
   # Map environment::account alias (aliases must have matching profiles in .aws/credentials)
-  #   Example, assuming there are 3 AWS account altogether
   #   "internal": "mycompanyint",
   #   "prod": "mycompany",
   #   "proto": "mycompanynonprod",
@@ -46,9 +45,14 @@ class EFSiteConfig:
     "staging": ""
   }
 
-  # Number of prototype environments, numbered 0..N-1 (4 or fewer recommended)
-  #   Example: PROTO_ENVS = 4
-  PROTO_ENVS = 4
+  # Map environment::number for environments that support multiple ephemeral replicas
+  # Resolves as proto<0..N> up to number - 1 (proto0, proto1, proto2, proto3 for N = 4)
+  # prod and account scoped envs are not allowed to be ephemeral
+  #   "myephemeralenv": Int,
+  #   "proto": Int
+  EPHEMERAL_ENVS = {
+    "proto": 4
+  }
 
   # Bucket where late-bound service configs are found. See doc/name-patterns.md for S3 bucket naming conventions
   #   Bucket name should be in this form: <S3PREFIX>-global-configs

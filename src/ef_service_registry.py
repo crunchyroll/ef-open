@@ -130,8 +130,8 @@ class EFServiceRegistry(object):
     service_record_envs = service_record["environments"]
     result = []
     for service_env in service_record_envs:
-      if "proto" == service_env:
-        result.extend(map(lambda x: "proto" + str(x), range(EFConfig.PROTO_ENVS)))
+      if service_env not in EFConfig.PROTECTED_ENVS and service_env in EFConfig.EPHEMERAL_ENVS:
+        result.extend((lambda env=service_env: [env + str(x) for x in range(EFConfig.EPHEMERAL_ENVS[env])])())
       else:
         result.append(service_env)
     return result
