@@ -17,7 +17,7 @@ usage() {
 
 [ -n "$1" ] || fail "$(usage)"
 
-[ -x "${PANTS}" ] || fail "No pants executable at ${PANTS}"
+[ -x "${PANTS}" ] || fail "No pants executable at ${PANTS}. Run this tool from the directory above all repos."
 
 # INFRA_REPO may have been spec'd w/ a trailing slash. Remove it.
 INFRA_REPO=${1%/}
