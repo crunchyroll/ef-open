@@ -9,7 +9,7 @@ To build the ef-open tools, you will need to...
 
 ### Preliminaries
 
-Below are tl;dr instructions that have worked for the ef_open maintainers.<br>
+Below are tl;dr instructions that have worked for the ef-open maintainers.<br>
 For full details and the latest instructions, see:
 - [Installing Pants](http://www.pantsbuild.org/install.html) at pantsbuild.org
 - [pantsbuild/README.md](https://github.com/pantsbuild/pants/blob/master/README.md) at github.com/pantsbuild
