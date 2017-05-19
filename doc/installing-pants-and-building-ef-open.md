@@ -9,9 +9,10 @@ To build the ef-open tools, you will need to...
 
 ### Preliminaries
 
-Below are tl;dr instructions that have worked for the ef_open maintainers. For full details and the latest instructions, see:
+Below are tl;dr instructions that have worked for the ef_open maintainers.<br>
+For full details and the latest instructions, see:
 - [Installing Pants](http://www.pantsbuild.org/install.html) at pantsbuild.org
-- [pantsbuild/README.md](https://github.com/pantsbuild/pants/blob/master/README.md)
+- [pantsbuild/README.md](https://github.com/pantsbuild/pants/blob/master/README.md) at github.com/pantsbuild
 - [Python Projects with Pants](https://pantsbuild.github.io/python-readme.html) at pantsbuild.github.io
 
 #### Assumptions in the examples and instructions below
@@ -30,7 +31,7 @@ Call it whatever you like. This documentation refers to it as <code>&lt;REPO&gt;
   <code>ef-open/getting-started/BUILD.ef_site_config</code> <--- ready-to-go build file to copy to <code>&lt;REPO&gt;/BUILD.ef_site_config</code>
 
 ### INSTALL: install pants
-*Do this on any system that will build the tools, such as tool maintainers' laptops, and Jenkins*
+*Do this on any system that will build the ef-open tools, such as tool maintainers' laptops, and Jenkins*
 
 <code>cd</code> to the directory above all the repos, which in these examples is <code>~/workspace</code>, then
 install pants there following the instructions below... or use chef or other configuration tool to install it on

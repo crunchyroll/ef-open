@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 declare -r SITE_CONFIG_FILE_NAME=ef_site_config.py
-declare -r PANTS=/usr/local/bin/pants
+declare -r PANTS=./pants
 
 fail() {
   echo -e "$1"
@@ -38,7 +38,7 @@ popd >/dev/null
 
 # build
 export EF_SITE_REPO=${INFRA_REPO}
-pants binary ef-open/src:
+${PANTS} binary ef-open/src:
 [ $? -eq 0 ] || fail "Build failed"
 
 # rename files to remove .pex extension
