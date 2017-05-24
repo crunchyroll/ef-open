@@ -373,7 +373,7 @@ def get_versions(context, return_stable=False):
     return sorted(object_versions, key=lambda v: v.last_modified, reverse=True)
 
 def cmd_get(context):
-  obj_value = context.versionresolver.lookup("ami-id,{}/{}".format(context.env, context.service_name))
+  obj_value = context.versionresolver.lookup("{},{}/{}".format(context.key, context.env, context.service_name))
   print(obj_value)
 
 def cmd_history(context):
