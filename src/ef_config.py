@@ -74,7 +74,8 @@ class EFConfig(EFSiteConfig):
   VERSION_KEYS = {
     "ami-id": {
       "allow_latest": True
-    }
+    },
+    "dist-hash": {}
   }
   # Some envs' version entries can be set via these special values, meaning 'use the value found there'
   SPECIAL_VERSIONS = ["=latest", "=prod", "=staging"]
