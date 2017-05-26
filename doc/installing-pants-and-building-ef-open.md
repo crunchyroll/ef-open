@@ -3,7 +3,7 @@ To build the ef-open tools, you will need to...
 
 | What | Where | When |
 | --- | --- | --- |
-| INSTALL:<br>install pants | on every system that will use pants to build (your laptop, Jenkins, ...) | once per system |
+| INSTALL:<br>install pants<br>install java8+ | on every system that will use pants to build (your laptop, Jenkins, ...) | once per system |
 | CUSTOMIZE:<br>configure "ef_site_config.py"<br>copy in the provided BUILD.siteconfig | your infrastructure repo(s) | once per repo initially (and later to change a value in ef_site_config.py) |
 | BUILD:<br>export an environment variable to tell pants where ef_site_config.py is, then run pants<br>_or_<br>use the example script, <code>tools/build-ef-open</code> that checks setup and runs pants | any pants-capable system | every time you build ef-open<br>(whenever there's an update to /src or your revise your ef_site_config.py) |
 
@@ -12,6 +12,7 @@ To build the ef-open tools, you will need to...
 Below are tl;dr instructions that have worked for the ef-open maintainers.<br>
 For full details and the latest instructions, see:
 - [Installing Pants](http://www.pantsbuild.org/install.html) at pantsbuild.org
+- [Installing Java](https://www.java.com/en/download/help/download_options.xml) at java.com
 - [pantsbuild/README.md](https://github.com/pantsbuild/pants/blob/master/README.md) at github.com/pantsbuild
 - [Python Projects with Pants](https://pantsbuild.github.io/python-readme.html) at pantsbuild.github.io
 
