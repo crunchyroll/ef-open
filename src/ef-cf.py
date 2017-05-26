@@ -134,7 +134,7 @@ def main():
 
   # Service must exist in service registry
   if context.service_registry.service_record(service_name) is None:
-    fail("service: {} not found in service registry: {}".format(service_name, context.service_registry.filespec()))
+    fail("service: {} not found in service registry: {}".format(service_name, context.service_registry.filespec))
 
   if not context.env_full in context.service_registry.valid_envs(service_name):
     fail("Invalid environment: {} for service_name: {}\nValid environments are: {}" \
