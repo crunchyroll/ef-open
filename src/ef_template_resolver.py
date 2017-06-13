@@ -29,7 +29,7 @@ from ef_version_resolver import EFVersionResolver
 
 # CONSTANTS
 # pattern to find resolvable symbols - finds innermost nestings
-SYMBOL_PATTERN = r'{{([0-9A-Za-z/_,.:\-]+?)}}'
+SYMBOL_PATTERN = r'{{([0-9A-Za-z/_,.:\-\+=]+?)}}'
 # inverse of SYMBOL_PATTERN, and disallows ':' and ',' from param keys; this is checked in load()
 ILLEGAL_PARAMETER_CHARS = r'[^(0-9A-Za-z/_.\-)]'
 
