@@ -458,6 +458,20 @@ class EFAwsResolver(object):
       else:
         return default
 
+  def kms_decrypt_value(self, lookup, default=None):
+    """
+    Args:
+      lookup: the encrypted value to be decrypted by KMS; base64 encoded
+      default: the optional value to return if lookup failed; returns None if not set
+    Returns:
+      The decrypted key value
+    """
+    try:
+      decrypted_value = EFAwsResolver.__CLIENTS["kms"].decrypt(
+        CiphertextBlob=lookup.decode('base64'))['Plaintext'].decode("utf-8")
+    except ClientError:
+      return default
+    return decrypted_value
 
   def lookup(self, token):
     try:
@@ -478,6 +492,8 @@ class EFAwsResolver(object):
       return self.ec2_elasticip_elasticip_ipaddress(*kv[1:])
     elif kv[0] == "ec2:eni/eni-id":
       return self.ec2_eni_eni_id(*kv[1:])
+    elif kv[0] == "kms:key":
+      return self.kms_decrypt_value(*kv[1:])
     elif kv[0] == "ec2:route-table/main-route-table-id":
       return self.ec2_route_table_main_route_table_id(*kv[1:])
     elif kv[0] == "ec2:security-group/security-group-id":
