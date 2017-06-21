@@ -14,20 +14,22 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
+
 import unittest
 
+
 #from ef_utils import env_valid, get_account_alias, get_env_short
-from ef_utils import env_valid, get_account_alias, get_env_short
+from src.ef_utils import env_valid, get_account_alias, get_env_short
 
 class TestEFUtils(unittest.TestCase):
   """Tests for 'ef_utils.py'"""
 
   def test_env_valid(self):
     """Does valid_env resolve correctly"""
+    self.assertTrue(env_valid("test"))
+    self.assertTrue(env_valid("dev0"))
+    self.assertTrue(env_valid("staging0"))
     self.assertTrue(env_valid("prod"))
-    self.assertTrue(env_valid("staging"))
-    self.assertTrue(env_valid("proto0"))
-    self.assertTrue(env_valid("global.ellation"))
 
   def test_env_invalid(self):
     """Does valid_env raise ValueError"""
