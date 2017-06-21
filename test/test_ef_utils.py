@@ -49,18 +49,28 @@ class TestEFUtils(unittest.TestCase):
     self.assertRaises(ValueError, env_valid, "no_env")
 
   def test_get_account_alias(self):
-    """Does get_account_alias resolve correctly"""
-    self.assertEquals(get_account_alias("prod"), "ellation")
-    self.assertEquals(get_account_alias("staging"), "ellationeng")
-    self.assertEquals(get_account_alias("proto0"), "ellationeng")
-    self.assertEquals(get_account_alias("global.ellation"), "ellation")
+    """
+    Checks if get_account_alias returns the correct account alias based on valid environments specified
+    :return:
+    """
+    self.assertEquals(get_account_alias("test"), "test")
+    self.assertEquals(get_account_alias("dev0"), "dev")
+    self.assertEquals(get_account_alias("dev1"), "dev")
+    self.assertEquals(get_account_alias("dev2"), "dev")
+    self.assertEquals(get_account_alias("staging0"), "staging")
+    self.assertEquals(get_account_alias("prod"), "prod")
 
   def test_get_env_short(self):
-    """Does get_env_short resolve correctly"""
+    """
+    Checks if get_env_short returns the correct environment shortname based on valid environments specified
+    :return:
+    """
+    self.assertEquals(get_env_short("test"), "test")
+    self.assertEquals(get_env_short("dev0"), "dev")
+    self.assertEquals(get_env_short("dev1"), "dev")
+    self.assertEquals(get_env_short("dev2"), "dev")
+    self.assertEquals(get_env_short("staging0"), "staging")
     self.assertEquals(get_env_short("prod"), "prod")
-    self.assertEquals(get_env_short("staging"), "staging")
-    self.assertEquals(get_env_short("proto0"), "proto")
-    self.assertEquals(get_env_short("global.ellation"), "global")
 
 
 if __name__ == '__main__':
