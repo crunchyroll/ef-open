@@ -40,7 +40,7 @@ class EFSiteConfig:
   # Resolves as proto<0..N> up to number - 1 (proto0, proto1, proto2, proto3 for N = 4)
   # prod and account scoped envs are not allowed
   EPHEMERAL_ENVS = {
-    "dev": 1,
+    "dev": 3,
     "staging": 1
   }
 
