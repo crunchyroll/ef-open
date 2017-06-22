@@ -16,8 +16,8 @@ limitations under the License.
 
 import unittest
 
+import context
 from src.ef_utils import env_valid, get_account_alias, get_env_short
-
 
 class TestEFUtils(unittest.TestCase):
   """
