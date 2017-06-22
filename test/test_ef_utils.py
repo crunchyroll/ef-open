@@ -25,7 +25,7 @@ class TestEFUtils(unittest.TestCase):
   some of the test values are coming from.
   """
 
-  def test_env_valid(self):
+  def test_env_valid_with_valid_envs(self):
     """
     Checks if env_valid returns true for correctly named named environments
     :return: None
@@ -37,18 +37,25 @@ class TestEFUtils(unittest.TestCase):
     self.assertTrue(env_valid("staging0"))
     self.assertTrue(env_valid("prod"))
 
+    assert env_valid("test") == True
+
   def test_env_valid_with_invalid_envs(self):
     """
     Checks if env_valid returns ValueError for incorrectly name environments
     :return: None
     """
-    self.assertRaises(ValueError, env_valid, "test0")
-    self.assertRaises(ValueError, env_valid, "dev")
-    self.assertRaises(ValueError, env_valid, "staging")
-    self.assertRaises(ValueError, env_valid, "prod0")
-    self.assertRaises(ValueError, env_valid, "no_env")
+    with self.assertRaises(ValueError):
+      env_valid("test0")
+    with self.assertRaises(ValueError):
+      env_valid("dev")
+    with self.assertRaises(ValueError):
+      env_valid("staging")
+    with self.assertRaises(ValueError):
+      env_valid("prod0")
+    with self.assertRaises(ValueError):
+      env_valid("no_env")
 
-  def test_get_account_alias(self):
+  def test_get_account_alias_with_valid_envs(self):
     """
     Checks if get_account_alias returns the correct account alias based on valid environments specified
     :return:
@@ -60,7 +67,9 @@ class TestEFUtils(unittest.TestCase):
     self.assertEquals(get_account_alias("staging0"), "staging")
     self.assertEquals(get_account_alias("prod"), "prod")
 
-  def test_get_env_short(self):
+    assert get_account_alias("dev0") == "dev"
+
+  def test_get_env_short_with_valid_envs(self):
     """
     Checks if get_env_short returns the correct environment shortname based on valid environments specified
     :return:
@@ -74,4 +83,4 @@ class TestEFUtils(unittest.TestCase):
 
 
 if __name__ == '__main__':
-  unittest.main()
+   unittest.main()
