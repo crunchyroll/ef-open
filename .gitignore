@@ -6,3 +6,4 @@
 .pants.workdir.file_lock
 .pids
 dist
+.coverage
