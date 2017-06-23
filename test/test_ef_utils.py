@@ -16,12 +16,16 @@ limitations under the License.
 
 from StringIO import StringIO
 import unittest
+import urllib2
 
-from mock import patch
+from mock import MagicMock, Mock, patch
 
+# For local application imports, context must be first despite lexicon ordering
 import context
 from src.ef_utils import fail
 from src.ef_utils import env_valid, get_account_alias, get_env_short
+from src.ef_utils import http_get_metadata
+import src.ef_utils
 
 
 class TestEFUtils(unittest.TestCase):
@@ -71,6 +75,47 @@ class TestEFUtils(unittest.TestCase):
     error_message = mock_stderr.getvalue().strip()
     self.assertEquals(error_message, 'None')
     self.assertEquals(exception.exception.code, 1)
+
+  @patch('urllib2.urlopen')
+  def test_http_get_metadata_200_status_code(self, mock_urllib2):
+    """
+    Test http_get_metadata with mock urllib2.urlopen call that returns 200 and ami ID
+    :param mock_urllib2: MagicMock
+    :return: None
+    """
+    mock_response = Mock(name="Always 200 Status Code")
+    mock_response.getcode.return_value = 200
+    mock_response.read.return_value = "ami-12345678"
+    mock_urllib2.return_value = mock_response
+    response = http_get_metadata("ami-id")
+    self.assertEquals(response, "ami-12345678")
+
+  @patch('urllib2.urlopen')
+  def test_http_get_metadata_non_200_status_code(self, mock_urllib2):
+    """
+    Test http_get_metadata with mock urllib2.urlopen call that returns 400.
+    :param mock_urllib2: MagicMock
+    :return: None
+    """
+    mock_response = Mock(name="Always non-200 Status Code")
+    mock_response.getcode.return_value = 400
+    mock_urllib2.return_value = mock_response
+    with self.assertRaises(IOError) as exception:
+      http_get_metadata("ami-id")
+    self.assertTrue("400" in exception.exception.message)
+    self.assertTrue("ami-id" in exception.exception.message)
+
+  @patch('urllib2.urlopen')
+  def test_http_get_metadata_urllib2_URLError(self, mock_urllib2):
+    """
+    Test http_get_metadata with mock urllib2.urlopen that raises a URLError exception
+    :param mock_urllib2: MagicMock
+    :return: None
+    """
+    mock_urllib2.side_effect = urllib2.URLError("Mock URLError")
+    with self.assertRaises(IOError) as exception:
+      http_get_metadata("ami-id")
+    self.assertTrue("Mock URLError" in exception.exception.message)
 
   def test_env_valid_with_valid_envs(self):
     """
