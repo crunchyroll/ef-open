@@ -14,10 +14,13 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
+from StringIO import StringIO
 import unittest
 
+from mock import patch
 
 import context
+from src.ef_utils import fail
 from src.ef_utils import env_valid, get_account_alias, get_env_short
 
 
@@ -26,6 +29,48 @@ class TestEFUtils(unittest.TestCase):
   Tests for 'ef_utils.py' Relies on the ef_site_config.py for testing. Look inside that file for where
   some of the test values are coming from.
   """
+  @patch('sys.stderr', new_callable=StringIO)
+  def test_fail_with_message(self, mock_stderr):
+    """
+    Tests fail() with a regular string message and checks if the message in stderr and exit code matches
+    :param mock_stderr: StringIO
+    :return: None
+    """
+    with self.assertRaises(SystemExit) as exception:
+      fail("Error Message")
+    error_message = mock_stderr.getvalue().strip()
+    self.assertEquals(error_message, 'Error Message')
+    self.assertEquals(exception.exception.code, 1)
+
+  @patch('sys.stdout', new_callable=StringIO)
+  @patch('sys.stderr', new_callable=StringIO)
+  def test_fail_with_message_and_exception_data(self, mock_stderr, mock_stdout):
+    """
+    Test fail() with a regular string message and a python object as the exception data
+    :param mock_stderr: StringIO
+    :param mock_stdout: StringIO
+    :return: None
+    """
+    with self.assertRaises(SystemExit) as exception:
+      fail("Error Message", {"ErrorCode": 22})
+    error_message = mock_stderr.getvalue().strip()
+    self.assertEquals(error_message, 'Error Message')
+    self.assertEquals(exception.exception.code, 1)
+    output_message = mock_stdout.getvalue().strip()
+    self.assertEquals(output_message, "{'ErrorCode': 22}")
+
+  @patch('sys.stderr', new_callable=StringIO)
+  def test_fail_with_None_message(self, mock_stderr):
+    """
+    Test fail() with a None object
+    :param mock_stderr: StringIO
+    :return: None
+    """
+    with self.assertRaises(SystemExit) as exception:
+      fail(None)
+    error_message = mock_stderr.getvalue().strip()
+    self.assertEquals(error_message, 'None')
+    self.assertEquals(exception.exception.code, 1)
 
   def test_env_valid_with_valid_envs(self):
     """
