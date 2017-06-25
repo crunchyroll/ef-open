@@ -24,8 +24,7 @@ from mock import MagicMock, Mock, patch
 import context
 from src.ef_utils import fail
 from src.ef_utils import env_valid, get_account_alias, get_env_short
-from src.ef_utils import http_get_metadata
-import src.ef_utils
+from src.ef_utils import http_get_metadata, whereami
 
 
 class TestEFUtils(unittest.TestCase):
@@ -116,6 +115,47 @@ class TestEFUtils(unittest.TestCase):
     with self.assertRaises(IOError) as exception:
       http_get_metadata("ami-id")
     self.assertTrue("Mock URLError" in exception.exception.message)
+
+  @unittest.skipIf(whereami() == "ec2", "Test is running in ec2 environment, will not fail so must skip.")
+  def test_http_get_metadata_urllib2_default_timeout(self):
+    with self.assertRaises(IOError) as exception:
+      http_get_metadata("ami-id")
+    self.assertTrue("timed out" in exception.exception.message)
+
+  @unittest.skipIf(whereami() == "ec2", "Test is running in ec2 environment, will not fail so must skip.")
+  def test_http_get_metadata_urllib2_1_second_timeout(self):
+    with self.assertRaises(IOError) as exception:
+      http_get_metadata("ami-id", 1)
+    self.assertTrue("timed out" in exception.exception.message)
+
+  @patch('src.ef_utils.http_get_metadata')
+  def test_whereami_ec2(self, mock_http_get_metadata):
+    mock_http_get_metadata.return_value = "i-123456"
+    result = whereami()
+    self.assertEquals(result, "ec2")
+
+  @patch('subprocess.check_output')
+  @patch('src.ef_utils.access')
+  @patch('src.ef_utils.isfile')
+  @patch('src.ef_utils.http_get_metadata')
+  def test_whereami_virtualbox(self, mock_http_get_metadata, mock_isfile, mock_access, mock_check_output):
+    mock_http_get_metadata.return_value = "not ec2"
+    mock_isfile.return_value = True
+    mock_access.return_value = True
+    mock_check_output.return_value = "virtualbox\nkvm\nother\n"
+    result = whereami()
+    self.assertEquals(result, "virtualbox-kvm")
+
+  # @patch('src.ef_utils.http_get_metadata')
+  # def test_whereami_local(self, mock_http_get_metadata):
+  #   mock_http_get_metadata.return_value = "not ec2"
+  #   result = whereami()
+  #   self.assertEquals(result, "virtualbox-kvm")
+  #
+  # def test_whereami_unknown(self, mock_http_get_metadata):
+  #   mock_http_get_metadata.return_value = "not ec2"
+  #   result = whereami()
+  #   self.assertEquals(result, "virtualbox-kvm")
 
   def test_env_valid_with_valid_envs(self):
     """
