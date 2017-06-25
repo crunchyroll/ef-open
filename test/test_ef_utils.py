@@ -146,16 +146,17 @@ class TestEFUtils(unittest.TestCase):
     result = whereami()
     self.assertEquals(result, "virtualbox-kvm")
 
-  # @patch('src.ef_utils.http_get_metadata')
-  # def test_whereami_local(self, mock_http_get_metadata):
-  #   mock_http_get_metadata.return_value = "not ec2"
-  #   result = whereami()
-  #   self.assertEquals(result, "virtualbox-kvm")
-  #
-  # def test_whereami_unknown(self, mock_http_get_metadata):
-  #   mock_http_get_metadata.return_value = "not ec2"
-  #   result = whereami()
-  #   self.assertEquals(result, "virtualbox-kvm")
+  @patch('src.ef_utils.gethostname')
+  def test_whereami_local(self, mock_gethostname):
+    mock_gethostname.return_value = ".local"
+    result = whereami()
+    self.assertEquals(result, "local")
+
+  @patch('src.ef_utils.gethostname')
+  def test_whereami_unknown(self, mock_gethostname):
+    mock_gethostname.return_value = "not local"
+    result = whereami()
+    self.assertEquals(result, "unknown")
 
   def test_env_valid_with_valid_envs(self):
     """
