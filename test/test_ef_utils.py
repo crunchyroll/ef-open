@@ -19,15 +19,13 @@ import subprocess
 import unittest
 import urllib2
 
-from mock import MagicMock, Mock, patch
+from mock import Mock, patch
 import botocore.exceptions
 
 # For local application imports, context must be first despite lexicon ordering
 import context
-from src.ef_utils import fail
-from src.ef_utils import env_valid, get_account_alias, get_env_short
-from src.ef_utils import http_get_metadata, whereami, http_get_instance_env, http_get_instance_role
-from src.ef_utils import get_instance_aws_context, pull_repo, create_aws_clients, global_env_valid
+from src.ef_utils import create_aws_clients, env_valid, fail, get_account_alias, get_env_short, global_env_valid, \
+  get_instance_aws_context, http_get_instance_env, http_get_instance_role, http_get_metadata, pull_repo, whereami
 
 
 class TestEFUtils(unittest.TestCase):
