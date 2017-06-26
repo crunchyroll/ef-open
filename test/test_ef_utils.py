@@ -25,6 +25,7 @@ import context
 from src.ef_utils import fail
 from src.ef_utils import env_valid, get_account_alias, get_env_short
 from src.ef_utils import http_get_metadata, whereami, http_get_instance_env, http_get_instance_role
+from src.ef_utils import get_instance_aws_context
 
 
 class TestEFUtils(unittest.TestCase):
@@ -42,7 +43,7 @@ class TestEFUtils(unittest.TestCase):
     with self.assertRaises(SystemExit) as exception:
       fail("Error Message")
     error_message = mock_stderr.getvalue().strip()
-    self.assertEquals(error_message, 'Error Message')
+    self.assertEquals(error_message, "Error Message")
     self.assertEquals(exception.exception.code, 1)
 
   @patch('sys.stdout', new_callable=StringIO)
@@ -57,7 +58,7 @@ class TestEFUtils(unittest.TestCase):
     with self.assertRaises(SystemExit) as exception:
       fail("Error Message", {"ErrorCode": 22})
     error_message = mock_stderr.getvalue().strip()
-    self.assertEquals(error_message, 'Error Message')
+    self.assertEquals(error_message, "Error Message")
     self.assertEquals(exception.exception.code, 1)
     output_message = mock_stdout.getvalue().strip()
     self.assertEquals(output_message, "{'ErrorCode': 22}")
@@ -72,7 +73,7 @@ class TestEFUtils(unittest.TestCase):
     with self.assertRaises(SystemExit) as exception:
       fail(None)
     error_message = mock_stderr.getvalue().strip()
-    self.assertEquals(error_message, 'None')
+    self.assertEquals(error_message, "None")
     self.assertEquals(exception.exception.code, 1)
 
   @patch('urllib2.urlopen')
@@ -160,7 +161,7 @@ class TestEFUtils(unittest.TestCase):
 
   @patch('src.ef_utils.http_get_metadata')
   def test_http_get_instance_env(self, mock_http_get_metadata):
-    mock_http_get_metadata.return_value = "{\"InstanceProfileArn\": \"arn:aws:iam::1234:instance-profile/dev-server\"}"
+    mock_http_get_metadata.return_value = "{\"InstanceProfileArn\": \"arn:aws:iam::1234:role/dev-server\"}"
     env = http_get_instance_env()
     self.assertEquals(env, "dev")
 
@@ -172,7 +173,7 @@ class TestEFUtils(unittest.TestCase):
 
   @patch('src.ef_utils.http_get_metadata')
   def test_http_get_instance_role(self, mock_http_get_metadata):
-    mock_http_get_metadata.return_value = "{\"InstanceProfileArn\": \"arn:aws:iam::1234:instance-profile/dev-server\"}"
+    mock_http_get_metadata.return_value = "{\"InstanceProfileArn\": \"arn:aws:iam::1234:role/dev-server\"}"
     role = http_get_instance_role()
     self.assertEquals(role, "server")
 
@@ -181,6 +182,71 @@ class TestEFUtils(unittest.TestCase):
     mock_http_get_metadata.return_value = "No data"
     with self.assertRaises(Exception) as exception:
       http_get_instance_role()
+
+  @patch('src.ef_utils.http_get_metadata')
+  def test_get_instance_aws_context(self, mock_http_get_metadata):
+    mock_http_get_metadata.side_effect = ["us-west-2a", "i-00001111f"]
+    mock_ec2_client = Mock(name="fake-ec2-client")
+    mock_ec2_client.describe_instances.return_value = \
+      {
+        "Reservations": [
+          {
+            "OwnerId": "4444",
+            "Instances": [
+              {
+                "IamInstanceProfile": {
+                  "Arn": "arn:aws:iam::1234:instance-profile/dev0-server-ftp"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    result = get_instance_aws_context(mock_ec2_client)
+    self.assertEquals(result["account"], "4444")
+    self.assertEquals(result["env"], "dev0")
+    self.assertEquals(result["env_short"], "dev")
+    self.assertEquals(result["instance_id"], "i-00001111f")
+    self.assertEquals(result["region"], "us-west-2")
+    self.assertEquals(result["role"], "dev0-server-ftp")
+    self.assertEquals(result["service"], "server-ftp")
+
+  @patch('src.ef_utils.http_get_metadata')
+  def test_get_instance_aws_context_metadata_exception(self, mock_http_get_metadata):
+    mock_http_get_metadata.side_effect = IOError("No data")
+    mock_ec2_client = Mock(name="fake-ec2-client")
+    with self.assertRaises(IOError) as exception:
+      get_instance_aws_context(mock_ec2_client)
+
+  @patch('src.ef_utils.http_get_metadata')
+  def test_get_instance_aws_context_ec2_client_exception(self, mock_http_get_metadata):
+    mock_http_get_metadata.side_effect = ["us-west-2a", "i-00001111f"]
+    mock_ec2_client = Mock(name="fake-ec2-client")
+    mock_ec2_client.describe_instances.side_effect = Exception("No instance data")
+    with self.assertRaises(Exception) as exception:
+      get_instance_aws_context(mock_ec2_client)
+
+  @patch('src.ef_utils.http_get_metadata')
+  def test_get_instance_aws_context_ec2_invalid_environment_exception(self, mock_http_get_metadata):
+    mock_http_get_metadata.side_effect = ["us-west-2a", "i-00001111f"]
+    mock_ec2_client = Mock(name="fake-ec2-client")
+    mock_ec2_client.describe_instances.return_value = \
+      {
+        "Reservations": [
+          {
+            "OwnerId": "4444",
+            "Instances": [
+              {
+                "IamInstanceProfile": {
+                  "Arn": "arn:aws:iam::1234:instance-profile/invalidenv-server-ftp"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    with self.assertRaises(Exception) as exception:
+      get_instance_aws_context(mock_ec2_client)
 
   def test_env_valid_with_valid_envs(self):
     """
