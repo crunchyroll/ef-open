@@ -102,34 +102,34 @@ class TestEFUtils(unittest.TestCase):
     mock_urllib2.return_value = mock_response
     with self.assertRaises(IOError) as exception:
       http_get_metadata("ami-id")
-    self.assertTrue("400" in exception.exception.message)
-    self.assertTrue("ami-id" in exception.exception.message)
-
-  @patch('urllib2.urlopen')
-  def test_http_get_metadata_urllib2_URLError(self, mock_urllib2):
-    """
-    Test http_get_metadata with mock urllib2.urlopen that raises a URLError exception
-    :param mock_urllib2: MagicMock
-    :return: None
-    """
-    mock_urllib2.side_effect = urllib2.URLError("Mock URLError")
-    with self.assertRaises(IOError) as exception:
-      http_get_metadata("ami-id")
-    self.assertTrue("Mock URLError" in exception.exception.message)
+    self.assertTrue("Non-200 response" in exception.exception.message)
 
   @unittest.skipIf(whereami() == "ec2", "Test is running in ec2 environment, will not fail so must skip.")
   def test_http_get_metadata_urllib2_default_timeout(self):
+    """
+    Tests get_metadata for raising an exception if it cannot obtain metadata before default timeout
+    NOTE: testing for this exception results in two error messages randomly
+    "URLError in http_get_string: URLError(error(64, 'Host is down'),)"
+    "URLError in http_get_string: URLError(timeout('timed out',),)"
+    :return: None
+    """
     with self.assertRaises(IOError) as exception:
       http_get_metadata("ami-id")
-    #TODO: A different exception occurs where it says host is down. Need to figure out a different way to check this
-    #self.assertTrue("timed out" in exception.exception.message)
+    self.assertTrue("timed out" in exception.exception.message or "Host is down" in exception.exception.message)
+
 
   @unittest.skipIf(whereami() == "ec2", "Test is running in ec2 environment, will not fail so must skip.")
   def test_http_get_metadata_urllib2_1_second_timeout(self):
+    """
+    Tests get_metadata for raising an exception if it cannot obtain metadata before 1 second timeout
+    NOTE: testing for this exception results in two error messages randomly
+    "URLError in http_get_string: URLError(error(64, 'Host is down'),)"
+    "URLError in http_get_string: URLError(timeout('timed out',),)"
+    :return: None
+    """
     with self.assertRaises(IOError) as exception:
       http_get_metadata("ami-id", 1)
-    # TODO: A different exception occurs where it says host is down. Need to figure out a different way to check this
-    #self.assertTrue("timed out" in exception.exception.message)
+    self.assertTrue("timed out" in exception.exception.message or "Host is down" in exception.exception.message)
 
   @patch('src.ef_utils.http_get_metadata')
   def test_whereami_ec2(self, mock_http_get_metadata):
