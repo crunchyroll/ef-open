@@ -185,15 +185,26 @@ class TestEFUtils(unittest.TestCase):
 
   @patch('src.ef_utils.http_get_metadata')
   def test_http_get_instance_env(self, mock_http_get_metadata):
+    """
+    Tests http_get_instance_env to see if it returns dev by mocking the metadata with a valid IAM instance profile arn
+    :param mock_http_get_metadata: MagicMock
+    :return: None
+    """
     mock_http_get_metadata.return_value = "{\"InstanceProfileArn\": \"arn:aws:iam::1234:role/dev-server\"}"
     env = http_get_instance_env()
     self.assertEquals(env, "dev")
 
   @patch('src.ef_utils.http_get_metadata')
   def test_http_get_instance_env_exception(self, mock_http_get_metadata):
+    """
+    Tests http_get_instance_env to see if it raises an exception by mocking the metadata to be invalid.
+    :param mock_http_get_metadata: MagicMock
+    :return: None
+    """
     mock_http_get_metadata.return_value = "No data"
     with self.assertRaises(Exception) as exception:
       http_get_instance_env()
+    self.assertTrue("Error looking up metadata:iam/info" in exception.exception.message)
 
   @patch('src.ef_utils.http_get_metadata')
   def test_http_get_instance_role(self, mock_http_get_metadata):
