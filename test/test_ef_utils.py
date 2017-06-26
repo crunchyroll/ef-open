@@ -17,7 +17,6 @@ limitations under the License.
 from StringIO import StringIO
 import subprocess
 import unittest
-import urllib2
 
 from mock import Mock, patch
 import botocore.exceptions
@@ -133,6 +132,11 @@ class TestEFUtils(unittest.TestCase):
 
   @patch('src.ef_utils.http_get_metadata')
   def test_whereami_ec2(self, mock_http_get_metadata):
+    """
+    Tests the whereami to see if it returns ec2 by mocking the metadata to be an ec2 instance id
+    :param mock_http_get_metadata: MagicMock
+    :return: None
+    """
     mock_http_get_metadata.return_value = "i-123456"
     result = whereami()
     self.assertEquals(result, "ec2")
@@ -142,6 +146,14 @@ class TestEFUtils(unittest.TestCase):
   @patch('src.ef_utils.isfile')
   @patch('src.ef_utils.http_get_metadata')
   def test_whereami_virtualbox(self, mock_http_get_metadata, mock_isfile, mock_access, mock_check_output):
+    """
+    Tests the whereami to see if it returns virtualbox-kvm by mocking the environment to look like virtualbox
+    :param mock_http_get_metadata: MagicMock
+    :param mock_isfile: MagicMock
+    :param mock_access: MagicMock
+    :param mock_check_output: MagicMock
+    :return: None
+    """
     mock_http_get_metadata.return_value = "not ec2"
     mock_isfile.return_value = True
     mock_access.return_value = True
@@ -151,12 +163,22 @@ class TestEFUtils(unittest.TestCase):
 
   @patch('src.ef_utils.gethostname')
   def test_whereami_local(self, mock_gethostname):
+    """
+    Tests the whereami to see if it returns local by mocking a local machine environment
+    :param mock_gethostname: MagicMock
+    :return: None
+    """
     mock_gethostname.return_value = ".local"
     result = whereami()
     self.assertEquals(result, "local")
 
   @patch('src.ef_utils.gethostname')
   def test_whereami_unknown(self, mock_gethostname):
+    """
+    Tests the whereami to see if it returns unknown by mocking the environment to not match anything
+    :param mock_gethostname: MagickMock
+    :return: None
+    """
     mock_gethostname.return_value = "not local"
     result = whereami()
     self.assertEquals(result, "unknown")
