@@ -27,7 +27,7 @@ import context
 from src.ef_utils import fail
 from src.ef_utils import env_valid, get_account_alias, get_env_short
 from src.ef_utils import http_get_metadata, whereami, http_get_instance_env, http_get_instance_role
-from src.ef_utils import get_instance_aws_context, pull_repo, create_aws_clients
+from src.ef_utils import get_instance_aws_context, pull_repo, create_aws_clients, global_env_valid
 
 
 class TestEFUtils(unittest.TestCase):
@@ -436,6 +436,29 @@ class TestEFUtils(unittest.TestCase):
       env_valid("prod0")
     with self.assertRaises(ValueError):
       env_valid("invalid_env")
+
+  def test_global_env_valid(self):
+    """
+    Checks global_env_valid returns true for account scoped envs.
+    :return: None
+    """
+    self.assertTrue(global_env_valid("global"))
+    self.assertTrue(global_env_valid("mgmt"))
+
+  def test_global_env_valid_non_scoped_envs(self):
+    """
+    Checks global_env_valid returns false for non account scoped envs.
+    :return: None
+    """
+    with self.assertRaises(ValueError) as exception:
+      global_env_valid("prod")
+    self.assertTrue("Invalid global env" in exception.exception.message)
+    with self.assertRaises(ValueError) as exception:
+      global_env_valid("not_global")
+    self.assertTrue("Invalid global env" in exception.exception.message)
+    with self.assertRaises(ValueError) as exception:
+      global_env_valid("not_mgmt")
+    self.assertTrue("Invalid global env" in exception.exception.message)
 
 if __name__ == '__main__':
    unittest.main()
