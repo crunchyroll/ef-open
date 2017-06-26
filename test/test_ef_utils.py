@@ -293,6 +293,16 @@ class TestEFUtils(unittest.TestCase):
       pull_repo()
 
   @patch('subprocess.check_output')
+  def test_pull_repo_exception_checking_branch(self, mock_check_output):
+    mock_check_output.side_effect = [
+      "user@github.com:company/fake_repo.git "
+      "other_user@github.com:company/fake_repo.git",
+      subprocess.CalledProcessError("Forced Error", 1)
+    ]
+    with self.assertRaises(RuntimeError):
+      pull_repo()
+
+  @patch('subprocess.check_output')
   def test_pull_repo_incorrect_branch(self, mock_check_output):
     mock_check_output.side_effect = [
       "user@github.com:company/fake_repo.git "
