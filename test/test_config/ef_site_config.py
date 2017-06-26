@@ -25,7 +25,7 @@ class EFSiteConfig:
   DEFAULT_REGION = "us-west-2"
 
   # Repo where tools and all EF data are
-  EF_REPO = "github.com/fake"
+  EF_REPO = "github.com/company/fake_repo"
   EF_REPO_BRANCH = "master"
 
   # Map environment::account alias (aliases must profiles in .aws/credentials for local use)
