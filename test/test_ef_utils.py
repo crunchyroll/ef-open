@@ -20,13 +20,14 @@ import unittest
 import urllib2
 
 from mock import MagicMock, Mock, patch
+import botocore.exceptions
 
 # For local application imports, context must be first despite lexicon ordering
 import context
 from src.ef_utils import fail
 from src.ef_utils import env_valid, get_account_alias, get_env_short
 from src.ef_utils import http_get_metadata, whereami, http_get_instance_env, http_get_instance_role
-from src.ef_utils import get_instance_aws_context, pull_repo
+from src.ef_utils import get_instance_aws_context, pull_repo, create_aws_clients
 
 
 class TestEFUtils(unittest.TestCase):
@@ -189,7 +190,7 @@ class TestEFUtils(unittest.TestCase):
   @patch('src.ef_utils.http_get_metadata')
   def test_get_instance_aws_context(self, mock_http_get_metadata):
     mock_http_get_metadata.side_effect = ["us-west-2a", "i-00001111f"]
-    mock_ec2_client = Mock(name="fake-ec2-client")
+    mock_ec2_client = Mock(name="mock-ec2-client")
     mock_ec2_client.describe_instances.return_value = \
       {
         "Reservations": [
@@ -217,14 +218,14 @@ class TestEFUtils(unittest.TestCase):
   @patch('src.ef_utils.http_get_metadata')
   def test_get_instance_aws_context_metadata_exception(self, mock_http_get_metadata):
     mock_http_get_metadata.side_effect = IOError("No data")
-    mock_ec2_client = Mock(name="fake-ec2-client")
+    mock_ec2_client = Mock(name="mock-ec2-client")
     with self.assertRaises(IOError) as exception:
       get_instance_aws_context(mock_ec2_client)
 
   @patch('src.ef_utils.http_get_metadata')
   def test_get_instance_aws_context_ec2_client_exception(self, mock_http_get_metadata):
     mock_http_get_metadata.side_effect = ["us-west-2a", "i-00001111f"]
-    mock_ec2_client = Mock(name="fake-ec2-client")
+    mock_ec2_client = Mock(name="mock-ec2-client")
     mock_ec2_client.describe_instances.side_effect = Exception("No instance data")
     with self.assertRaises(Exception) as exception:
       get_instance_aws_context(mock_ec2_client)
@@ -232,7 +233,7 @@ class TestEFUtils(unittest.TestCase):
   @patch('src.ef_utils.http_get_metadata')
   def test_get_instance_aws_context_ec2_invalid_environment_exception(self, mock_http_get_metadata):
     mock_http_get_metadata.side_effect = ["us-west-2a", "i-00001111f"]
-    mock_ec2_client = Mock(name="fake-ec2-client")
+    mock_ec2_client = Mock(name="mock-ec2-client")
     mock_ec2_client.describe_instances.return_value = \
       {
         "Reservations": [
@@ -312,6 +313,39 @@ class TestEFUtils(unittest.TestCase):
     mock_check_call.side_effect = subprocess.CalledProcessError("Forced Error", 1)
     with self.assertRaises(RuntimeError):
       pull_repo()
+
+  @patch('boto3.Session')
+  def test_create_aws_clients(self, mock_session_constructor):
+    mock_session = Mock(name="mock-boto3-session")
+    mock_session.client.return_value = Mock(name="mock-client")
+    mock_session_constructor.return_value = mock_session
+    amazon_services = ["acm", "batch", "ec2", "sqs"]
+    client_dict = create_aws_clients("us-west-2d", "default", *amazon_services)
+    self.assertTrue("acm" in client_dict)
+    self.assertTrue("batch" in client_dict)
+    self.assertTrue("ec2" in client_dict)
+    self.assertTrue("sqs" in client_dict)
+    self.assertTrue("SESSION" in client_dict)
+
+  @patch('boto3.Session')
+  def test_create_aws_clients_no_profile(self, mock_session_constructor):
+    mock_session = Mock(name="mock-boto3-session")
+    mock_session.client.return_value = Mock(name="mock-client")
+    mock_session_constructor.return_value = mock_session
+    amazon_services = ["acm", "batch", "ec2", "sqs"]
+    client_dict = create_aws_clients("us-west-2d", None, *amazon_services)
+    self.assertTrue("acm" in client_dict)
+    self.assertTrue("batch" in client_dict)
+    self.assertTrue("ec2" in client_dict)
+    self.assertTrue("sqs" in client_dict)
+    self.assertTrue("SESSION" in client_dict)
+
+  @patch('boto3.Session')
+  def test_create_aws_clients_create_session_boto_core_error(self, mock_session_constructor):
+    mock_session_constructor.side_effect = botocore.exceptions.BotoCoreError()
+    with self.assertRaises(RuntimeError) as exception:
+      create_aws_clients("us-west-2d", None, None)
+    mock_session_constructor.assert_called_once_with(region_name="us-west-2ds")
 
   def test_env_valid_with_valid_envs(self):
     """
