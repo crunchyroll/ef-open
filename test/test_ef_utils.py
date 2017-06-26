@@ -24,7 +24,7 @@ from mock import MagicMock, Mock, patch
 import context
 from src.ef_utils import fail
 from src.ef_utils import env_valid, get_account_alias, get_env_short
-from src.ef_utils import http_get_metadata, whereami
+from src.ef_utils import http_get_metadata, whereami, http_get_instance_env, http_get_instance_role
 
 
 class TestEFUtils(unittest.TestCase):
@@ -157,6 +157,18 @@ class TestEFUtils(unittest.TestCase):
     mock_gethostname.return_value = "not local"
     result = whereami()
     self.assertEquals(result, "unknown")
+
+  @patch('src.ef_utils.http_get_metadata')
+  def test_http_get_instance_env(self, mock_http_get_metadata):
+    mock_http_get_metadata.return_value = "{\"InstanceProfileArn\": \"arn:aws:iam::1234:instance-profile/dev-server\"}"
+    role = http_get_instance_env()
+    self.assertEquals(role, "dev")
+
+  @patch('src.ef_utils.http_get_metadata')
+  def test_http_get_instance_env_exception(self, mock_http_get_metadata):
+    mock_http_get_metadata.return_value = "No data"
+    with self.assertRaises(Exception) as exception:
+      http_get_instance_env()
 
   def test_env_valid_with_valid_envs(self):
     """
