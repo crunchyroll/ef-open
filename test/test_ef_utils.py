@@ -101,7 +101,7 @@ class TestEFUtils(unittest.TestCase):
     mock_urllib2.return_value = mock_response
     with self.assertRaises(IOError) as exception:
       http_get_metadata("ami-id")
-    self.assertTrue("Non-200 response" in exception.exception.message)
+    self.assertIn("Non-200 response", exception.exception.message)
 
   @unittest.skipIf(whereami() == "ec2", "Test is running in ec2 environment, will not fail so must skip.")
   def test_http_get_metadata_urllib2_default_timeout(self):
@@ -133,7 +133,7 @@ class TestEFUtils(unittest.TestCase):
   @patch('src.ef_utils.http_get_metadata')
   def test_whereami_ec2(self, mock_http_get_metadata):
     """
-    Tests the whereami to see if it returns ec2 by mocking the metadata to be an ec2 instance id
+    Tests the whereami to see if it returns 'ec2' by mocking the metadata to be an ec2 instance id
     :param mock_http_get_metadata: MagicMock
     :return: None
     """
@@ -147,7 +147,7 @@ class TestEFUtils(unittest.TestCase):
   @patch('src.ef_utils.http_get_metadata')
   def test_whereami_virtualbox(self, mock_http_get_metadata, mock_isfile, mock_access, mock_check_output):
     """
-    Tests the whereami to see if it returns virtualbox-kvm by mocking the environment to look like virtualbox
+    Tests the whereami to see if it returns 'virtualbox-kvm' by mocking the environment to look like virtualbox
     :param mock_http_get_metadata: MagicMock
     :param mock_isfile: MagicMock
     :param mock_access: MagicMock
@@ -164,7 +164,7 @@ class TestEFUtils(unittest.TestCase):
   @patch('src.ef_utils.gethostname')
   def test_whereami_local(self, mock_gethostname):
     """
-    Tests the whereami to see if it returns local by mocking a local machine environment
+    Tests the whereami to see if it returns 'local' by mocking a local machine environment
     :param mock_gethostname: MagicMock
     :return: None
     """
@@ -175,8 +175,8 @@ class TestEFUtils(unittest.TestCase):
   @patch('src.ef_utils.gethostname')
   def test_whereami_unknown(self, mock_gethostname):
     """
-    Tests the whereami to see if it returns unknown by mocking the environment to not match anything
-    :param mock_gethostname: MagickMock
+    Tests the whereami to see if it returns 'unknown' by mocking the environment to not match anything
+    :param mock_gethostname: MagicMock
     :return: None
     """
     mock_gethostname.return_value = "not local"
@@ -186,7 +186,8 @@ class TestEFUtils(unittest.TestCase):
   @patch('src.ef_utils.http_get_metadata')
   def test_http_get_instance_env(self, mock_http_get_metadata):
     """
-    Tests http_get_instance_env to see if it returns dev by mocking the metadata with a valid IAM instance profile arn
+    Tests http_get_instance_env to see if it returns 'dev' by mocking the metadata with a valid IAM instance profile
+    arn
     :param mock_http_get_metadata: MagicMock
     :return: None
     """
@@ -197,26 +198,37 @@ class TestEFUtils(unittest.TestCase):
   @patch('src.ef_utils.http_get_metadata')
   def test_http_get_instance_env_exception(self, mock_http_get_metadata):
     """
-    Tests http_get_instance_env to see if it raises an exception by mocking the metadata to be invalid.
+    Tests http_get_instance_env to see if it raises an exception by mocking the metadata to be invalid
     :param mock_http_get_metadata: MagicMock
     :return: None
     """
     mock_http_get_metadata.return_value = "No data"
     with self.assertRaises(Exception) as exception:
       http_get_instance_env()
-    self.assertTrue("Error looking up metadata:iam/info" in exception.exception.message)
+    self.assertIn("Error looking up metadata:iam/info", exception.exception.message)
 
   @patch('src.ef_utils.http_get_metadata')
   def test_http_get_instance_role(self, mock_http_get_metadata):
+    """
+    Tests http_get_instance_role to return the service name by mocking the metadata
+    :param mock_http_get_metadata: MagicMock
+    :return: None
+    """
     mock_http_get_metadata.return_value = "{\"InstanceProfileArn\": \"arn:aws:iam::1234:role/dev-server\"}"
     role = http_get_instance_role()
     self.assertEquals(role, "server")
 
   @patch('src.ef_utils.http_get_metadata')
   def test_http_get_instance_role_exception(self, mock_http_get_metadata):
+    """
+    Tests the http_get_instance_role to see if it raises an exception by giving it invalid metadata
+    :param mock_http_get_metadata: MagicMock
+    :return: None
+    """
     mock_http_get_metadata.return_value = "No data"
     with self.assertRaises(Exception) as exception:
       http_get_instance_role()
+    self.assertIn("Error looking up metadata:iam/info:", exception.exception.message)
 
   @patch('src.ef_utils.http_get_metadata')
   def test_get_instance_aws_context(self, mock_http_get_metadata):
