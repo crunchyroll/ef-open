@@ -30,10 +30,12 @@ class EFSiteConfig:
 
   # Map environment::account alias (aliases must profiles in .aws/credentials for local use)
   ENV_ACCOUNT_MAP = {
-    "test": "test",
-    "dev": "dev",
-    "staging": "staging",
-    "prod": "prod"
+    "test": "amazon_test_account",
+    "dev": "amazon_dev_account",
+    "staging": "amazon_staging_account",
+    "prod": "amazon_prod_account",
+    "global": "amazon_global_account",
+    "mgmt": "amazon_mgmt_account"
   }
 
   # Map environment::number for environments that support multiple ephemeral replicas
@@ -45,7 +47,7 @@ class EFSiteConfig:
   }
 
   # Bucket where late-bound service configs are found
-  S3_CONFIG_BUCKET = "test"
+  S3_CONFIG_BUCKET = "test_bucket"
 
   # Services in the service registry are clustered into groups, and can be addressed collectively by some tools.
   # The group "fixtures" is required and will be added to this list in later code; don't list it here.

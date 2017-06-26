@@ -345,7 +345,34 @@ class TestEFUtils(unittest.TestCase):
     mock_session_constructor.side_effect = botocore.exceptions.BotoCoreError()
     with self.assertRaises(RuntimeError) as exception:
       create_aws_clients("us-west-2d", None, None)
-    mock_session_constructor.assert_called_once_with(region_name="us-west-2ds")
+    mock_session_constructor.assert_called_once_with(region_name="us-west-2d")
+
+  def test_get_account_alias(self):
+    """
+    Checks if get_account_alias returns the correct account based on valid environments specified
+    :return:
+    """
+    self.assertEquals(get_account_alias("test"), "amazon_test_account")
+    self.assertEquals(get_account_alias("dev0"), "amazon_dev_account")
+    self.assertEquals(get_account_alias("dev1"), "amazon_dev_account")
+    self.assertEquals(get_account_alias("staging0"), "amazon_staging_account")
+    self.assertEquals(get_account_alias("prod"), "amazon_prod_account")
+    self.assertEquals(get_account_alias("global.amazon_global_account"), "amazon_global_account")
+    self.assertEquals(get_account_alias("mgmt.amazon_mgmt_account"), "amazon_mgmt_account")
+    self.assertEquals(get_account_alias("global.amazon_dev_account"), "amazon_dev_account")
+
+  def test_get_account_alias_invalid_env(self):
+    with self.assertRaises(ValueError) as exception:
+      get_account_alias("test0")
+    self.assertTrue("unknown env" in exception.exception.message)
+    with self.assertRaises(ValueError) as exception:
+      get_account_alias("non-existent-env")
+    self.assertTrue("unknown env" in exception.exception.message)
+    with patch('src.ef_utils.env_valid') as mock_env_valid:
+      with self.assertRaises(ValueError) as exception:
+        mock_env_valid.return_value = True
+        get_account_alias("non-existent-env")
+    self.assertTrue("has no entry in ENV_ACCOUNT_MAP" in exception.exception.message)
 
   def test_env_valid_with_valid_envs(self):
     """
@@ -377,19 +404,7 @@ class TestEFUtils(unittest.TestCase):
     with self.assertRaises(ValueError):
       env_valid("no_env")
 
-  def test_get_account_alias_with_valid_envs(self):
-    """
-    Checks if get_account_alias returns the correct account alias based on valid environments specified
-    :return:
-    """
-    self.assertEquals(get_account_alias("test"), "test")
-    self.assertEquals(get_account_alias("dev0"), "dev")
-    self.assertEquals(get_account_alias("dev1"), "dev")
-    self.assertEquals(get_account_alias("dev2"), "dev")
-    self.assertEquals(get_account_alias("staging0"), "staging")
-    self.assertEquals(get_account_alias("prod"), "prod")
 
-    assert get_account_alias("dev0") == "dev"
 
   def test_get_env_short_with_valid_envs(self):
     """
