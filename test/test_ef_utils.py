@@ -161,14 +161,26 @@ class TestEFUtils(unittest.TestCase):
   @patch('src.ef_utils.http_get_metadata')
   def test_http_get_instance_env(self, mock_http_get_metadata):
     mock_http_get_metadata.return_value = "{\"InstanceProfileArn\": \"arn:aws:iam::1234:instance-profile/dev-server\"}"
-    role = http_get_instance_env()
-    self.assertEquals(role, "dev")
+    env = http_get_instance_env()
+    self.assertEquals(env, "dev")
 
   @patch('src.ef_utils.http_get_metadata')
   def test_http_get_instance_env_exception(self, mock_http_get_metadata):
     mock_http_get_metadata.return_value = "No data"
     with self.assertRaises(Exception) as exception:
       http_get_instance_env()
+
+  @patch('src.ef_utils.http_get_metadata')
+  def test_http_get_instance_role(self, mock_http_get_metadata):
+    mock_http_get_metadata.return_value = "{\"InstanceProfileArn\": \"arn:aws:iam::1234:instance-profile/dev-server\"}"
+    role = http_get_instance_role()
+    self.assertEquals(role, "server")
+
+  @patch('src.ef_utils.http_get_metadata')
+  def test_http_get_instance_role_exception(self, mock_http_get_metadata):
+    mock_http_get_metadata.return_value = "No data"
+    with self.assertRaises(Exception) as exception:
+      http_get_instance_role()
 
   def test_env_valid_with_valid_envs(self):
     """
