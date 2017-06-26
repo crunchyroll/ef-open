@@ -349,8 +349,8 @@ class TestEFUtils(unittest.TestCase):
 
   def test_get_account_alias(self):
     """
-    Checks if get_account_alias returns the correct account based on valid environments specified
-    :return:
+    Checks if get_account_alias returns the correct account based on valid environments
+    :return: None
     """
     self.assertEquals(get_account_alias("test"), "amazon_test_account")
     self.assertEquals(get_account_alias("dev0"), "amazon_dev_account")
@@ -362,6 +362,10 @@ class TestEFUtils(unittest.TestCase):
     self.assertEquals(get_account_alias("global.amazon_dev_account"), "amazon_dev_account")
 
   def test_get_account_alias_invalid_env(self):
+    """
+    Tests if get_account_alias raises exceptions when given invalid environments
+    :return: None
+    """
     with self.assertRaises(ValueError) as exception:
       get_account_alias("test0")
     self.assertTrue("unknown env" in exception.exception.message)
@@ -373,6 +377,33 @@ class TestEFUtils(unittest.TestCase):
         mock_env_valid.return_value = True
         get_account_alias("non-existent-env")
     self.assertTrue("has no entry in ENV_ACCOUNT_MAP" in exception.exception.message)
+
+  def test_get_env_short(self):
+    """
+    Checks if get_env_short returns the correct environment shortname when given valid environments
+    :return: None
+    """
+    self.assertEquals(get_env_short("test"), "test")
+    self.assertEquals(get_env_short("dev0"), "dev")
+    self.assertEquals(get_env_short("dev1"), "dev")
+    self.assertEquals(get_env_short("staging0"), "staging")
+    self.assertEquals(get_env_short("prod"), "prod")
+    self.assertEquals(get_env_short("global.amazon_global_account"), "global")
+    self.assertEquals(get_env_short("mgmt.amazon_mgmt_account"), "mgmt")
+    self.assertEquals(get_env_short("global.amazon_dev_account"), "global")
+
+  def test_get_env_short_invalid_envs(self):
+    """
+    Tests if get_env_short raises exceptions when given invalid environments
+    :return: None
+    """
+    with self.assertRaises(ValueError) as exception:
+      get_env_short("test0")
+    self.assertTrue("unknown env" in exception.exception.message)
+    with self.assertRaises(ValueError) as exception:
+      get_env_short("non-existent-env")
+    self.assertTrue("unknown env" in exception.exception.message)
+
 
   def test_env_valid_with_valid_envs(self):
     """
@@ -406,17 +437,7 @@ class TestEFUtils(unittest.TestCase):
 
 
 
-  def test_get_env_short_with_valid_envs(self):
-    """
-    Checks if get_env_short returns the correct environment shortname based on valid environments specified
-    :return:
-    """
-    self.assertEquals(get_env_short("test"), "test")
-    self.assertEquals(get_env_short("dev0"), "dev")
-    self.assertEquals(get_env_short("dev1"), "dev")
-    self.assertEquals(get_env_short("dev2"), "dev")
-    self.assertEquals(get_env_short("staging0"), "staging")
-    self.assertEquals(get_env_short("prod"), "prod")
+
 
 
 if __name__ == '__main__':
