@@ -404,10 +404,9 @@ class TestEFUtils(unittest.TestCase):
       get_env_short("non-existent-env")
     self.assertTrue("unknown env" in exception.exception.message)
 
-
-  def test_env_valid_with_valid_envs(self):
+  def test_env_valid(self):
     """
-    Checks if env_valid returns true for correctly named named environments
+    Checks if env_valid returns true for correctly named environments
     :return: None
     """
     self.assertTrue(env_valid("test"))
@@ -416,10 +415,13 @@ class TestEFUtils(unittest.TestCase):
     self.assertTrue(env_valid("dev2"))
     self.assertTrue(env_valid("staging0"))
     self.assertTrue(env_valid("prod"))
+    self.assertTrue(env_valid("global"))
+    self.assertTrue(env_valid("mgmt"))
+    self.assertTrue(env_valid("global.amazon_global_account"))
+    self.assertTrue(env_valid("mgmt.amazon_mgmt_account"))
+    self.assertTrue(env_valid("global.amazon_dev_account"))
 
-    assert env_valid("test") == True
-
-  def test_env_valid_with_invalid_envs(self):
+  def test_env_valid_invalid_envs(self):
     """
     Checks if env_valid returns ValueError for incorrectly name environments
     :return: None
@@ -433,12 +435,7 @@ class TestEFUtils(unittest.TestCase):
     with self.assertRaises(ValueError):
       env_valid("prod0")
     with self.assertRaises(ValueError):
-      env_valid("no_env")
-
-
-
-
-
+      env_valid("invalid_env")
 
 if __name__ == '__main__':
    unittest.main()
