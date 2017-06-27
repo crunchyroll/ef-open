@@ -18,11 +18,12 @@ from StringIO import StringIO
 import subprocess
 import unittest
 
-from mock import Mock, patch
+from mock import call, Mock, patch
 import botocore.exceptions
 
 # For local application imports, context must be first despite lexicon ordering
 import context
+from src.ef_config import EFConfig
 from src.ef_utils import create_aws_clients, env_valid, fail, get_account_alias, get_env_short, global_env_valid, \
   get_instance_aws_context, http_get_instance_env, http_get_instance_role, http_get_metadata, pull_repo, whereami
 
@@ -323,6 +324,11 @@ class TestEFUtils(unittest.TestCase):
 
   @patch('subprocess.check_output')
   def test_pull_repo_ssh_credentials(self, mock_check_output):
+    """
+    Tests the pull_repo by mocking the subprocess.check_output to return git ssh credentials.
+    :param mock_check_output: MagicMock
+    :return: None
+    """
     mock_check_output.side_effect = [
       "user@github.com:company/fake_repo.git "
       "other_user@github.com:company/fake_repo.git",
@@ -332,10 +338,14 @@ class TestEFUtils(unittest.TestCase):
       pull_repo()
     except RuntimeError as exception:
       self.fail("Exception occurred during test_pull_repo_ssh_credentials: " + exception.message)
-    self.assertTrue(mock_check_output.call)
 
   @patch('subprocess.check_output')
   def test_pull_repo_https_credentials(self, mock_check_output):
+    """
+    Tests the pull_repo by mocking the subprocess.check_output to return git http credentials.
+    :param mock_check_output: MagicMock
+    :return: None
+    """
     mock_check_output.side_effect = [
       "origin\thttps://user@github.com/company/fake_repo.git "
       "(fetch)\norigin\thttps://user@github.com/company/fake_repo.git",
@@ -348,50 +358,91 @@ class TestEFUtils(unittest.TestCase):
 
   @patch('subprocess.check_output')
   def test_pull_repo_first_git_remote_show_error(self, mock_check_output):
+    """
+    Tests pull_repo() to see if it throws an exception when mocked check_output throws an exception first time
+    it's called for git info
+    :param mock_check_output: MagicMock
+    :return: None
+    """
     mock_check_output.side_effect = subprocess.CalledProcessError("Forced Error", 1)
     with self.assertRaises(RuntimeError) as exception:
       pull_repo()
+    self.assertIn("Exception checking current repo", exception.exception.args[0])
+    mock_check_output.assert_called_once_with(["git", "remote", "-v", "show"])
 
   @patch('subprocess.check_output')
   def test_pull_repo_incorrect_repo(self, mock_check_output):
+    """
+    Tests pull_repo to see if it throws an exception when the supplied repo doesn't match the one in
+    ef_site_config.py
+    :param mock_check_output: MagicMock
+    :return: None
+    """
     mock_check_output.side_effect = [
       "user@github.com:company/wrong_repo.git "
       "other_user@github.com:company/wrong_repo.git"
     ]
-    with self.assertRaises(RuntimeError):
+    with self.assertRaises(RuntimeError) as exception:
       pull_repo()
+    self.assertIn("Must be in", exception.exception.message)
 
   @patch('subprocess.check_output')
   def test_pull_repo_exception_checking_branch(self, mock_check_output):
+    """
+    Tests pull_repo to see if it throws an exception when mocked check_output throws an exception on second call
+    to git to retrieve name of branch
+    :param mock_check_output: MagicMock
+    :return: None
+    """
     mock_check_output.side_effect = [
       "user@github.com:company/fake_repo.git "
       "other_user@github.com:company/fake_repo.git",
       subprocess.CalledProcessError("Forced Error", 1)
     ]
-    with self.assertRaises(RuntimeError):
+    with self.assertRaises(RuntimeError) as exception:
       pull_repo()
+    self.assertIn("Exception checking current branch", exception.exception.message)
+    mock_check_output.assert_has_calls((call(["git", "remote", "-v", "show"]),
+                                        call(["git", "rev-parse", "--abbrev-ref", "HEAD"])),
+                                       any_order=False)
 
   @patch('subprocess.check_output')
   def test_pull_repo_incorrect_branch(self, mock_check_output):
+    """
+    Tests pull_repo to see if it throws an error when the mocked check_output states it's on a branch
+    other than the one specified in ef_site_config.py
+    :param mock_check_output: MagicMock
+    :return: None
+    """
     mock_check_output.side_effect = [
       "user@github.com:company/fake_repo.git "
       "other_user@github.com:company/fake_repo.git",
       "wrong_branch"
     ]
-    with self.assertRaises(RuntimeError):
+    with self.assertRaises(RuntimeError) as exception:
       pull_repo()
+    self.assertIn("Must be on branch:", exception.exception.message)
 
   @patch('subprocess.check_call')
   @patch('subprocess.check_output')
   def test_pull_repo_git_pull_error(self, mock_check_output, mock_check_call):
+    """
+    Tests pull_repo() to see if it throws an exception when mocked check_call throws an exception when calling
+    git to do a pull
+    :param mock_check_output: MagicMock
+    :param mock_check_call: MagicMock
+    :return: None
+    """
     mock_check_output.side_effect = [
       "user@github.com:company/fake_repo.git "
       "other_user@github.com:company/fake_repo.git",
       "master"
     ]
     mock_check_call.side_effect = subprocess.CalledProcessError("Forced Error", 1)
-    with self.assertRaises(RuntimeError):
+    with self.assertRaises(RuntimeError) as exception:
       pull_repo()
+    self.assertIn("Exception running 'git pull", exception.exception.message)
+    mock_check_call.assert_called_once_with(["git", "pull", "-q", "origin", EFConfig.EF_REPO_BRANCH])
 
   @patch('boto3.Session')
   def test_create_aws_clients(self, mock_session_constructor):
