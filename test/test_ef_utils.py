@@ -232,6 +232,12 @@ class TestEFUtils(unittest.TestCase):
 
   @patch('src.ef_utils.http_get_metadata')
   def test_get_instance_aws_context(self, mock_http_get_metadata):
+    """
+    Tests the get_instance_aws_context to see if it produces a dict object with all the
+    data supplied in the metadata.
+    :param mock_http_get_metadata: MagicMock
+    :return: None
+    """
     mock_http_get_metadata.side_effect = ["us-west-2a", "i-00001111f"]
     mock_ec2_client = Mock(name="mock-ec2-client")
     mock_ec2_client.describe_instances.return_value = \
@@ -260,21 +266,40 @@ class TestEFUtils(unittest.TestCase):
 
   @patch('src.ef_utils.http_get_metadata')
   def test_get_instance_aws_context_metadata_exception(self, mock_http_get_metadata):
+    """
+    Tests the get_instance_aws_context to see if it throws an exception by giving it invalid metadata
+    :param mock_http_get_metadata: MagicMock
+    :return: None
+    """
     mock_http_get_metadata.side_effect = IOError("No data")
     mock_ec2_client = Mock(name="mock-ec2-client")
     with self.assertRaises(IOError) as exception:
       get_instance_aws_context(mock_ec2_client)
+    self.assertIn("Error looking up metadata:availability-zone or instance-id:", exception.exception.message)
 
   @patch('src.ef_utils.http_get_metadata')
   def test_get_instance_aws_context_ec2_client_exception(self, mock_http_get_metadata):
+    """
+    Tests get_instance_aws_context to see if it throws an exception by mocking the ec2_client to throw
+    an exception when describe_instances is called.
+    :param mock_http_get_metadata: MagicMock
+    :return: None
+    """
     mock_http_get_metadata.side_effect = ["us-west-2a", "i-00001111f"]
     mock_ec2_client = Mock(name="mock-ec2-client")
     mock_ec2_client.describe_instances.side_effect = Exception("No instance data")
     with self.assertRaises(Exception) as exception:
       get_instance_aws_context(mock_ec2_client)
+    self.assertIn("Error calling describe_instances:", exception.exception.message)
 
   @patch('src.ef_utils.http_get_metadata')
   def test_get_instance_aws_context_ec2_invalid_environment_exception(self, mock_http_get_metadata):
+    """
+    Tests the get_instance_aws_context to see if it throws an exception by modifying the describe_instances
+    to return a IamInstanceProfile with an invalid environment in it.
+    :param mock_http_get_metadata: MagicMock
+    :return: None
+    """
     mock_http_get_metadata.side_effect = ["us-west-2a", "i-00001111f"]
     mock_ec2_client = Mock(name="mock-ec2-client")
     mock_ec2_client.describe_instances.return_value = \
@@ -285,7 +310,7 @@ class TestEFUtils(unittest.TestCase):
             "Instances": [
               {
                 "IamInstanceProfile": {
-                  "Arn": "arn:aws:iam::1234:instance-profile/invalidenv-server-ftp"
+                  "Arn": "arn:aws:iam::1234:instance-profile/invalid_env-server-ftp"
                 }
               }
             ]
@@ -294,6 +319,7 @@ class TestEFUtils(unittest.TestCase):
       }
     with self.assertRaises(Exception) as exception:
       get_instance_aws_context(mock_ec2_client)
+    self.assertIn("Did not find environment in role name:", exception.exception.message)
 
   @patch('subprocess.check_output')
   def test_pull_repo_ssh_credentials(self, mock_check_output):
