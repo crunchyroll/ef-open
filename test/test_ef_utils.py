@@ -446,6 +446,12 @@ class TestEFUtils(unittest.TestCase):
 
   @patch('boto3.Session')
   def test_create_aws_clients(self, mock_session_constructor):
+    """
+    Tests create_aws_clients by providing all the parameters and mocking the boto3.Session constructor.
+    Verifies that all the keys show up in the dict object returned.
+    :param mock_session_constructor: MagicMock
+    :return: None
+    """
     mock_session = Mock(name="mock-boto3-session")
     mock_session.client.return_value = Mock(name="mock-client")
     mock_session_constructor.return_value = mock_session
@@ -459,6 +465,12 @@ class TestEFUtils(unittest.TestCase):
 
   @patch('boto3.Session')
   def test_create_aws_clients_no_profile(self, mock_session_constructor):
+    """
+    Test create_aws_clients with all the parameters except profile and mocking the boto3 Session constructor.
+    Verifies that all the keys show up in the dict object returned.
+    :param mock_session_constructor: MagicMock
+    :return: None
+    """
     mock_session = Mock(name="mock-boto3-session")
     mock_session.client.return_value = Mock(name="mock-client")
     mock_session_constructor.return_value = mock_session
@@ -472,6 +484,11 @@ class TestEFUtils(unittest.TestCase):
 
   @patch('boto3.Session')
   def test_create_aws_clients_create_session_boto_core_error(self, mock_session_constructor):
+    """
+    Tests if create_aws_clients throws an exception when mocking boto3.Session object to throw an exception
+    :param mock_session_constructor: MagicMock
+    :return: None
+    """
     mock_session_constructor.side_effect = botocore.exceptions.BotoCoreError()
     with self.assertRaises(RuntimeError) as exception:
       create_aws_clients("us-west-2d", None, None)
