@@ -76,6 +76,14 @@ class TestEFUtils(unittest.TestCase):
     self.assertEquals(error_message, "None")
     self.assertEquals(exception.exception.code, 1)
 
+  @patch('sys.stderr', new_callable=StringIO)
+  def test_fail_with_empty_string(self, mock_stderr):
+    with self.assertRaises(SystemExit) as exception:
+      fail("")
+    error_message = mock_stderr.getvalue().strip()
+    self.assertEquals(error_message, "")
+    self.assertEquals(exception.exception.code, 1)
+
   @patch('urllib2.urlopen')
   def test_http_get_metadata_200_status_code(self, mock_urllib2):
     """
