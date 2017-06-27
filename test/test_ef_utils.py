@@ -532,6 +532,12 @@ class TestEFUtils(unittest.TestCase):
         mock_env_valid.return_value = True
         get_account_alias("non-existent-env")
     self.assertTrue("has no entry in ENV_ACCOUNT_MAP" in exception.exception.message)
+    with self.assertRaises(ValueError) as exception:
+      get_account_alias("")
+    self.assertTrue("unknown env" in exception.exception.message)
+    with self.assertRaises(ValueError) as exception:
+      get_account_alias(None)
+    self.assertTrue("unknown env" in exception.exception.message)
 
   def test_get_env_short(self):
     """
@@ -557,6 +563,12 @@ class TestEFUtils(unittest.TestCase):
     self.assertTrue("unknown env" in exception.exception.message)
     with self.assertRaises(ValueError) as exception:
       get_env_short("non-existent-env")
+    self.assertTrue("unknown env" in exception.exception.message)
+    with self.assertRaises(ValueError) as exception:
+      get_env_short("")
+    self.assertTrue("unknown env" in exception.exception.message)
+    with self.assertRaises(ValueError) as exception:
+      get_env_short(None)
     self.assertTrue("unknown env" in exception.exception.message)
 
   def test_env_valid(self):
@@ -591,6 +603,10 @@ class TestEFUtils(unittest.TestCase):
       env_valid("prod0")
     with self.assertRaises(ValueError):
       env_valid("invalid_env")
+    with self.assertRaises(ValueError):
+      env_valid("")
+    with self.assertRaises(ValueError):
+      env_valid(None)
 
   def test_global_env_valid(self):
     """
@@ -613,6 +629,12 @@ class TestEFUtils(unittest.TestCase):
     self.assertTrue("Invalid global env" in exception.exception.message)
     with self.assertRaises(ValueError) as exception:
       global_env_valid("not_mgmt")
+    self.assertTrue("Invalid global env" in exception.exception.message)
+    with self.assertRaises(ValueError) as exception:
+      global_env_valid("")
+    self.assertTrue("Invalid global env" in exception.exception.message)
+    with self.assertRaises(ValueError) as exception:
+      global_env_valid(None)
     self.assertTrue("Invalid global env" in exception.exception.message)
 
 if __name__ == '__main__':
