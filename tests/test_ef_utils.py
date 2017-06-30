@@ -23,8 +23,7 @@ import botocore.exceptions
 
 # For local application imports, context must be first despite lexicon ordering
 import context
-from src.ef_config import EFConfig
-from src.ef_utils import create_aws_clients, env_valid, fail, get_account_alias, get_env_short, global_env_valid, \
+from ef_utils import create_aws_clients, env_valid, fail, get_account_alias, get_env_short, global_env_valid, \
   get_instance_aws_context, http_get_instance_env, http_get_instance_role, http_get_metadata, pull_repo, whereami
 
 
@@ -119,6 +118,8 @@ class TestEFUtils(unittest.TestCase):
     NOTE: testing for this exception results in two error messages randomly
     "URLError in http_get_string: URLError(error(64, 'Host is down'),)"
     "URLError in http_get_string: URLError(timeout('timed out',),)"
+    There was also one other time it failed due to a different error message but I have been unable to reproduce it
+    since then.
     :return: None
     """
     with self.assertRaises(IOError) as exception:
@@ -139,7 +140,7 @@ class TestEFUtils(unittest.TestCase):
       http_get_metadata("ami-id", 1)
     self.assertTrue("timed out" in exception.exception.message or "Host is down" in exception.exception.message)
 
-  @patch('src.ef_utils.http_get_metadata')
+  @patch('ef_utils.http_get_metadata')
   def test_whereami_ec2(self, mock_http_get_metadata):
     """
     Tests the whereami to see if it returns 'ec2' by mocking the metadata to be an ec2 instance id
@@ -151,9 +152,9 @@ class TestEFUtils(unittest.TestCase):
     self.assertEquals(result, "ec2")
 
   @patch('subprocess.check_output')
-  @patch('src.ef_utils.access')
-  @patch('src.ef_utils.isfile')
-  @patch('src.ef_utils.http_get_metadata')
+  @patch('ef_utils.access')
+  @patch('ef_utils.isfile')
+  @patch('ef_utils.http_get_metadata')
   def test_whereami_virtualbox(self, mock_http_get_metadata, mock_isfile, mock_access, mock_check_output):
     """
     Tests the whereami to see if it returns 'virtualbox-kvm' by mocking the environment to look like virtualbox
@@ -170,7 +171,7 @@ class TestEFUtils(unittest.TestCase):
     result = whereami()
     self.assertEquals(result, "virtualbox-kvm")
 
-  @patch('src.ef_utils.gethostname')
+  @patch('ef_utils.gethostname')
   def test_whereami_local(self, mock_gethostname):
     """
     Tests the whereami to see if it returns 'local' by mocking a local machine environment
@@ -181,7 +182,7 @@ class TestEFUtils(unittest.TestCase):
     result = whereami()
     self.assertEquals(result, "local")
 
-  @patch('src.ef_utils.gethostname')
+  @patch('ef_utils.gethostname')
   def test_whereami_unknown(self, mock_gethostname):
     """
     Tests the whereami to see if it returns 'unknown' by mocking the environment to not match anything
@@ -192,7 +193,7 @@ class TestEFUtils(unittest.TestCase):
     result = whereami()
     self.assertEquals(result, "unknown")
 
-  @patch('src.ef_utils.http_get_metadata')
+  @patch('ef_utils.http_get_metadata')
   def test_http_get_instance_env(self, mock_http_get_metadata):
     """
     Tests http_get_instance_env to see if it returns 'dev' by mocking the metadata with a valid IAM instance profile
@@ -204,7 +205,7 @@ class TestEFUtils(unittest.TestCase):
     env = http_get_instance_env()
     self.assertEquals(env, "dev")
 
-  @patch('src.ef_utils.http_get_metadata')
+  @patch('ef_utils.http_get_metadata')
   def test_http_get_instance_env_exception(self, mock_http_get_metadata):
     """
     Tests http_get_instance_env to see if it raises an exception by mocking the metadata to be invalid
@@ -216,7 +217,7 @@ class TestEFUtils(unittest.TestCase):
       http_get_instance_env()
     self.assertIn("Error looking up metadata:iam/info", exception.exception.message)
 
-  @patch('src.ef_utils.http_get_metadata')
+  @patch('ef_utils.http_get_metadata')
   def test_http_get_instance_role(self, mock_http_get_metadata):
     """
     Tests http_get_instance_role to return the service name by mocking the metadata
@@ -227,7 +228,7 @@ class TestEFUtils(unittest.TestCase):
     role = http_get_instance_role()
     self.assertEquals(role, "server")
 
-  @patch('src.ef_utils.http_get_metadata')
+  @patch('ef_utils.http_get_metadata')
   def test_http_get_instance_role_exception(self, mock_http_get_metadata):
     """
     Tests the http_get_instance_role to see if it raises an exception by giving it invalid metadata
@@ -239,7 +240,7 @@ class TestEFUtils(unittest.TestCase):
       http_get_instance_role()
     self.assertIn("Error looking up metadata:iam/info:", exception.exception.message)
 
-  @patch('src.ef_utils.http_get_metadata')
+  @patch('ef_utils.http_get_metadata')
   def test_get_instance_aws_context(self, mock_http_get_metadata):
     """
     Tests the get_instance_aws_context to see if it produces a dict object with all the
@@ -273,7 +274,7 @@ class TestEFUtils(unittest.TestCase):
     self.assertEquals(result["role"], "dev0-server-ftp")
     self.assertEquals(result["service"], "server-ftp")
 
-  @patch('src.ef_utils.http_get_metadata')
+  @patch('ef_utils.http_get_metadata')
   def test_get_instance_aws_context_metadata_exception(self, mock_http_get_metadata):
     """
     Tests the get_instance_aws_context to see if it throws an exception by giving it invalid metadata
@@ -286,7 +287,7 @@ class TestEFUtils(unittest.TestCase):
       get_instance_aws_context(mock_ec2_client)
     self.assertIn("Error looking up metadata:availability-zone or instance-id:", exception.exception.message)
 
-  @patch('src.ef_utils.http_get_metadata')
+  @patch('ef_utils.http_get_metadata')
   def test_get_instance_aws_context_ec2_client_exception(self, mock_http_get_metadata):
     """
     Tests get_instance_aws_context to see if it throws an exception by mocking the ec2_client to throw
@@ -301,7 +302,7 @@ class TestEFUtils(unittest.TestCase):
       get_instance_aws_context(mock_ec2_client)
     self.assertIn("Error calling describe_instances:", exception.exception.message)
 
-  @patch('src.ef_utils.http_get_metadata')
+  @patch('ef_utils.http_get_metadata')
   def test_get_instance_aws_context_ec2_invalid_environment_exception(self, mock_http_get_metadata):
     """
     Tests the get_instance_aws_context to see if it throws an exception by modifying the describe_instances
@@ -338,10 +339,13 @@ class TestEFUtils(unittest.TestCase):
     :return: None
     """
     mock_check_output.side_effect = [
-      "user@github.com:company/fake_repo.git "
-      "other_user@github.com:company/fake_repo.git",
+      "user@github.com:company/fake_repo.git",
       "master"
     ]
+    # mock_check_output.side_effect = [
+    #   "user@" + EFSiteConfig.EF_REPO.replace("/", ":", 1) + ".git",
+    #   EFSiteConfig.EF_REPO_BRANCH
+    # ]
     try:
       pull_repo()
     except RuntimeError as exception:
@@ -355,10 +359,13 @@ class TestEFUtils(unittest.TestCase):
     :return: None
     """
     mock_check_output.side_effect = [
-      "origin\thttps://user@github.com/company/fake_repo.git "
-      "(fetch)\norigin\thttps://user@github.com/company/fake_repo.git",
+      "origin\thttps://user@github.com:company/fake_repo.git",
       "master"
     ]
+    # mock_check_output.side_effect = [
+    #   "origin\thttps://user@" + EFSiteConfig.EF_REPO + ".git",
+    #   EFSiteConfig.EF_REPO_BRANCH
+    # ]
     try:
       pull_repo()
     except RuntimeError as exception:
@@ -450,7 +457,8 @@ class TestEFUtils(unittest.TestCase):
     with self.assertRaises(RuntimeError) as exception:
       pull_repo()
     self.assertIn("Exception running 'git pull", exception.exception.message)
-    mock_check_call.assert_called_once_with(["git", "pull", "-q", "origin", EFConfig.EF_REPO_BRANCH])
+    mock_check_call.assert_called_once_with(["git", "pull", "-q", "origin", "master"])
+    # mock_check_call.assert_called_once_with(["git", "pull", "-q", "origin", EFConfig.EF_REPO_BRANCH])
 
   @patch('boto3.Session')
   def test_create_aws_clients(self, mock_session_constructor):
@@ -527,7 +535,7 @@ class TestEFUtils(unittest.TestCase):
     with self.assertRaises(ValueError) as exception:
       get_account_alias("non-existent-env")
     self.assertTrue("unknown env" in exception.exception.message)
-    with patch('src.ef_utils.env_valid') as mock_env_valid:
+    with patch('ef_utils.env_valid') as mock_env_valid:
       with self.assertRaises(ValueError) as exception:
         mock_env_valid.return_value = True
         get_account_alias("non-existent-env")
