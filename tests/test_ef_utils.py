@@ -36,8 +36,15 @@ class TestEFUtils(unittest.TestCase):
   def test_fail_with_message(self, mock_stderr):
     """
     Tests fail() with a regular string message and checks if the message in stderr and exit code matches
-    :param mock_stderr: StringIO
-    :return: None
+
+    Args:
+      mock_stderr: StringIO, captures the string sent to sys.stderr
+
+    Returns:
+      None
+
+    Raises:
+      AssertionError if any of the assert checks fail
     """
     with self.assertRaises(SystemExit) as exception:
       fail("Error Message")
@@ -50,9 +57,15 @@ class TestEFUtils(unittest.TestCase):
   def test_fail_with_message_and_exception_data(self, mock_stderr, mock_stdout):
     """
     Test fail() with a regular string message and a python object as the exception data
-    :param mock_stderr: StringIO
-    :param mock_stdout: StringIO
-    :return: None
+    Args:
+      mock_stderr: StringIO, captures the string sent to sys.stderr
+      mock_stdout: StringIO, captures the string sent to sys.stdout
+
+    Returns:
+      None
+
+    Raises:
+      AssertionError if any of the assert checks fail
     """
     with self.assertRaises(SystemExit) as exception:
       fail("Error Message", {"ErrorCode": 22})
@@ -66,8 +79,15 @@ class TestEFUtils(unittest.TestCase):
   def test_fail_with_None_message(self, mock_stderr):
     """
     Test fail() with a None object
-    :param mock_stderr: StringIO
-    :return: None
+
+    Args:
+      mock_stderr: StringIO, captures the string sent to sys.stderr
+
+    Returns:
+      None
+
+    Raises:
+      AssertionError if any of the assert checks fail
     """
     with self.assertRaises(SystemExit) as exception:
       fail(None)
@@ -77,6 +97,18 @@ class TestEFUtils(unittest.TestCase):
 
   @patch('sys.stderr', new_callable=StringIO)
   def test_fail_with_empty_string(self, mock_stderr):
+    """
+    Test fail() with a an empty string
+
+    Args:
+      mock_stderr: StringIO, captures the string sent to sys.stderr
+
+    Returns:
+      None
+
+    Raises:
+      AssertionError if any of the assert checks fail
+    """
     with self.assertRaises(SystemExit) as exception:
       fail("")
     error_message = mock_stderr.getvalue().strip()
@@ -86,9 +118,16 @@ class TestEFUtils(unittest.TestCase):
   @patch('urllib2.urlopen')
   def test_http_get_metadata_200_status_code(self, mock_urllib2):
     """
-    Test http_get_metadata with mock urllib2.urlopen call that returns 200 and ami ID
-    :param mock_urllib2: MagicMock
-    :return: None
+    Test http_get_metadata to retrieve an ami-id with 200 success status.
+
+    Args:
+      mock_urllib2: MagicMock, returns back 200 and the ami-id value
+
+    Returns:
+      None
+
+    Raises:
+      AssertionError if any of the assert checks fail
     """
     mock_response = Mock(name="Always 200 Status Code")
     mock_response.getcode.return_value = 200
@@ -100,9 +139,16 @@ class TestEFUtils(unittest.TestCase):
   @patch('urllib2.urlopen')
   def test_http_get_metadata_non_200_status_code(self, mock_urllib2):
     """
-    Test http_get_metadata with mock urllib2.urlopen call that returns 400.
-    :param mock_urllib2: MagicMock
-    :return: None
+    Test http_get_metadata to retrieve ami-id and get a non 200 status code.
+
+    Args:
+      mock_urllib2:  MagicMock, returns back a non 200 status code.
+
+    Returns:
+      None
+
+    Raises:
+      AssertionError if any of the assert checks fail
     """
     mock_response = Mock(name="Always non-200 Status Code")
     mock_response.getcode.return_value = 400
@@ -114,27 +160,40 @@ class TestEFUtils(unittest.TestCase):
   @unittest.skipIf(whereami() == "ec2", "Test is running in ec2 environment, will not fail so must skip.")
   def test_http_get_metadata_urllib2_default_timeout(self):
     """
-    Tests get_metadata for raising an exception if it cannot obtain metadata before default timeout
+    Tests http_get_metadata for raising an exception if it cannot obtain metadata before default timeout
     NOTE: testing for this exception results in two error messages randomly
     "URLError in http_get_string: URLError(error(64, 'Host is down'),)"
     "URLError in http_get_string: URLError(timeout('timed out',),)"
     There was also one other time it failed due to a different error message but I have been unable to reproduce it
     since then.
-    :return: None
+
+    Test will skip if it's being run in an actual ec2 environment
+
+    Returns:
+      None
+
+    Raises:
+      AssertionError if any of the assert checks fail
     """
     with self.assertRaises(IOError) as exception:
       http_get_metadata("ami-id")
     self.assertTrue("timed out" in exception.exception.message or "Host is down" in exception.exception.message)
 
-
   @unittest.skipIf(whereami() == "ec2", "Test is running in ec2 environment, will not fail so must skip.")
   def test_http_get_metadata_urllib2_1_second_timeout(self):
     """
-    Tests get_metadata for raising an exception if it cannot obtain metadata before 1 second timeout
+    Tests http_get_metadata for raising an exception if it cannot obtain metadata before 1 second timeout
     NOTE: testing for this exception results in two error messages randomly
     "URLError in http_get_string: URLError(error(64, 'Host is down'),)"
     "URLError in http_get_string: URLError(timeout('timed out',),)"
-    :return: None
+
+    Test will skip if it's being run in an actual ec2 environment
+
+    Returns:
+      None
+
+    Raises:
+      AssertionError if any of the assert checks fail
     """
     with self.assertRaises(IOError) as exception:
       http_get_metadata("ami-id", 1)
@@ -143,9 +202,16 @@ class TestEFUtils(unittest.TestCase):
   @patch('ef_utils.http_get_metadata')
   def test_whereami_ec2(self, mock_http_get_metadata):
     """
-    Tests the whereami to see if it returns 'ec2' by mocking the metadata to be an ec2 instance id
-    :param mock_http_get_metadata: MagicMock
-    :return: None
+    Tests whereami to see if it returns 'ec2' by mocking the metadata to be an ec2 instance id
+
+    Args:
+      mock_http_get_metadata: MagicMock, returns a instance id
+
+    Returns:
+      None
+
+    Raises:
+      AssertionError if any of the assert checks fail
     """
     mock_http_get_metadata.return_value = "i-123456"
     result = whereami()
@@ -157,12 +223,19 @@ class TestEFUtils(unittest.TestCase):
   @patch('ef_utils.http_get_metadata')
   def test_whereami_virtualbox(self, mock_http_get_metadata, mock_isfile, mock_access, mock_check_output):
     """
-    Tests the whereami to see if it returns 'virtualbox-kvm' by mocking the environment to look like virtualbox
-    :param mock_http_get_metadata: MagicMock
-    :param mock_isfile: MagicMock
-    :param mock_access: MagicMock
-    :param mock_check_output: MagicMock
-    :return: None
+    Tests whereami to see if it returns 'virtualbox-kvm' by mocking the environment to look like virtualbox
+
+    Args:
+      mock_http_get_metadata: MagicMock, returns a non ec2 id
+      mock_isfile: MagicMock, returns True
+      mock_access: MagicMock, returns True
+      mock_check_output: MagicMock, returns path to some virtualbox file
+
+    Returns:
+      None
+
+    Raises:
+      AssertionError if any of the assert checks fail
     """
     mock_http_get_metadata.return_value = "not ec2"
     mock_isfile.return_value = True
@@ -174,9 +247,16 @@ class TestEFUtils(unittest.TestCase):
   @patch('ef_utils.gethostname')
   def test_whereami_local(self, mock_gethostname):
     """
-    Tests the whereami to see if it returns 'local' by mocking a local machine environment
-    :param mock_gethostname: MagicMock
-    :return: None
+    Tests whereami to see if it returns 'local' by mocking a local machine environment
+
+    Args:
+      mock_gethostname: MagicMock, returns .local
+
+    Returns:
+      None
+
+    Raises:
+      AssertionError if any of the assert checks fail
     """
     mock_gethostname.return_value = ".local"
     result = whereami()
@@ -185,9 +265,16 @@ class TestEFUtils(unittest.TestCase):
   @patch('ef_utils.gethostname')
   def test_whereami_unknown(self, mock_gethostname):
     """
-    Tests the whereami to see if it returns 'unknown' by mocking the environment to not match anything
-    :param mock_gethostname: MagicMock
-    :return: None
+    Tests whereami to see if it returns 'unknown' by mocking the environment to not match anything
+
+    Args:
+      mock_gethostname: MagicMock, returns some junk value
+
+    Returns:
+      None
+
+    Raises:
+      AssertionError if any of the assert checks fail
     """
     mock_gethostname.return_value = "not local"
     result = whereami()
@@ -197,9 +284,15 @@ class TestEFUtils(unittest.TestCase):
   def test_http_get_instance_env(self, mock_http_get_metadata):
     """
     Tests http_get_instance_env to see if it returns 'dev' by mocking the metadata with a valid IAM instance profile
-    arn
-    :param mock_http_get_metadata: MagicMock
-    :return: None
+
+    Args:
+      mock_http_get_metadata: MagicMock, returns a valid JSON InstanceProfileArn
+
+    Returns:
+      None
+
+    Raises:
+      AssertionError if any of the assert checks fail
     """
     mock_http_get_metadata.return_value = "{\"InstanceProfileArn\": \"arn:aws:iam::1234:role/dev-server\"}"
     env = http_get_instance_env()
@@ -209,8 +302,15 @@ class TestEFUtils(unittest.TestCase):
   def test_http_get_instance_env_exception(self, mock_http_get_metadata):
     """
     Tests http_get_instance_env to see if it raises an exception by mocking the metadata to be invalid
-    :param mock_http_get_metadata: MagicMock
-    :return: None
+
+    Args:
+      mock_http_get_metadata: MagicMock, returns junk value
+
+    Returns:
+      None
+
+    Raises:
+      AssertionError if any of the assert checks fail
     """
     mock_http_get_metadata.return_value = "No data"
     with self.assertRaises(Exception) as exception:
@@ -221,8 +321,15 @@ class TestEFUtils(unittest.TestCase):
   def test_http_get_instance_role(self, mock_http_get_metadata):
     """
     Tests http_get_instance_role to return the service name by mocking the metadata
-    :param mock_http_get_metadata: MagicMock
-    :return: None
+
+    Args:
+      mock_http_get_metadata: MagicMock, returns a valid JSON InstanceProfileArn
+
+    Returns:
+      None
+
+    Raises:
+      AssertionError if any of the assert checks fail
     """
     mock_http_get_metadata.return_value = "{\"InstanceProfileArn\": \"arn:aws:iam::1234:role/dev-server\"}"
     role = http_get_instance_role()
@@ -231,9 +338,16 @@ class TestEFUtils(unittest.TestCase):
   @patch('ef_utils.http_get_metadata')
   def test_http_get_instance_role_exception(self, mock_http_get_metadata):
     """
-    Tests the http_get_instance_role to see if it raises an exception by giving it invalid metadata
-    :param mock_http_get_metadata: MagicMock
-    :return: None
+    Tests http_get_instance_role to see if it raises an exception by giving it invalid metadata
+
+    Args:
+      mock_http_get_metadata: MagicMock, returns junk value
+
+    Returns:
+      None
+
+    Raises:
+      AssertionError if any of the assert checks fail
     """
     mock_http_get_metadata.return_value = "No data"
     with self.assertRaises(Exception) as exception:
@@ -243,10 +357,17 @@ class TestEFUtils(unittest.TestCase):
   @patch('ef_utils.http_get_metadata')
   def test_get_instance_aws_context(self, mock_http_get_metadata):
     """
-    Tests the get_instance_aws_context to see if it produces a dict object with all the
+    Tests get_instance_aws_context to see if it produces a dict object with all the
     data supplied in the metadata.
-    :param mock_http_get_metadata: MagicMock
-    :return: None
+
+    Args:
+      mock_http_get_metadata: MagicMock, returns valid responses in the order its called
+
+    Returns:
+      None
+
+    Raises:
+      AssertionError if any of the assert checks fail
     """
     mock_http_get_metadata.side_effect = ["us-west-2a", "i-00001111f"]
     mock_ec2_client = Mock(name="mock-ec2-client")
@@ -277,9 +398,16 @@ class TestEFUtils(unittest.TestCase):
   @patch('ef_utils.http_get_metadata')
   def test_get_instance_aws_context_metadata_exception(self, mock_http_get_metadata):
     """
-    Tests the get_instance_aws_context to see if it throws an exception by giving it invalid metadata
-    :param mock_http_get_metadata: MagicMock
-    :return: None
+    Tests get_instance_aws_context to see if it throws an exception by giving it invalid metadata
+
+    Args:
+      mock_http_get_metadata: MagicMock, throws an IOError exception
+
+    Returns:
+      None
+
+    Raises:
+      AssertionError if any of the assert checks fail
     """
     mock_http_get_metadata.side_effect = IOError("No data")
     mock_ec2_client = Mock(name="mock-ec2-client")
@@ -292,8 +420,15 @@ class TestEFUtils(unittest.TestCase):
     """
     Tests get_instance_aws_context to see if it throws an exception by mocking the ec2_client to throw
     an exception when describe_instances is called.
-    :param mock_http_get_metadata: MagicMock
-    :return: None
+
+    Args:
+      mock_http_get_metadata: MagicMock, returns valid responses in the order its called
+
+    Returns:
+      None
+
+    Raises:
+      AssertionError if any of the assert checks fail
     """
     mock_http_get_metadata.side_effect = ["us-west-2a", "i-00001111f"]
     mock_ec2_client = Mock(name="mock-ec2-client")
@@ -305,10 +440,17 @@ class TestEFUtils(unittest.TestCase):
   @patch('ef_utils.http_get_metadata')
   def test_get_instance_aws_context_ec2_invalid_environment_exception(self, mock_http_get_metadata):
     """
-    Tests the get_instance_aws_context to see if it throws an exception by modifying the describe_instances
+    Tests get_instance_aws_context to see if it throws an exception by modifying the describe_instances
     to return a IamInstanceProfile with an invalid environment in it.
-    :param mock_http_get_metadata: MagicMock
-    :return: None
+
+    Args:
+      mock_http_get_metadata: MagicMock, returns valid responses in the order its called
+
+    Returns:
+      None
+
+    Raises:
+      AssertionError if any of the assert checks fail
     """
     mock_http_get_metadata.side_effect = ["us-west-2a", "i-00001111f"]
     mock_ec2_client = Mock(name="mock-ec2-client")
@@ -334,9 +476,16 @@ class TestEFUtils(unittest.TestCase):
   @patch('subprocess.check_output')
   def test_pull_repo_ssh_credentials(self, mock_check_output):
     """
-    Tests the pull_repo by mocking the subprocess.check_output to return git ssh credentials.
-    :param mock_check_output: MagicMock
-    :return: None
+    Tests pull_repo by mocking the subprocess.check_output to return git ssh credentials.
+
+    Args:
+      mock_check_output: MagicMock, returns valid git responses in order of being called
+
+    Returns:
+      None
+
+    Raises:
+      AssertionError if any of the assert checks fail
     """
     mock_check_output.side_effect = [
       "user@github.com:company/fake_repo.git",
@@ -355,8 +504,15 @@ class TestEFUtils(unittest.TestCase):
   def test_pull_repo_https_credentials(self, mock_check_output):
     """
     Tests the pull_repo by mocking the subprocess.check_output to return git http credentials.
-    :param mock_check_output: MagicMock
-    :return: None
+
+    Args:
+      mock_check_output: MagicMock, returns valid git responses in order of being called
+
+    Returns:
+      None
+
+    Raises:
+      AssertionError if any of the assert checks fail
     """
     mock_check_output.side_effect = [
       "origin\thttps://user@github.com:company/fake_repo.git",
@@ -376,8 +532,15 @@ class TestEFUtils(unittest.TestCase):
     """
     Tests pull_repo() to see if it throws an exception when mocked check_output throws an exception first time
     it's called for git info
-    :param mock_check_output: MagicMock
-    :return: None
+
+    Args:
+      mock_check_output: MagicMock, throws an subprocess.CalledProcessError exception
+
+    Returns:
+      None
+
+    Raises:
+      AssertionError if any of the assert checks fail
     """
     mock_check_output.side_effect = subprocess.CalledProcessError("Forced Error", 1)
     with self.assertRaises(RuntimeError) as exception:
@@ -390,8 +553,15 @@ class TestEFUtils(unittest.TestCase):
     """
     Tests pull_repo to see if it throws an exception when the supplied repo doesn't match the one in
     ef_site_config.py
-    :param mock_check_output: MagicMock
-    :return: None
+
+    Args:
+      mock_check_output: MagicMock, returns git responses with non matching repo names
+
+    Returns:
+      None
+
+    Raises:
+      AssertionError if any of the assert checks fail
     """
     mock_check_output.side_effect = [
       "user@github.com:company/wrong_repo.git "
@@ -406,8 +576,16 @@ class TestEFUtils(unittest.TestCase):
     """
     Tests pull_repo to see if it throws an exception when mocked check_output throws an exception on second call
     to git to retrieve name of branch
-    :param mock_check_output: MagicMock
-    :return: None
+
+    Args:
+      mock_check_output: MagicMock, returns some valid git responses and then a subprocess.CalledProcessError
+      exception
+
+    Returns:
+      None
+
+    Raises:
+      AssertionError if any of the assert checks fail
     """
     mock_check_output.side_effect = [
       "user@github.com:company/fake_repo.git "
@@ -426,8 +604,15 @@ class TestEFUtils(unittest.TestCase):
     """
     Tests pull_repo to see if it throws an error when the mocked check_output states it's on a branch
     other than the one specified in ef_site_config.py
-    :param mock_check_output: MagicMock
-    :return: None
+
+    Args:
+      mock_check_output: MagicMock, returns some valid git responses and then a non matching branch name
+
+    Returns:
+      None
+
+    Raises:
+      AssertionError if any of the assert checks fail
     """
     mock_check_output.side_effect = [
       "user@github.com:company/fake_repo.git "
@@ -444,9 +629,16 @@ class TestEFUtils(unittest.TestCase):
     """
     Tests pull_repo() to see if it throws an exception when mocked check_call throws an exception when calling
     git to do a pull
-    :param mock_check_output: MagicMock
-    :param mock_check_call: MagicMock
-    :return: None
+
+    Args:
+      mock_check_output: MagicMock, returns valid git responses
+      mock_check_call: MagicMock, throws a subprocess.CalledProcessError exception
+
+    Returns:
+      None
+
+    Raises:
+      AssertionError if any of the assert checks fail
     """
     mock_check_output.side_effect = [
       "user@github.com:company/fake_repo.git "
@@ -465,8 +657,15 @@ class TestEFUtils(unittest.TestCase):
     """
     Tests create_aws_clients by providing all the parameters and mocking the boto3.Session constructor.
     Verifies that all the keys show up in the dict object returned.
-    :param mock_session_constructor: MagicMock
-    :return: None
+
+    Args:
+      mock_session_constructor: MagicMock, returns Mock object representing a boto3.Session object
+
+    Returns:
+      None
+
+    Raises:
+      AssertionError if any of the assert checks fail
     """
     mock_session = Mock(name="mock-boto3-session")
     mock_session.client.return_value = Mock(name="mock-client")
@@ -484,8 +683,15 @@ class TestEFUtils(unittest.TestCase):
     """
     Test create_aws_clients with all the parameters except profile and mocking the boto3 Session constructor.
     Verifies that all the keys show up in the dict object returned.
-    :param mock_session_constructor: MagicMock
-    :return: None
+
+    Args:
+      mock_session_constructor: MagicMock, returns Mock object representing a boto3.Session object
+
+    Returns:
+      None
+
+    Raises:
+      AssertionError if any of the assert checks fail
     """
     mock_session = Mock(name="mock-boto3-session")
     mock_session.client.return_value = Mock(name="mock-client")
@@ -502,8 +708,15 @@ class TestEFUtils(unittest.TestCase):
   def test_create_aws_clients_create_session_boto_core_error(self, mock_session_constructor):
     """
     Tests if create_aws_clients throws an exception when mocking boto3.Session object to throw an exception
-    :param mock_session_constructor: MagicMock
-    :return: None
+
+    Args:
+      mock_session_constructor: MagicMock, throws a BotoCoreError exception
+
+    Returns:
+      None
+
+    Raises:
+      AssertionError if any of the assert checks fail
     """
     mock_session_constructor.side_effect = botocore.exceptions.BotoCoreError()
     with self.assertRaises(RuntimeError) as exception:
@@ -513,7 +726,12 @@ class TestEFUtils(unittest.TestCase):
   def test_get_account_alias(self):
     """
     Checks if get_account_alias returns the correct account based on valid environments
-    :return: None
+
+    Returns:
+      None
+
+    Raises:
+      AssertionError if any of the assert checks fail
     """
     self.assertEquals(get_account_alias("test"), "amazon_test_account")
     self.assertEquals(get_account_alias("dev0"), "amazon_dev_account")
@@ -527,7 +745,12 @@ class TestEFUtils(unittest.TestCase):
   def test_get_account_alias_invalid_env(self):
     """
     Tests if get_account_alias raises exceptions when given invalid environments
-    :return: None
+
+    Returns:
+      None
+
+    Raises:
+      AssertionError if any of the assert checks fail
     """
     with self.assertRaises(ValueError) as exception:
       get_account_alias("test0")
@@ -550,7 +773,12 @@ class TestEFUtils(unittest.TestCase):
   def test_get_env_short(self):
     """
     Checks if get_env_short returns the correct environment shortname when given valid environments
-    :return: None
+
+    Returns:
+      None
+
+    Raises:
+      AssertionError if any of the assert checks fail
     """
     self.assertEquals(get_env_short("test"), "test")
     self.assertEquals(get_env_short("dev0"), "dev")
@@ -564,7 +792,12 @@ class TestEFUtils(unittest.TestCase):
   def test_get_env_short_invalid_envs(self):
     """
     Tests if get_env_short raises exceptions when given invalid environments
-    :return: None
+
+    Returns:
+      None
+
+    Raises:
+      AssertionError if any of the assert checks fail
     """
     with self.assertRaises(ValueError) as exception:
       get_env_short("test0")
@@ -582,7 +815,12 @@ class TestEFUtils(unittest.TestCase):
   def test_env_valid(self):
     """
     Checks if env_valid returns true for correctly named environments
-    :return: None
+
+    Returns:
+      None
+
+    Raises:
+      AssertionError if any of the assert checks fail
     """
     self.assertTrue(env_valid("test"))
     self.assertTrue(env_valid("dev0"))
@@ -599,7 +837,12 @@ class TestEFUtils(unittest.TestCase):
   def test_env_valid_invalid_envs(self):
     """
     Checks if env_valid returns ValueError for incorrectly name environments
-    :return: None
+
+    Returns:
+      None
+
+    Raises:
+      AssertionError if any of the assert checks fail
     """
     with self.assertRaises(ValueError):
       env_valid("test0")
@@ -619,7 +862,12 @@ class TestEFUtils(unittest.TestCase):
   def test_global_env_valid(self):
     """
     Checks global_env_valid returns true for account scoped envs.
-    :return: None
+
+    Returns:
+      None
+
+    Raises:
+      AssertionError if any of the assert checks fail
     """
     self.assertTrue(global_env_valid("global"))
     self.assertTrue(global_env_valid("mgmt"))
@@ -627,7 +875,12 @@ class TestEFUtils(unittest.TestCase):
   def test_global_env_valid_non_scoped_envs(self):
     """
     Checks global_env_valid returns false for non account scoped envs.
-    :return: None
+
+    Returns:
+      None
+
+    Raises:
+      AssertionError if any of the assert checks fail
     """
     with self.assertRaises(ValueError) as exception:
       global_env_valid("prod")
