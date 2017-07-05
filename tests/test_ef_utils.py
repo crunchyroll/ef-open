@@ -25,6 +25,7 @@ import botocore.exceptions
 import context
 from ef_utils import create_aws_clients, env_valid, fail, get_account_alias, get_env_short, global_env_valid, \
   get_instance_aws_context, http_get_instance_env, http_get_instance_role, http_get_metadata, pull_repo, whereami
+from ef_site_config import EFSiteConfig
 
 
 class TestEFUtils(unittest.TestCase):
@@ -479,7 +480,8 @@ class TestEFUtils(unittest.TestCase):
     Tests pull_repo by mocking the subprocess.check_output to return git ssh credentials.
 
     Args:
-      mock_check_output: MagicMock, returns valid git responses in order of being called
+      mock_check_output: MagicMock, returns valid git responses in order of being called, with the
+      repo coming from the ef_site_config.py
 
     Returns:
       None
@@ -488,13 +490,9 @@ class TestEFUtils(unittest.TestCase):
       AssertionError if any of the assert checks fail
     """
     mock_check_output.side_effect = [
-      "user@github.com:company/fake_repo.git",
-      "master"
+      "user@" + EFSiteConfig.EF_REPO.replace("/", ":", 1) + ".git",
+      EFSiteConfig.EF_REPO_BRANCH
     ]
-    # mock_check_output.side_effect = [
-    #   "user@" + EFSiteConfig.EF_REPO.replace("/", ":", 1) + ".git",
-    #   EFSiteConfig.EF_REPO_BRANCH
-    # ]
     try:
       pull_repo()
     except RuntimeError as exception:
@@ -506,7 +504,8 @@ class TestEFUtils(unittest.TestCase):
     Tests the pull_repo by mocking the subprocess.check_output to return git http credentials.
 
     Args:
-      mock_check_output: MagicMock, returns valid git responses in order of being called
+      mock_check_output: MagicMock, returns valid git responses in order of being called, with the
+      repo coming from the ef_site_config.py
 
     Returns:
       None
@@ -515,13 +514,9 @@ class TestEFUtils(unittest.TestCase):
       AssertionError if any of the assert checks fail
     """
     mock_check_output.side_effect = [
-      "origin\thttps://user@github.com:company/fake_repo.git",
-      "master"
+      "origin\thttps://user@" + EFSiteConfig.EF_REPO + ".git",
+      EFSiteConfig.EF_REPO_BRANCH
     ]
-    # mock_check_output.side_effect = [
-    #   "origin\thttps://user@" + EFSiteConfig.EF_REPO + ".git",
-    #   EFSiteConfig.EF_REPO_BRANCH
-    # ]
     try:
       pull_repo()
     except RuntimeError as exception:
@@ -578,7 +573,8 @@ class TestEFUtils(unittest.TestCase):
     to git to retrieve name of branch
 
     Args:
-      mock_check_output: MagicMock, returns some valid git responses and then a subprocess.CalledProcessError
+      mock_check_output: MagicMock, returns some valid git responses, with the
+      repo coming from the ef_site_config.py, and then a subprocess.CalledProcessError
       exception
 
     Returns:
@@ -588,8 +584,7 @@ class TestEFUtils(unittest.TestCase):
       AssertionError if any of the assert checks fail
     """
     mock_check_output.side_effect = [
-      "user@github.com:company/fake_repo.git "
-      "other_user@github.com:company/fake_repo.git",
+      "user@" + EFSiteConfig.EF_REPO.replace("/", ":", 1) + ".git",
       subprocess.CalledProcessError("Forced Error", 1)
     ]
     with self.assertRaises(RuntimeError) as exception:
@@ -606,7 +601,8 @@ class TestEFUtils(unittest.TestCase):
     other than the one specified in ef_site_config.py
 
     Args:
-      mock_check_output: MagicMock, returns some valid git responses and then a non matching branch name
+      mock_check_output: MagicMock, returns some valid git responses, with the
+      repo coming from the ef_site_config.py, and then a non matching branch name
 
     Returns:
       None
@@ -615,8 +611,7 @@ class TestEFUtils(unittest.TestCase):
       AssertionError if any of the assert checks fail
     """
     mock_check_output.side_effect = [
-      "user@github.com:company/fake_repo.git "
-      "other_user@github.com:company/fake_repo.git",
+      "user@" + EFSiteConfig.EF_REPO.replace("/", ":", 1) + ".git",
       "wrong_branch"
     ]
     with self.assertRaises(RuntimeError) as exception:
@@ -631,7 +626,7 @@ class TestEFUtils(unittest.TestCase):
     git to do a pull
 
     Args:
-      mock_check_output: MagicMock, returns valid git responses
+      mock_check_output: MagicMock, returns valid git responses, with the repo coming from the ef_site_config.py
       mock_check_call: MagicMock, throws a subprocess.CalledProcessError exception
 
     Returns:
@@ -641,16 +636,14 @@ class TestEFUtils(unittest.TestCase):
       AssertionError if any of the assert checks fail
     """
     mock_check_output.side_effect = [
-      "user@github.com:company/fake_repo.git "
-      "other_user@github.com:company/fake_repo.git",
+      "user@" + EFSiteConfig.EF_REPO.replace("/", ":", 1) + ".git",
       "master"
     ]
     mock_check_call.side_effect = subprocess.CalledProcessError("Forced Error", 1)
     with self.assertRaises(RuntimeError) as exception:
       pull_repo()
     self.assertIn("Exception running 'git pull", exception.exception.message)
-    mock_check_call.assert_called_once_with(["git", "pull", "-q", "origin", "master"])
-    # mock_check_call.assert_called_once_with(["git", "pull", "-q", "origin", EFConfig.EF_REPO_BRANCH])
+    mock_check_call.assert_called_once_with(["git", "pull", "-q", "origin", EFSiteConfig.EF_REPO_BRANCH])
 
   @patch('boto3.Session')
   def test_create_aws_clients(self, mock_session_constructor):
