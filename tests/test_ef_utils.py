@@ -22,7 +22,7 @@ from mock import call, Mock, patch
 import botocore.exceptions
 
 # For local application imports, context must be first despite lexicon ordering
-import context
+import context_paths
 from ef_utils import create_aws_clients, env_valid, fail, get_account_alias, get_env_short, global_env_valid, \
   get_instance_aws_context, http_get_instance_env, http_get_instance_role, http_get_metadata, pull_repo, whereami
 from ef_site_config import EFSiteConfig
