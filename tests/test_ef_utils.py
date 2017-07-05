@@ -726,14 +726,19 @@ class TestEFUtils(unittest.TestCase):
     Raises:
       AssertionError if any of the assert checks fail
     """
-    self.assertEquals(get_account_alias("test"), "amazon_test_account")
-    self.assertEquals(get_account_alias("dev0"), "amazon_dev_account")
-    self.assertEquals(get_account_alias("dev1"), "amazon_dev_account")
-    self.assertEquals(get_account_alias("staging0"), "amazon_staging_account")
-    self.assertEquals(get_account_alias("prod"), "amazon_prod_account")
-    self.assertEquals(get_account_alias("global.amazon_global_account"), "amazon_global_account")
-    self.assertEquals(get_account_alias("mgmt.amazon_mgmt_account"), "amazon_mgmt_account")
-    self.assertEquals(get_account_alias("global.amazon_dev_account"), "amazon_dev_account")
+    for env, account_alias in EFSiteConfig.ENV_ACCOUNT_MAP.items():
+      # Attach a numeric value to environments that are ephemeral
+      if env in EFSiteConfig.EPHEMERAL_ENVS:
+        env += '0'
+      self.assertEquals(get_account_alias(env), account_alias)
+
+    # Do tests for global and mgmt envs, which have a special mapping, Example: global.account_alias
+    if "global" in EFSiteConfig.ENV_ACCOUNT_MAP:
+      for account_alias in EFSiteConfig.ENV_ACCOUNT_MAP.values():
+        self.assertEquals(get_account_alias("global." + account_alias), account_alias)
+    if "mgmt" in EFSiteConfig.ENV_ACCOUNT_MAP:
+      for account_alias in EFSiteConfig.ENV_ACCOUNT_MAP.values():
+        self.assertEquals(get_account_alias("mgmt." + account_alias), account_alias)
 
   def test_get_account_alias_invalid_env(self):
     """
@@ -745,9 +750,16 @@ class TestEFUtils(unittest.TestCase):
     Raises:
       AssertionError if any of the assert checks fail
     """
-    with self.assertRaises(ValueError) as exception:
-      get_account_alias("test0")
-    self.assertTrue("unknown env" in exception.exception.message)
+    # Create junk environment values by attaching numbers to non-ephemeral environments and not attaching numbers
+    # to ephemeral environments
+    for env, account_alias in EFSiteConfig.ENV_ACCOUNT_MAP.items():
+      if env not in EFSiteConfig.EPHEMERAL_ENVS:
+        env += '0'
+      with self.assertRaises(ValueError) as exception:
+        get_account_alias(env)
+      self.assertTrue("unknown env" in exception.exception.message)
+
+    # Hard coded junk values
     with self.assertRaises(ValueError) as exception:
       get_account_alias("non-existent-env")
     self.assertTrue("unknown env" in exception.exception.message)
@@ -773,14 +785,12 @@ class TestEFUtils(unittest.TestCase):
     Raises:
       AssertionError if any of the assert checks fail
     """
-    self.assertEquals(get_env_short("test"), "test")
-    self.assertEquals(get_env_short("dev0"), "dev")
-    self.assertEquals(get_env_short("dev1"), "dev")
-    self.assertEquals(get_env_short("staging0"), "staging")
-    self.assertEquals(get_env_short("prod"), "prod")
-    self.assertEquals(get_env_short("global.amazon_global_account"), "global")
-    self.assertEquals(get_env_short("mgmt.amazon_mgmt_account"), "mgmt")
-    self.assertEquals(get_env_short("global.amazon_dev_account"), "global")
+    for env in EFSiteConfig.ENV_ACCOUNT_MAP:
+      expected_env_value = env
+      # Attach a numeric value to environments that are ephemeral
+      if env in EFSiteConfig.EPHEMERAL_ENVS:
+         env += '0'
+      self.assertEquals(get_env_short(env), expected_env_value)
 
   def test_get_env_short_invalid_envs(self):
     """
@@ -792,9 +802,16 @@ class TestEFUtils(unittest.TestCase):
     Raises:
       AssertionError if any of the assert checks fail
     """
-    with self.assertRaises(ValueError) as exception:
-      get_env_short("test0")
-    self.assertTrue("unknown env" in exception.exception.message)
+    # Create junk environment values by attaching numbers to non-ephemeral environments and not attaching numbers
+    # to ephemeral environments
+    for env in EFSiteConfig.ENV_ACCOUNT_MAP:
+      if env not in EFSiteConfig.EPHEMERAL_ENVS:
+        env += '0'
+      with self.assertRaises(ValueError) as exception:
+        get_env_short(env)
+      self.assertTrue("unknown env" in exception.exception.message)
+
+    # Hard coded junk values
     with self.assertRaises(ValueError) as exception:
       get_env_short("non-existent-env")
     self.assertTrue("unknown env" in exception.exception.message)
@@ -815,17 +832,19 @@ class TestEFUtils(unittest.TestCase):
     Raises:
       AssertionError if any of the assert checks fail
     """
-    self.assertTrue(env_valid("test"))
-    self.assertTrue(env_valid("dev0"))
-    self.assertTrue(env_valid("dev1"))
-    self.assertTrue(env_valid("dev2"))
-    self.assertTrue(env_valid("staging0"))
-    self.assertTrue(env_valid("prod"))
-    self.assertTrue(env_valid("global"))
-    self.assertTrue(env_valid("mgmt"))
-    self.assertTrue(env_valid("global.amazon_global_account"))
-    self.assertTrue(env_valid("mgmt.amazon_mgmt_account"))
-    self.assertTrue(env_valid("global.amazon_dev_account"))
+    for env in EFSiteConfig.ENV_ACCOUNT_MAP:
+      # Attach a numeric value to environments that are ephemeral
+      if env in EFSiteConfig.EPHEMERAL_ENVS:
+         env += '0'
+      self.assertTrue(env_valid(env))
+
+    # Do tests for global and mgmt envs, which have a special mapping, Example: global.account_alias
+    if "global" in EFSiteConfig.ENV_ACCOUNT_MAP:
+      for account_alias in EFSiteConfig.ENV_ACCOUNT_MAP.values():
+        self.assertTrue(env_valid("global." + account_alias))
+    if "mgmt" in EFSiteConfig.ENV_ACCOUNT_MAP:
+      for account_alias in EFSiteConfig.ENV_ACCOUNT_MAP.values():
+        self.assertTrue(env_valid("mgmt." + account_alias))
 
   def test_env_valid_invalid_envs(self):
     """
@@ -837,14 +856,15 @@ class TestEFUtils(unittest.TestCase):
     Raises:
       AssertionError if any of the assert checks fail
     """
-    with self.assertRaises(ValueError):
-      env_valid("test0")
-    with self.assertRaises(ValueError):
-      env_valid("dev")
-    with self.assertRaises(ValueError):
-      env_valid("staging")
-    with self.assertRaises(ValueError):
-      env_valid("prod0")
+    # Create junk environment values by attaching numbers to non-ephemeral environments and not attaching numbers
+    # to ephemeral environments
+    for env in EFSiteConfig.ENV_ACCOUNT_MAP:
+      if env not in EFSiteConfig.EPHEMERAL_ENVS:
+        env += '0'
+      with self.assertRaises(ValueError):
+        env_valid(env)
+
+    # Hard coded junk values
     with self.assertRaises(ValueError):
       env_valid("invalid_env")
     with self.assertRaises(ValueError):
@@ -862,8 +882,10 @@ class TestEFUtils(unittest.TestCase):
     Raises:
       AssertionError if any of the assert checks fail
     """
-    self.assertTrue(global_env_valid("global"))
-    self.assertTrue(global_env_valid("mgmt"))
+    if "global" in EFSiteConfig.ENV_ACCOUNT_MAP:
+      self.assertTrue(global_env_valid("global"))
+    if "mgmt" in EFSiteConfig.ENV_ACCOUNT_MAP:
+      self.assertTrue(global_env_valid("mgmt"))
 
   def test_global_env_valid_non_scoped_envs(self):
     """
@@ -875,9 +897,15 @@ class TestEFUtils(unittest.TestCase):
     Raises:
       AssertionError if any of the assert checks fail
     """
-    with self.assertRaises(ValueError) as exception:
-      global_env_valid("prod")
-    self.assertTrue("Invalid global env" in exception.exception.message)
+    # Loop through all environments that are not mgmt or global
+    for env in EFSiteConfig.ENV_ACCOUNT_MAP:
+      if env == "mgmt" or env == "global":
+        continue
+      with self.assertRaises(ValueError) as exception:
+        global_env_valid(env)
+      self.assertTrue("Invalid global env" in exception.exception.message)
+
+    # Hard coded junk values
     with self.assertRaises(ValueError) as exception:
       global_env_valid("not_global")
     self.assertTrue("Invalid global env" in exception.exception.message)
