@@ -17,38 +17,69 @@ limitations under the License.
 import unittest
 
 import boto3
+from mock import call, Mock, patch
 
-from src.ef_aws_resolver import EFAwsResolver
-from src.ef_config import EFConfig
-from src.ef_context import EFContext
-from src.ef_utils import fail, http_get_metadata, whereami
+import context_paths
+from ef_aws_resolver import EFAwsResolver
+from ef_config import EFConfig
+from ef_context import EFContext
+from ef_site_config import EFSiteConfig
+from ef_utils import fail, http_get_metadata, whereami
 
-context = EFContext()
-context.env = "mgmt.ellationeng"
+# context = EFContext()
+# context.env = "mgmt.ellationeng"
 
 class TestEFAwsResolver(unittest.TestCase):
   """Tests for `ef_aws_resolver.py`."""
 
-  # initialize based on where running
-  where = whereami()
-  if where == "local":
-    session = boto3.Session(profile_name=context.account_alias, region_name=EFConfig.DEFAULT_REGION)
-  elif where == "ec2":
-    region = http_get_metadata("placement/availability-zone/")
-    region = region[:-1]
-    session = boto3.Session(region_name=region)
-  else:
-    fail("Can't test in environment: " + where)
+  @classmethod
+  def setUpClass(cls):
+    cls._context = EFContext()
+    cls._context.env = "test"
 
-  clients = {
-    "cloudformation": session.client("cloudformation"),
-    "cloudfront": session.client("cloudfront"),
-    "ec2": session.client("ec2"),
-    "iam": session.client("iam"),
-    "route53": session.client("route53"),
-    "waf": session.client("waf")
-  }
+    # # initialize based on where running
+    # where = whereami()
+    # if where == "local":
+    #   session = boto3.Session(profile_name=context.account_alias, region_name=EFConfig.DEFAULT_REGION)
+    # elif where == "ec2":
+    #   region = http_get_metadata("placement/availability-zone/")
+    #   region = region[:-1]
+    #   session = boto3.Session(region_name=region)
+    # else:
+    #   fail("Can't test in environment: " + where)
 
+    mock_cloud_formation_session = Mock(name="Mock CloudFormation Session")
+    mock_cloud_front_session = Mock(name="Mock CloudFront Session")
+    mock_ec2_session = Mock(name="Mock EC2 Session")
+    mock_iam_session = Mock(name="Mock IAM Session")
+    mock_route_53_session = Mock(name="Mock Route 53 Session")
+    mock_waf_session = Mock(name="Mock WAF Session")
+
+    # cls._clients = {
+    #   "cloudformation": session.client("cloudformation"),
+    #   "cloudfront": session.client("cloudfront"),
+    #   "ec2": session.client("ec2"),
+    #   "iam": session.client("iam"),
+    #   "route53": session.client("route53"),
+    #   "waf": session.client("waf")
+    # }
+
+    cls._clients = {
+      "cloudformation": mock_cloud_formation_session,
+      "cloudfront": mock_cloud_front_session,
+      "ec2": mock_ec2_session,
+      "iam": mock_iam_session,
+      "route53": mock_route_53_session,
+      "waf": mock_waf_session
+    }
+
+  @classmethod
+  def tearDownClass(cls):
+    pass
+
+  def test_acm_certificate_arn(self):
+    ef_aws_resolver = EFAwsResolver(self._clients)
+    ef_aws_resolver.acm_certificate_arn("Oregon/cx-staging.com")
 
 ## Test coverage of ec2:eni/eni-id is disabled because the we are not presently creating
 ## ENI fixtures and this test does not at present generate an ENI for testing this lookup function
