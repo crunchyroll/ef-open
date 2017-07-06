@@ -34,6 +34,8 @@ class TestEFAwsResolver(unittest.TestCase):
 
   @classmethod
   def setUpClass(cls):
+
+    # See if I can get rid of this?
     cls._context = EFContext()
     cls._context.env = "test"
 
@@ -48,29 +50,33 @@ class TestEFAwsResolver(unittest.TestCase):
     # else:
     #   fail("Can't test in environment: " + where)
 
-    mock_cloud_formation_session = Mock(name="Mock CloudFormation Session")
-    mock_cloud_front_session = Mock(name="Mock CloudFront Session")
-    mock_ec2_session = Mock(name="Mock EC2 Session")
-    mock_iam_session = Mock(name="Mock IAM Session")
-    mock_route_53_session = Mock(name="Mock Route 53 Session")
-    mock_waf_session = Mock(name="Mock WAF Session")
-
+    # session = boto3.Session(profile_name="default", region_name="us-west-2")
     # cls._clients = {
     #   "cloudformation": session.client("cloudformation"),
     #   "cloudfront": session.client("cloudfront"),
     #   "ec2": session.client("ec2"),
     #   "iam": session.client("iam"),
     #   "route53": session.client("route53"),
-    #   "waf": session.client("waf")
+    #   "waf": session.client("waf"),
+    #   "SESSION": session
     # }
 
+    mock_cloud_formation_client = Mock(name="Mock CloudFormation Client")
+    mock_cloud_front_client = Mock(name="Mock CloudFront Client")
+    mock_ec2_client = Mock(name="Mock EC2 Client")
+    mock_iam_client = Mock(name="Mock IAM Client")
+    mock_route_53_client = Mock(name="Mock Route 53 Client")
+    mock_waf_client = Mock(name="Mock WAF Client")
+    mock_session = Mock(name="Mock Client")
+
     cls._clients = {
-      "cloudformation": mock_cloud_formation_session,
-      "cloudfront": mock_cloud_front_session,
-      "ec2": mock_ec2_session,
-      "iam": mock_iam_session,
-      "route53": mock_route_53_session,
-      "waf": mock_waf_session
+      "cloudformation": mock_cloud_formation_client,
+      "cloudfront": mock_cloud_front_client,
+      "ec2": mock_ec2_client,
+      "iam": mock_iam_client,
+      "route53": mock_route_53_client,
+      "waf": mock_waf_client,
+      "SESSION": mock_session
     }
 
   @classmethod
@@ -78,8 +84,43 @@ class TestEFAwsResolver(unittest.TestCase):
     pass
 
   def test_acm_certificate_arn(self):
+    """
+    Tests acm_certificate_arn regular success case in obtaining the target certificate
+
+    Returns:
+      None
+
+    Raises:
+      AssertionError if any of the assert checks fail
+    """
+    target_certificate_arn = "arn:aws:acm:us-west-2:111000:certificate/target_cert"
+    target_domain_name = "second.com"
+    mock_acm_client = Mock(name="Mock ACM Client")
+    mock_acm_client.list_certificates.return_value = {
+      "CertificateSummaryList": [
+        {
+          "CertificateArn": "arn:aws:acm:us-west-2:111000:certificate/not_target_cert",
+          "DomainName": "first.com"
+        },
+        {
+          "CertificateArn": target_certificate_arn,
+          "DomainName": target_domain_name
+        }
+      ]
+    }
+    target_certificate = {
+      "Certificate": {
+        "IssuedAt": 1472845485.0,
+        "DomainName": target_domain_name,
+        "CertificateArn": target_certificate_arn
+      }
+    }
+
+    mock_acm_client.describe_certificate.side_effect = [target_certificate]
+    self._clients["SESSION"].client.return_value = mock_acm_client
     ef_aws_resolver = EFAwsResolver(self._clients)
-    ef_aws_resolver.acm_certificate_arn("Oregon/cx-staging.com")
+    result_certificate_arn = ef_aws_resolver.acm_certificate_arn("us-west-2/" + target_domain_name)
+    self.assertEquals(result_certificate_arn, target_certificate_arn)
 
 ## Test coverage of ec2:eni/eni-id is disabled because the we are not presently creating
 ## ENI fixtures and this test does not at present generate an ENI for testing this lookup function
