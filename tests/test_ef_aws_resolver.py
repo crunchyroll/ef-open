@@ -32,35 +32,39 @@ from ef_utils import fail, http_get_metadata, whereami
 class TestEFAwsResolver(unittest.TestCase):
   """Tests for `ef_aws_resolver.py`."""
 
-  @classmethod
-  def setUpClass(cls):
+  # See if I can get rid of this?
+  _context = EFContext()
+  _context.env = "test"
 
-    # See if I can get rid of this?
-    cls._context = EFContext()
-    cls._context.env = "test"
+  # # initialize based on where running
+  # where = whereami()
+  # if where == "local":
+  #   session = boto3.Session(profile_name=context.account_alias, region_name=EFConfig.DEFAULT_REGION)
+  # elif where == "ec2":
+  #   region = http_get_metadata("placement/availability-zone/")
+  #   region = region[:-1]
+  #   session = boto3.Session(region_name=region)
+  # else:
+  #   fail("Can't test in environment: " + where)
 
-    # # initialize based on where running
-    # where = whereami()
-    # if where == "local":
-    #   session = boto3.Session(profile_name=context.account_alias, region_name=EFConfig.DEFAULT_REGION)
-    # elif where == "ec2":
-    #   region = http_get_metadata("placement/availability-zone/")
-    #   region = region[:-1]
-    #   session = boto3.Session(region_name=region)
-    # else:
-    #   fail("Can't test in environment: " + where)
+  # session = boto3.Session(profile_name="default", region_name="us-west-2")
+  # cls._clients = {
+  #   "cloudformation": session.client("cloudformation"),
+  #   "cloudfront": session.client("cloudfront"),
+  #   "ec2": session.client("ec2"),
+  #   "iam": session.client("iam"),
+  #   "route53": session.client("route53"),
+  #   "waf": session.client("waf"),
+  #   "SESSION": session
+  # }
 
-    # session = boto3.Session(profile_name="default", region_name="us-west-2")
-    # cls._clients = {
-    #   "cloudformation": session.client("cloudformation"),
-    #   "cloudfront": session.client("cloudfront"),
-    #   "ec2": session.client("ec2"),
-    #   "iam": session.client("iam"),
-    #   "route53": session.client("route53"),
-    #   "waf": session.client("waf"),
-    #   "SESSION": session
-    # }
+  def setUp(self):
+    """
+    Setup function that is run before every test
 
+    Returns:
+      None
+    """
     mock_cloud_formation_client = Mock(name="Mock CloudFormation Client")
     mock_cloud_front_client = Mock(name="Mock CloudFront Client")
     mock_ec2_client = Mock(name="Mock EC2 Client")
@@ -69,7 +73,7 @@ class TestEFAwsResolver(unittest.TestCase):
     mock_waf_client = Mock(name="Mock WAF Client")
     mock_session = Mock(name="Mock Client")
 
-    cls._clients = {
+    self._clients = {
       "cloudformation": mock_cloud_formation_client,
       "cloudfront": mock_cloud_front_client,
       "ec2": mock_ec2_client,
@@ -79,8 +83,13 @@ class TestEFAwsResolver(unittest.TestCase):
       "SESSION": mock_session
     }
 
-  @classmethod
-  def tearDownClass(cls):
+  def tearDown(self):
+    """
+    Teardown function that is run after every test.
+
+    Returns:
+      None
+    """
     pass
 
   def test_acm_certificate_arn(self):
@@ -95,6 +104,7 @@ class TestEFAwsResolver(unittest.TestCase):
     """
     target_certificate_arn = "arn:aws:acm:us-west-2:111000:certificate/target_cert"
     target_domain_name = "second.com"
+    lookup_token = "acm:certificate-arn,us-west-2/" + target_domain_name
     mock_acm_client = Mock(name="Mock ACM Client")
     mock_acm_client.list_certificates.return_value = {
       "CertificateSummaryList": [
@@ -119,7 +129,7 @@ class TestEFAwsResolver(unittest.TestCase):
     mock_acm_client.describe_certificate.side_effect = [target_certificate]
     self._clients["SESSION"].client.return_value = mock_acm_client
     ef_aws_resolver = EFAwsResolver(self._clients)
-    result_certificate_arn= ef_aws_resolver.lookup("acm:certificate-arn,us-west-2/" + target_domain_name)
+    result_certificate_arn = ef_aws_resolver.lookup(lookup_token)
     self.assertEquals(result_certificate_arn, target_certificate_arn)
 
   def test_acm_certificate_arn_multiple_matching_certificates(self):
@@ -135,6 +145,7 @@ class TestEFAwsResolver(unittest.TestCase):
     """
     target_certificate_arn = "arn:aws:acm:us-west-2:111000:certificate/target_cert"
     target_domain_name = "second.com"
+    lookup_token = "acm:certificate-arn,us-west-2/" + target_domain_name
     mock_acm_client = Mock(name="Mock ACM Client")
     mock_acm_client.list_certificates.return_value = {
       "CertificateSummaryList": [
@@ -169,7 +180,143 @@ class TestEFAwsResolver(unittest.TestCase):
     mock_acm_client.describe_certificate.side_effect = [old_certificate, target_certificate]
     self._clients["SESSION"].client.return_value = mock_acm_client
     ef_aws_resolver = EFAwsResolver(self._clients)
-    result_certificate_arn = ef_aws_resolver.lookup("acm:certificate-arn,us-west-2/" + target_domain_name)
+    result_certificate_arn = ef_aws_resolver.lookup(lookup_token)
+    self.assertEquals(result_certificate_arn, target_certificate_arn)
+
+  def test_acm_certificate_arn_get_acm_client_exception(self):
+    """
+    Tests acm_certificate_arn to see if it returns None when an exception occurs when it tries to
+    obtain an acm client.
+
+    Returns:
+      None
+
+    Raises:
+      AssertionError if any of the assert checks fail
+    """
+    target_domain_name = "second.com"
+    lookup_token = "acm:certificate-arn,us-west-2/" + target_domain_name
+    self._clients["SESSION"].client.side_effect = Exception("Forced Exception")
+    ef_aws_resolver = EFAwsResolver(self._clients)
+    result_certificate_arn = ef_aws_resolver.lookup(lookup_token)
+    self.assertEquals(result_certificate_arn, None)
+
+  def test_acm_certificate_arn_no_certificates(self):
+    """
+    Test acm_certificate_arn to see if it returns None when no certificates are found.
+
+    Returns:
+      None
+
+    Raises:
+      AssertionError if any of the assert checks fail
+    """
+    target_domain_name = "second.com"
+    lookup_token = "acm:certificate-arn,us-west-2/" + target_domain_name
+    mock_acm_client = Mock(name="Mock ACM Client")
+    mock_acm_client.list_certificates.return_value = {"CertificateSummaryList": []}
+    self._clients["SESSION"].client.return_value = mock_acm_client
+    ef_aws_resolver = EFAwsResolver(self._clients)
+    result_certificate_arn = ef_aws_resolver.lookup(lookup_token)
+    self.assertEquals(result_certificate_arn, None)
+
+  def test_acm_certificate_arn_old_matching_certificate_has_no_issued_date(self):
+    """
+    Tests acm_certificate_arn to see if it returns correct target certificate arn when the older
+    matching certificate has no matching DateIssued.
+
+    Returns:
+      None
+
+    Raises:
+      AssertionError if any of the assert checks fail
+    """
+    target_certificate_arn = "arn:aws:acm:us-west-2:111000:certificate/target_cert"
+    target_domain_name = "second.com"
+    lookup_token = "acm:certificate-arn,us-west-2/" + target_domain_name
+    mock_acm_client = Mock(name="Mock ACM Client")
+    mock_acm_client.list_certificates.return_value = {
+      "CertificateSummaryList": [
+        {
+          "CertificateArn": "arn:aws:acm:us-west-2:111000:certificate/not_target_cert",
+          "DomainName": "first.com"
+        },
+        {
+          "CertificateArn": target_certificate_arn,
+          "DomainName": target_domain_name
+        },
+        {
+          "CertificateArn": target_certificate_arn,
+          "DomainName": target_domain_name
+        }
+      ]
+    }
+    old_certificate = {
+      "Certificate": {
+        "DomainName": target_domain_name,
+        "CertificateArn": "arn:aws:acm:us-west-2:111000:certificate/older_target_cert"
+      }
+    }
+    target_certificate = {
+      "Certificate": {
+        "IssuedAt": 1472845485.0,
+        "DomainName": target_domain_name,
+        "CertificateArn": target_certificate_arn
+      }
+    }
+    mock_acm_client.describe_certificate.side_effect = [old_certificate, target_certificate]
+    self._clients["SESSION"].client.return_value = mock_acm_client
+    ef_aws_resolver = EFAwsResolver(self._clients)
+    result_certificate_arn = ef_aws_resolver.lookup(lookup_token)
+    self.assertEquals(result_certificate_arn, target_certificate_arn)
+
+  def test_acm_certificate_arn_target_certificate_has_no_issued_date(self):
+    """
+    Tests acm_certificate_arn to see if target certificate is returned even when it has no date issued.
+
+    Returns:
+      None
+
+    Raises:
+      AssertionError if any of the assert checks fail
+    """
+    target_certificate_arn = "arn:aws:acm:us-west-2:111000:certificate/target_cert"
+    target_domain_name = "second.com"
+    lookup_token = "acm:certificate-arn,us-west-2/" + target_domain_name
+    mock_acm_client = Mock(name="Mock ACM Client")
+    mock_acm_client.list_certificates.return_value = {
+      "CertificateSummaryList": [
+        {
+          "CertificateArn": "arn:aws:acm:us-west-2:111000:certificate/not_target_cert",
+          "DomainName": "first.com"
+        },
+        {
+          "CertificateArn": target_certificate_arn,
+          "DomainName": target_domain_name
+        },
+        {
+          "CertificateArn": target_certificate_arn,
+          "DomainName": target_domain_name
+        }
+      ]
+    }
+    old_certificate = {
+      "Certificate": {
+        "IssuedAt": 1472845000.0,
+        "DomainName": target_domain_name,
+        "CertificateArn": "arn:aws:acm:us-west-2:111000:certificate/older_target_cert"
+      }
+    }
+    target_certificate = {
+      "Certificate": {
+        "DomainName": target_domain_name,
+        "CertificateArn": target_certificate_arn
+      }
+    }
+    mock_acm_client.describe_certificate.side_effect = [old_certificate, target_certificate]
+    self._clients["SESSION"].client.return_value = mock_acm_client
+    ef_aws_resolver = EFAwsResolver(self._clients)
+    result_certificate_arn = ef_aws_resolver.lookup(lookup_token)
     self.assertEquals(result_certificate_arn, target_certificate_arn)
 
 ## Test coverage of ec2:eni/eni-id is disabled because the we are not presently creating
