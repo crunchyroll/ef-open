@@ -183,22 +183,20 @@ class TestEFAwsResolver(unittest.TestCase):
     result_certificate_arn = ef_aws_resolver.lookup(lookup_token)
     self.assertEquals(result_certificate_arn, target_certificate_arn)
 
-  def test_acm_certificate_arn_get_acm_client_exception(self):
+  def test_acm_certificate_arn_bad_input(self):
     """
-    Tests acm_certificate_arn to see if it returns None when an exception occurs when it tries to
-    obtain an acm client.
+    Tests acm_certificate_arn to see if it returns None when an exception occurs when given an empty string or None
 
     Returns:
       None
 
-    Raises:
+    Raises
       AssertionError if any of the assert checks fail
     """
-    target_domain_name = "second.com"
-    lookup_token = "acm:certificate-arn,us-west-2/" + target_domain_name
-    self._clients["SESSION"].client.side_effect = Exception("Forced Exception")
     ef_aws_resolver = EFAwsResolver(self._clients)
-    result_certificate_arn = ef_aws_resolver.lookup(lookup_token)
+    result_certificate_arn = ef_aws_resolver.lookup("")
+    self.assertEquals(result_certificate_arn, None)
+    result_certificate_arn = ef_aws_resolver.lookup(None)
     self.assertEquals(result_certificate_arn, None)
 
   def test_acm_certificate_arn_no_certificates(self):
@@ -343,7 +341,7 @@ class TestEFAwsResolver(unittest.TestCase):
   def test_ec2_elasticip_elasticip_id(self):
     """Does ec2:elasticip/elasticip-id,ElasticIpMgmtCingest1 resolve to elastic IP allocation ID"""
     test_string = "ec2:elasticip/elasticip-id,ElasticIpMgmtCingest1"
-    resolver = EFAwsResolver(TestEFAwsResolver.clients)
+    resolver = EFAwsResolver(self._clients)
     self.assertRegexpMatches(resolver.lookup(test_string), "^eipalloc-[a-f0-9]{8}$")
 
   def test_ec2_elasticip_elasticip_id_none(self):
