@@ -119,7 +119,57 @@ class TestEFAwsResolver(unittest.TestCase):
     mock_acm_client.describe_certificate.side_effect = [target_certificate]
     self._clients["SESSION"].client.return_value = mock_acm_client
     ef_aws_resolver = EFAwsResolver(self._clients)
-    result_certificate_arn = ef_aws_resolver.acm_certificate_arn("us-west-2/" + target_domain_name)
+    result_certificate_arn= ef_aws_resolver.lookup("acm:certificate-arn,us-west-2/" + target_domain_name)
+    self.assertEquals(result_certificate_arn, target_certificate_arn)
+
+  def test_acm_certificate_arn_multiple_matching_certificates(self):
+    """
+    Tests acm_certificate_arn to see if it can obtain the target certificate with the latest IssuedAt when there are
+    multiple certificates with the same domain name.
+
+    Returns:
+      None
+
+    Raises:
+      AssertionError if any of the assert checks fail
+    """
+    target_certificate_arn = "arn:aws:acm:us-west-2:111000:certificate/target_cert"
+    target_domain_name = "second.com"
+    mock_acm_client = Mock(name="Mock ACM Client")
+    mock_acm_client.list_certificates.return_value = {
+      "CertificateSummaryList": [
+        {
+          "CertificateArn": "arn:aws:acm:us-west-2:111000:certificate/not_target_cert",
+          "DomainName": "first.com"
+        },
+        {
+          "CertificateArn": target_certificate_arn,
+          "DomainName": target_domain_name
+        },
+        {
+          "CertificateArn": target_certificate_arn,
+          "DomainName": target_domain_name
+        }
+      ]
+    }
+    old_certificate = {
+      "Certificate": {
+        "IssuedAt": 1472845000.0,
+        "DomainName": target_domain_name,
+        "CertificateArn": "arn:aws:acm:us-west-2:111000:certificate/older_target_cert"
+      }
+    }
+    target_certificate = {
+      "Certificate": {
+        "IssuedAt": 1472845485.0,
+        "DomainName": target_domain_name,
+        "CertificateArn": target_certificate_arn
+      }
+    }
+    mock_acm_client.describe_certificate.side_effect = [old_certificate, target_certificate]
+    self._clients["SESSION"].client.return_value = mock_acm_client
+    ef_aws_resolver = EFAwsResolver(self._clients)
+    result_certificate_arn = ef_aws_resolver.lookup("acm:certificate-arn,us-west-2/" + target_domain_name)
     self.assertEquals(result_certificate_arn, target_certificate_arn)
 
 ## Test coverage of ec2:eni/eni-id is disabled because the we are not presently creating
