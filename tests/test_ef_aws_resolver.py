@@ -19,6 +19,7 @@ import unittest
 import boto3
 from mock import call, Mock, patch
 
+# For local application imports, context_paths must be first despite lexicon ordering
 import context_paths
 from ef_aws_resolver import EFAwsResolver
 from ef_config import EFConfig
@@ -26,15 +27,13 @@ from ef_context import EFContext
 from ef_site_config import EFSiteConfig
 from ef_utils import fail, http_get_metadata, whereami
 
-# context = EFContext()
-# context.env = "mgmt.ellationeng"
 
 class TestEFAwsResolver(unittest.TestCase):
   """Tests for `ef_aws_resolver.py`."""
 
   # See if I can get rid of this?
-  _context = EFContext()
-  _context.env = "test"
+  # _context = EFContext()
+  # _context.env = "test"
 
   # # initialize based on where running
   # where = whereami()
@@ -48,7 +47,7 @@ class TestEFAwsResolver(unittest.TestCase):
   #   fail("Can't test in environment: " + where)
 
   # session = boto3.Session(profile_name="default", region_name="us-west-2")
-  # cls._clients = {
+  # _clients = {
   #   "cloudformation": session.client("cloudformation"),
   #   "cloudfront": session.client("cloudfront"),
   #   "ec2": session.client("ec2"),
@@ -82,6 +81,17 @@ class TestEFAwsResolver(unittest.TestCase):
       "waf": mock_waf_client,
       "SESSION": mock_session
     }
+
+    # session = boto3.Session(profile_name="default", region_name="us-west-2")
+    # self._clients = {
+    #   "cloudformation": session.client("cloudformation"),
+    #   "cloudfront": session.client("cloudfront"),
+    #   "ec2": session.client("ec2"),
+    #   "iam": session.client("iam"),
+    #   "route53": session.client("route53"),
+    #   "waf": session.client("waf"),
+    #   "SESSION": session
+    # }
 
   def tearDown(self):
     """
@@ -185,7 +195,7 @@ class TestEFAwsResolver(unittest.TestCase):
 
   def test_acm_certificate_arn_bad_input(self):
     """
-    Tests acm_certificate_arn to see if it returns None when an exception occurs when given an empty string or None
+    Tests acm_certificate_arn with bad inputs, ones that would not be caught by lookup.
 
     Returns:
       None
@@ -193,11 +203,20 @@ class TestEFAwsResolver(unittest.TestCase):
     Raises
       AssertionError if any of the assert checks fail
     """
+    lookup_token = "acm:certificate-arn,junk_value"
     ef_aws_resolver = EFAwsResolver(self._clients)
-    result_certificate_arn = ef_aws_resolver.lookup("")
-    self.assertEquals(result_certificate_arn, None)
-    result_certificate_arn = ef_aws_resolver.lookup(None)
-    self.assertEquals(result_certificate_arn, None)
+    result_certificate_arn = ef_aws_resolver.lookup(lookup_token)
+    self.assertIsNone(result_certificate_arn)
+
+    lookup_token = "acm:certificate-arn,None"
+    ef_aws_resolver = EFAwsResolver(self._clients)
+    result_certificate_arn = ef_aws_resolver.lookup(lookup_token)
+    self.assertIsNone(result_certificate_arn)
+
+    lookup_token = "acm:certificate-arn,"
+    ef_aws_resolver = EFAwsResolver(self._clients)
+    result_certificate_arn = ef_aws_resolver.lookup(lookup_token)
+    self.assertIsNone(result_certificate_arn)
 
   def test_acm_certificate_arn_no_certificates(self):
     """
@@ -317,6 +336,79 @@ class TestEFAwsResolver(unittest.TestCase):
     result_certificate_arn = ef_aws_resolver.lookup(lookup_token)
     self.assertEquals(result_certificate_arn, target_certificate_arn)
 
+  def test_ec2_elasticip_elasticip_id(self):
+    """
+
+    Returns:
+
+    """
+    """Does ec2:elasticip/elasticip-id,ElasticIpMgmtCingest1 resolve to elastic IP allocation ID"""
+    lookup_token = "ec2:elasticip/elasticip-id,ElasticIpMgmtCingest1"
+    resolver = EFAwsResolver(self._clients)
+    self.assertRegexpMatches(resolver.lookup(lookup_token), "^eipalloc-[a-f0-9]{8}$")
+
+  def test_ec2_elasticip_elasticip_id_none(self):
+    """Does ec2:elasticip/elasticip-id,cant_possibly_match return None"""
+    test_string = "ec2:elasticip/elasticip-id,cant_possibly_match"
+    resolver = EFAwsResolver(TestEFAwsResolver.clients)
+    self.assertIsNone(resolver.lookup(test_string))
+
+  def test_ec2_elasticip_elasticip_id_default(self):
+    """Does ec2:elasticip/elasticip-id,cant_possibly_match,DEFAULT return default value"""
+    test_string = "ec2:elasticip/elasticip-id,cant_possibly_match,DEFAULT"
+    resolver = EFAwsResolver(TestEFAwsResolver.clients)
+    self.assertRegexpMatches(resolver.lookup(test_string), "^DEFAULT$")
+
+  def test_ec2_elasticip_elasticip_ipaddress(self):
+    """
+    Tests ec2_elastic_elasticip_ipaddress to see if it returns an ip address given a valid input.
+
+    Returns:
+      None
+
+    Raises:
+      AssertionError if any of the assert checks fail
+    """
+    ip_address = "10.0.0.333"
+    self._clients["cloudformation"].describe_stack_resources.return_value = {
+      "StackResources": [
+        {
+            "PhysicalResourceId": ip_address
+        }
+      ]
+    }
+    ef_aws_resolver = EFAwsResolver(self._clients)
+    result = ef_aws_resolver.lookup("ec2:elasticip/elasticip-ipaddress,ElasticIpEnvironmentService1")
+    self.assertEquals(result, ip_address)
+
+  def test_ec2_elasticip_elasticip_ipaddress_not_elastic_ip_resource(self):
+    """
+    Tests ec2_elasticip_elasticip_ipaddress in that it returns None when given bad inputs
+
+    Returns:
+      None
+
+    Raises:
+      AssertionError if any of the assert checks fail
+    """
+
+    ef_aws_resolver = EFAwsResolver(self._clients)
+    result = ef_aws_resolver.lookup("ec2:elasticip/elasticip-ipaddress,cant_possibly_match")
+    self.assertIsNone(result)
+
+  def test_ec2_elasticip_elasticip_ipaddress_stack_does_not_exist(self):
+    """
+
+    Returns:
+
+    """
+    # self._clients["cloudformation"].describe_stack_resources.return_value = {
+    #   "StackResources": []
+    # }
+    ef_aws_resolver = EFAwsResolver(self._clients)
+    result = ef_aws_resolver.lookup("ec2:elasticip/elasticip-ipaddress,ElasticIpEnvironmentService1")
+    self.assertIsNone(result)
+
 ## Test coverage of ec2:eni/eni-id is disabled because the we are not presently creating
 ## ENI fixtures and this test does not at present generate an ENI for testing this lookup function
 ## Why are these retained here? The lookup function is still valid, and useful. We just can't test it at the moment
@@ -337,42 +429,6 @@ class TestEFAwsResolver(unittest.TestCase):
 #    test_string = "ec2:eni/eni-id,cant_possibly_match,DEFAULT"
 #    resolver = EFAwsResolver(TestEFAwsResolver.clients)
 #    self.assertRegexpMatches(resolver.lookup(test_string), "^DEFAULT$")
-
-  def test_ec2_elasticip_elasticip_id(self):
-    """Does ec2:elasticip/elasticip-id,ElasticIpMgmtCingest1 resolve to elastic IP allocation ID"""
-    test_string = "ec2:elasticip/elasticip-id,ElasticIpMgmtCingest1"
-    resolver = EFAwsResolver(self._clients)
-    self.assertRegexpMatches(resolver.lookup(test_string), "^eipalloc-[a-f0-9]{8}$")
-
-  def test_ec2_elasticip_elasticip_id_none(self):
-    """Does ec2:elasticip/elasticip-id,cant_possibly_match return None"""
-    test_string = "ec2:elasticip/elasticip-id,cant_possibly_match"
-    resolver = EFAwsResolver(TestEFAwsResolver.clients)
-    self.assertIsNone(resolver.lookup(test_string))
-
-  def test_ec2_elasticip_elasticip_id_default(self):
-    """Does ec2:elasticip/elasticip-id,cant_possibly_match,DEFAULT return default value"""
-    test_string = "ec2:elasticip/elasticip-id,cant_possibly_match,DEFAULT"
-    resolver = EFAwsResolver(TestEFAwsResolver.clients)
-    self.assertRegexpMatches(resolver.lookup(test_string), "^DEFAULT$")
-
-  def test_ec2_elasticip_elasticip_ipaddress(self):
-    """Does ec2:elasticip/elasticip-ipaddress,ElasticIpMgmtCingest1 resolve to elastic IP address"""
-    test_string = "ec2:elasticip/elasticip-ipaddress,ElasticIpMgmtCingest1"
-    resolver = EFAwsResolver(TestEFAwsResolver.clients)
-    self.assertRegexpMatches(resolver.lookup(test_string), "^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$")
-
-  def test_ec2_elasticip_elasticip_ipaddress_none(self):
-    """Does ec2:elasticip/elasticip-ipaddress,cant_possibly_match return None"""
-    test_string = "ec2:elasticip/elasticip-ipaddress,cant_possibly_match"
-    resolver = EFAwsResolver(TestEFAwsResolver.clients)
-    self.assertIsNone(resolver.lookup(test_string))
-
-  def test_ec2_elasticip_elasticip_ipaddress_default(self):
-    """Does ec2:elasticip/elasticip-ipaddress,cant_possibly_match,DEFAULT return default value"""
-    test_string = "ec2:elasticip/elasticip-ipaddress,cant_possibly_match,DEFAULT"
-    resolver = EFAwsResolver(TestEFAwsResolver.clients)
-    self.assertRegexpMatches(resolver.lookup(test_string), "^DEFAULT$")
 
   def test_ec2_route_table_main_route_table_id(self):
     """Does ec2:route-table/main-route-table-id,vpc-<env> resolve to route table ID"""
