@@ -336,32 +336,52 @@ class TestEFAwsResolver(unittest.TestCase):
     result_certificate_arn = ef_aws_resolver.lookup(lookup_token)
     self.assertEquals(result_certificate_arn, target_certificate_arn)
 
-  def test_ec2_elasticip_elasticip_id(self):
+  @patch('ef_aws_resolver.EFAwsResolver.ec2_elasticip_elasticip_ipaddress')
+  def test_ec2_elasticip_elasticip_id(self, mock_ec2_elasticip_elasticip_ipaddress):
     """
+    Tests ec2_elasticip_elasticip_id to see if it returns an id given a valid input
+
+    Args:
+      mock_ec2_elasticip_elasticip_ipaddress: MagicMock, returns back an ip address
 
     Returns:
+      None
 
+    Raises:
+      AssertionError if any of the assert checks fail
     """
-    """Does ec2:elasticip/elasticip-id,ElasticIpMgmtCingest1 resolve to elastic IP allocation ID"""
-    lookup_token = "ec2:elasticip/elasticip-id,ElasticIpMgmtCingest1"
-    resolver = EFAwsResolver(self._clients)
-    self.assertRegexpMatches(resolver.lookup(lookup_token), "^eipalloc-[a-f0-9]{8}$")
+    mock_ec2_elasticip_elasticip_ipaddress.return_value = "1.2.3.4"
+    allocation_id = "eipalloc-abc123"
+    self._clients["ec2"].describe_addresses.return_value = {
+      "Addresses": [
+        {
+          "AllocationId": allocation_id
+        }
+      ]
+    }
 
-  def test_ec2_elasticip_elasticip_id_none(self):
-    """Does ec2:elasticip/elasticip-id,cant_possibly_match return None"""
-    test_string = "ec2:elasticip/elasticip-id,cant_possibly_match"
-    resolver = EFAwsResolver(TestEFAwsResolver.clients)
-    self.assertIsNone(resolver.lookup(test_string))
+    ef_aws_resolver = EFAwsResolver(self._clients)
+    result = ef_aws_resolver.lookup("ec2:elasticip/elasticip-id,ElasticIpEnvironmentService1")
+    self.assertEquals(allocation_id, result)
 
-  def test_ec2_elasticip_elasticip_id_default(self):
-    """Does ec2:elasticip/elasticip-id,cant_possibly_match,DEFAULT return default value"""
-    test_string = "ec2:elasticip/elasticip-id,cant_possibly_match,DEFAULT"
-    resolver = EFAwsResolver(TestEFAwsResolver.clients)
-    self.assertRegexpMatches(resolver.lookup(test_string), "^DEFAULT$")
+
+  def test_ec2_elasticip_elasticip_id_bad_input(self):
+    """
+    Tests ec2_elasticip_elasticip_id to see if it returns None with bad input
+
+    Returns:
+      None
+
+    Raises:
+      AssertionError if any of the assert checks fail
+    """
+    ef_aws_resolver = EFAwsResolver(self._clients)
+    result = ef_aws_resolver.lookup("ec2:elasticip/elasticip-id,cant_possibly_match")
+    self.assertIsNone(result)
 
   def test_ec2_elasticip_elasticip_ipaddress(self):
     """
-    Tests ec2_elastic_elasticip_ipaddress to see if it returns an ip address given a valid input.
+    Tests ec2_elastic_elasticip_ipaddress to see if it returns an ip address given a valid input
 
     Returns:
       None
@@ -381,7 +401,7 @@ class TestEFAwsResolver(unittest.TestCase):
     result = ef_aws_resolver.lookup("ec2:elasticip/elasticip-ipaddress,ElasticIpEnvironmentService1")
     self.assertEquals(result, ip_address)
 
-  def test_ec2_elasticip_elasticip_ipaddress_not_elastic_ip_resource(self):
+  def test_ec2_elasticip_elasticip_ipaddress_bad_input(self):
     """
     Tests ec2_elasticip_elasticip_ipaddress in that it returns None when given bad inputs
 
