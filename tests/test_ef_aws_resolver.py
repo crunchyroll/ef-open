@@ -396,19 +396,6 @@ class TestEFAwsResolver(unittest.TestCase):
     result = ef_aws_resolver.lookup("ec2:elasticip/elasticip-ipaddress,cant_possibly_match")
     self.assertIsNone(result)
 
-  def test_ec2_elasticip_elasticip_ipaddress_stack_does_not_exist(self):
-    """
-
-    Returns:
-
-    """
-    # self._clients["cloudformation"].describe_stack_resources.return_value = {
-    #   "StackResources": []
-    # }
-    ef_aws_resolver = EFAwsResolver(self._clients)
-    result = ef_aws_resolver.lookup("ec2:elasticip/elasticip-ipaddress,ElasticIpEnvironmentService1")
-    self.assertIsNone(result)
-
 ## Test coverage of ec2:eni/eni-id is disabled because the we are not presently creating
 ## ENI fixtures and this test does not at present generate an ENI for testing this lookup function
 ## Why are these retained here? The lookup function is still valid, and useful. We just can't test it at the moment
