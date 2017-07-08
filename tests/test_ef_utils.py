@@ -21,7 +21,7 @@ import unittest
 from mock import call, Mock, patch
 import botocore.exceptions
 
-# For local application imports, context must be first despite lexicon ordering
+# For local application imports, context_paths must be first despite lexicon ordering
 import context_paths
 from ef_utils import create_aws_clients, env_valid, fail, get_account_alias, get_env_short, global_env_valid, \
   get_instance_aws_context, http_get_instance_env, http_get_instance_role, http_get_metadata, pull_repo, whereami
@@ -157,93 +157,6 @@ class TestEFUtils(unittest.TestCase):
     with self.assertRaises(IOError) as exception:
       http_get_metadata("ami-id")
     self.assertIn("Non-200 response", exception.exception.message)
-
-  @unittest.skipIf(whereami() == "ec2", "Test is running in ec2 environment, will not fail so must skip.")
-  def test_http_get_metadata_urllib2_default_timeout(self):
-    """
-    Tests http_get_metadata for raising an exception if it cannot obtain metadata before default timeout
-    NOTE: testing for this exception results in two error messages randomly
-    "URLError in http_get_string: URLError(error(64, 'Host is down'),)"
-    "URLError in http_get_string: URLError(timeout('timed out',),)"
-    There was also one other time it failed due to a different error message but I have been unable to reproduce it
-    since then.
-
-    Test will skip if it's being run in an actual ec2 environment
-
-    Returns:
-      None
-
-    Raises:
-      AssertionError if any of the assert checks fail
-    """
-    with self.assertRaises(IOError) as exception:
-      http_get_metadata("ami-id")
-    self.assertTrue("timed out" in exception.exception.message or "Host is down" in exception.exception.message)
-
-  @unittest.skipIf(whereami() == "ec2", "Test is running in ec2 environment, will not fail so must skip.")
-  def test_http_get_metadata_urllib2_1_second_timeout(self):
-    """
-    Tests http_get_metadata for raising an exception if it cannot obtain metadata before 1 second timeout
-    NOTE: testing for this exception results in two error messages randomly
-    "URLError in http_get_string: URLError(error(64, 'Host is down'),)"
-    "URLError in http_get_string: URLError(timeout('timed out',),)"
-
-    Test will skip if it's being run in an actual ec2 environment
-
-    Returns:
-      None
-
-    Raises:
-      AssertionError if any of the assert checks fail
-    """
-    with self.assertRaises(IOError) as exception:
-      http_get_metadata("ami-id", 1)
-    self.assertTrue("timed out" in exception.exception.message or "Host is down" in exception.exception.message)
-
-  @patch('ef_utils.http_get_metadata')
-  def test_whereami_ec2(self, mock_http_get_metadata):
-    """
-    Tests whereami to see if it returns 'ec2' by mocking the metadata to be an ec2 instance id
-
-    Args:
-      mock_http_get_metadata: MagicMock, returns a instance id
-
-    Returns:
-      None
-
-    Raises:
-      AssertionError if any of the assert checks fail
-    """
-    mock_http_get_metadata.return_value = "i-123456"
-    result = whereami()
-    self.assertEquals(result, "ec2")
-
-  @patch('subprocess.check_output')
-  @patch('ef_utils.access')
-  @patch('ef_utils.isfile')
-  @patch('ef_utils.http_get_metadata')
-  def test_whereami_virtualbox(self, mock_http_get_metadata, mock_isfile, mock_access, mock_check_output):
-    """
-    Tests whereami to see if it returns 'virtualbox-kvm' by mocking the environment to look like virtualbox
-
-    Args:
-      mock_http_get_metadata: MagicMock, returns a non ec2 id
-      mock_isfile: MagicMock, returns True
-      mock_access: MagicMock, returns True
-      mock_check_output: MagicMock, returns path to some virtualbox file
-
-    Returns:
-      None
-
-    Raises:
-      AssertionError if any of the assert checks fail
-    """
-    mock_http_get_metadata.return_value = "not ec2"
-    mock_isfile.return_value = True
-    mock_access.return_value = True
-    mock_check_output.return_value = "virtualbox\nkvm\nother\n"
-    result = whereami()
-    self.assertEquals(result, "virtualbox-kvm")
 
   @patch('ef_utils.gethostname')
   def test_whereami_local(self, mock_gethostname):
@@ -417,28 +330,6 @@ class TestEFUtils(unittest.TestCase):
     self.assertIn("Error looking up metadata:availability-zone or instance-id:", exception.exception.message)
 
   @patch('ef_utils.http_get_metadata')
-  def test_get_instance_aws_context_ec2_client_exception(self, mock_http_get_metadata):
-    """
-    Tests get_instance_aws_context to see if it throws an exception by mocking the ec2_client to throw
-    an exception when describe_instances is called.
-
-    Args:
-      mock_http_get_metadata: MagicMock, returns valid responses in the order its called
-
-    Returns:
-      None
-
-    Raises:
-      AssertionError if any of the assert checks fail
-    """
-    mock_http_get_metadata.side_effect = ["us-west-2a", "i-00001111f"]
-    mock_ec2_client = Mock(name="mock-ec2-client")
-    mock_ec2_client.describe_instances.side_effect = Exception("No instance data")
-    with self.assertRaises(Exception) as exception:
-      get_instance_aws_context(mock_ec2_client)
-    self.assertIn("Error calling describe_instances:", exception.exception.message)
-
-  @patch('ef_utils.http_get_metadata')
   def test_get_instance_aws_context_ec2_invalid_environment_exception(self, mock_http_get_metadata):
     """
     Tests get_instance_aws_context to see if it throws an exception by modifying the describe_instances
@@ -523,27 +414,6 @@ class TestEFUtils(unittest.TestCase):
       self.fail("Exception occurred during test_pull_repo_ssh_credentials: " + exception.message)
 
   @patch('subprocess.check_output')
-  def test_pull_repo_first_git_remote_show_error(self, mock_check_output):
-    """
-    Tests pull_repo() to see if it throws an exception when mocked check_output throws an exception first time
-    it's called for git info
-
-    Args:
-      mock_check_output: MagicMock, throws an subprocess.CalledProcessError exception
-
-    Returns:
-      None
-
-    Raises:
-      AssertionError if any of the assert checks fail
-    """
-    mock_check_output.side_effect = subprocess.CalledProcessError("Forced Error", 1)
-    with self.assertRaises(RuntimeError) as exception:
-      pull_repo()
-    self.assertIn("Exception checking current repo", exception.exception.args[0])
-    mock_check_output.assert_called_once_with(["git", "remote", "-v", "show"])
-
-  @patch('subprocess.check_output')
   def test_pull_repo_incorrect_repo(self, mock_check_output):
     """
     Tests pull_repo to see if it throws an exception when the supplied repo doesn't match the one in
@@ -565,34 +435,6 @@ class TestEFUtils(unittest.TestCase):
     with self.assertRaises(RuntimeError) as exception:
       pull_repo()
     self.assertIn("Must be in", exception.exception.message)
-
-  @patch('subprocess.check_output')
-  def test_pull_repo_exception_checking_branch(self, mock_check_output):
-    """
-    Tests pull_repo to see if it throws an exception when mocked check_output throws an exception on second call
-    to git to retrieve name of branch
-
-    Args:
-      mock_check_output: MagicMock, returns some valid git responses, with the
-      repo coming from the ef_site_config.py, and then a subprocess.CalledProcessError
-      exception
-
-    Returns:
-      None
-
-    Raises:
-      AssertionError if any of the assert checks fail
-    """
-    mock_check_output.side_effect = [
-      "user@" + EFSiteConfig.EF_REPO.replace("/", ":", 1) + ".git",
-      subprocess.CalledProcessError("Forced Error", 1)
-    ]
-    with self.assertRaises(RuntimeError) as exception:
-      pull_repo()
-    self.assertIn("Exception checking current branch", exception.exception.message)
-    mock_check_output.assert_has_calls((call(["git", "remote", "-v", "show"]),
-                                        call(["git", "rev-parse", "--abbrev-ref", "HEAD"])),
-                                       any_order=False)
 
   @patch('subprocess.check_output')
   def test_pull_repo_incorrect_branch(self, mock_check_output):
@@ -617,33 +459,6 @@ class TestEFUtils(unittest.TestCase):
     with self.assertRaises(RuntimeError) as exception:
       pull_repo()
     self.assertIn("Must be on branch:", exception.exception.message)
-
-  @patch('subprocess.check_call')
-  @patch('subprocess.check_output')
-  def test_pull_repo_git_pull_error(self, mock_check_output, mock_check_call):
-    """
-    Tests pull_repo() to see if it throws an exception when mocked check_call throws an exception when calling
-    git to do a pull
-
-    Args:
-      mock_check_output: MagicMock, returns valid git responses, with the repo coming from the ef_site_config.py
-      mock_check_call: MagicMock, throws a subprocess.CalledProcessError exception
-
-    Returns:
-      None
-
-    Raises:
-      AssertionError if any of the assert checks fail
-    """
-    mock_check_output.side_effect = [
-      "user@" + EFSiteConfig.EF_REPO.replace("/", ":", 1) + ".git",
-      "master"
-    ]
-    mock_check_call.side_effect = subprocess.CalledProcessError("Forced Error", 1)
-    with self.assertRaises(RuntimeError) as exception:
-      pull_repo()
-    self.assertIn("Exception running 'git pull", exception.exception.message)
-    mock_check_call.assert_called_once_with(["git", "pull", "-q", "origin", EFSiteConfig.EF_REPO_BRANCH])
 
   @patch('boto3.Session')
   def test_create_aws_clients(self, mock_session_constructor):
@@ -696,25 +511,6 @@ class TestEFUtils(unittest.TestCase):
     self.assertTrue("ec2" in client_dict)
     self.assertTrue("sqs" in client_dict)
     self.assertTrue("SESSION" in client_dict)
-
-  @patch('boto3.Session')
-  def test_create_aws_clients_create_session_boto_core_error(self, mock_session_constructor):
-    """
-    Tests if create_aws_clients throws an exception when mocking boto3.Session object to throw an exception
-
-    Args:
-      mock_session_constructor: MagicMock, throws a BotoCoreError exception
-
-    Returns:
-      None
-
-    Raises:
-      AssertionError if any of the assert checks fail
-    """
-    mock_session_constructor.side_effect = botocore.exceptions.BotoCoreError()
-    with self.assertRaises(RuntimeError) as exception:
-      create_aws_clients("us-west-2d", None, None)
-    mock_session_constructor.assert_called_once_with(region_name="us-west-2d")
 
   def test_get_account_alias(self):
     """
