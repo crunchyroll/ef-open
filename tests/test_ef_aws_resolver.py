@@ -339,7 +339,8 @@ class TestEFAwsResolver(unittest.TestCase):
   @patch('ef_aws_resolver.EFAwsResolver.ec2_elasticip_elasticip_ipaddress')
   def test_ec2_elasticip_elasticip_id(self, mock_ec2_elasticip_elasticip_ipaddress):
     """
-    Tests ec2_elasticip_elasticip_id to see if it returns an id given a valid input
+    Tests ec2_elasticip_elasticip_id to see if it returns an id given a valid input.
+    Example input: ec2:elasticip/elasticip-id,ElasticIpDevVideo1
 
     Args:
       mock_ec2_elasticip_elasticip_ipaddress: MagicMock, returns back an ip address
@@ -382,6 +383,7 @@ class TestEFAwsResolver(unittest.TestCase):
   def test_ec2_elasticip_elasticip_ipaddress(self):
     """
     Tests ec2_elastic_elasticip_ipaddress to see if it returns an ip address given a valid input
+    Example input: ec2:elasticip/elasticip-ipaddress,ElasticIpDevVideo1
 
     Returns:
       None
@@ -416,26 +418,50 @@ class TestEFAwsResolver(unittest.TestCase):
     result = ef_aws_resolver.lookup("ec2:elasticip/elasticip-ipaddress,cant_possibly_match")
     self.assertIsNone(result)
 
-## Test coverage of ec2:eni/eni-id is disabled because the we are not presently creating
-## ENI fixtures and this test does not at present generate an ENI for testing this lookup function
-## Why are these retained here? The lookup function is still valid, and useful. We just can't test it at the moment
-#  def test_ec2_eni_eni_id(self):
-#    """Does ec2:eni/eni-id,eni-proto3-dnsproxy-1a resolve to an ENI ID"""
-#    test_string = "ec2:eni/eni-id,eni-proto3-dnsproxy-1a"
-#    resolver = EFAwsResolver(TestEFAwsResolver.clients)
-#    self.assertRegexpMatches(resolver.lookup(test_string), "^eni-[a-f0-9]{8}$")
+  def test_ec2_eni_eni_id(self):
+    """
+    Tests ec2_eni_eni_id to see it returns back a network interface id based on description given
 
-#  def test_ec2_eni_eni_id_none(self):
-#    """Does ec2:eni/eni-id,cant_possibly_match return None"""
-#    test_string = "ec2:eni/eni-id,cant_possibly_match"
-#    resolver = EFAwsResolver(TestEFAwsResolver.clients)
-#    self.assertIsNone(resolver.lookup(test_string))
+    Returns:
+      None
 
-#  def test_ec2_eni_eni_id_default(self):
-#    """Does ec2:eni/eni-id,cant_possibly_match,DEFAULT return default value"""
-#    test_string = "ec2:eni/eni-id,cant_possibly_match,DEFAULT"
-#    resolver = EFAwsResolver(TestEFAwsResolver.clients)
-#    self.assertRegexpMatches(resolver.lookup(test_string), "^DEFAULT$")
+    Raises:
+      AssertionError if any of the assert checks fail
+    """
+    target_network_interface_id = "eni-0011"
+    target_description = "target_description"
+    network_interfaces_response = {
+      "NetworkInterfaces": [
+        {
+          "NetworkInterfaceId": target_network_interface_id,
+          "Description": target_description
+        }
+      ]
+    }
+    self._clients["ec2"].describe_network_interfaces.return_value = network_interfaces_response
+    lookup_token = "ec2:eni/eni-id," + target_description
+    resolver = EFAwsResolver(self._clients)
+    result = resolver.lookup(lookup_token)
+    self.assertEquals(target_network_interface_id, result)
+
+  def test_ec2_eni_eni_id_no_match(self):
+    """
+    Tests ec2_eni_eni_id returns None when there is no match
+
+    Returns:
+      None
+
+    Raises:
+      AssertionError if any of the assert checks fail
+    """
+    network_interfaces_response = {
+      "NetworkInterfaces": []
+    }
+    self._clients["ec2"].describe_network_interfaces.return_value = network_interfaces_response
+    lookup_token = "ec2:eni/eni-id,no_matching_description"
+    resolver = EFAwsResolver(self._clients)
+    result = resolver.lookup(lookup_token)
+    self.assertIsNone(result)
 
   def test_ec2_route_table_main_route_table_id(self):
     """Does ec2:route-table/main-route-table-id,vpc-<env> resolve to route table ID"""
