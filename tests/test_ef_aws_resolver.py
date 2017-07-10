@@ -16,16 +16,11 @@ limitations under the License.
 
 import unittest
 
-import boto3
 from mock import call, Mock, patch
 
 # For local application imports, context_paths must be first despite lexicon ordering
 import context_paths
 from ef_aws_resolver import EFAwsResolver
-from ef_config import EFConfig
-from ef_context import EFContext
-from ef_site_config import EFSiteConfig
-from ef_utils import fail, http_get_metadata, whereami
 
 
 class TestEFAwsResolver(unittest.TestCase):
@@ -421,6 +416,7 @@ class TestEFAwsResolver(unittest.TestCase):
   def test_ec2_eni_eni_id(self):
     """
     Tests ec2_eni_eni_id to see it returns back a network interface id based on description given
+    Example Input: ec2:eni/eni-id,some_description
 
     Returns:
       None
@@ -429,19 +425,17 @@ class TestEFAwsResolver(unittest.TestCase):
       AssertionError if any of the assert checks fail
     """
     target_network_interface_id = "eni-0011"
-    target_description = "target_description"
     network_interfaces_response = {
       "NetworkInterfaces": [
         {
           "NetworkInterfaceId": target_network_interface_id,
-          "Description": target_description
         }
       ]
     }
     self._clients["ec2"].describe_network_interfaces.return_value = network_interfaces_response
-    lookup_token = "ec2:eni/eni-id," + target_description
-    resolver = EFAwsResolver(self._clients)
-    result = resolver.lookup(lookup_token)
+    lookup_token = "ec2:eni/eni-id,target_description"
+    ef_aws_resolver = EFAwsResolver(self._clients)
+    result = ef_aws_resolver.lookup(lookup_token)
     self.assertEquals(target_network_interface_id, result)
 
   def test_ec2_eni_eni_id_no_match(self):
@@ -459,8 +453,51 @@ class TestEFAwsResolver(unittest.TestCase):
     }
     self._clients["ec2"].describe_network_interfaces.return_value = network_interfaces_response
     lookup_token = "ec2:eni/eni-id,no_matching_description"
-    resolver = EFAwsResolver(self._clients)
-    result = resolver.lookup(lookup_token)
+    ef_aws_resolver = EFAwsResolver(self._clients)
+    result = ef_aws_resolver.lookup(lookup_token)
+    self.assertIsNone(result)
+
+  def test_ec2_security_group_security_group_id(self):
+    """
+    Tests ec2_security_group_security_group_id to see if it returns a security group id based on group name.
+
+    Returns:
+      None
+
+    Raises:
+      AssertionError if any of the assert checks fail
+    """
+    target_security_group_id = "sg-0011"
+    security_group_response = {
+      "SecurityGroups": [
+        {
+          "GroupId": target_security_group_id
+        }
+      ]
+    }
+    self._clients["ec2"].describe_security_groups.return_value = security_group_response
+    lookup_token = "ec2:security-group/security-group-id,my_security_group"
+    ef_aws_resolver = EFAwsResolver(self._clients)
+    result = ef_aws_resolver.lookup(lookup_token)
+    self.assertEquals(target_security_group_id, result)
+
+  def test_ec2_security_group_security_group_id_no_match(self):
+    """
+    Tests ec2_security_group_security_group_id to see if it returns None when there is no match
+
+    Returns:
+      None
+
+    Raises:
+      AssertionError if any of the assert checks fail
+    """
+    security_group_response = {
+      "SecurityGroups": []
+    }
+    self._clients["ec2"].describe_security_groups.return_value = security_group_response
+    lookup_token = "ec2:security-group/security-group-id,cant_possibly_match"
+    ef_aws_resolver = EFAwsResolver(self._clients)
+    result = ef_aws_resolver.lookup(lookup_token)
     self.assertIsNone(result)
 
   def test_ec2_route_table_main_route_table_id(self):
@@ -478,24 +515,6 @@ class TestEFAwsResolver(unittest.TestCase):
   def test_ec2_route_table_main_route_table_id_default(self):
     """Does ec2:route-table/main-route-table-id,cant_possibly_match,DEFAULT return default value"""
     test_string = "ec2:route-table/main-route-table-id,cant_possibly_match,DEFAULT"
-    resolver = EFAwsResolver(TestEFAwsResolver.clients)
-    self.assertRegexpMatches(resolver.lookup(test_string), "^DEFAULT$")
-
-  def test_ec2_security_group_security_group_id(self):
-    """Does ec2:security-group/security-group-id,staging-core-ec2 resolve to a security group id"""
-    test_string = "ec2:security-group/security-group-id,staging-core-ec2"
-    resolver = EFAwsResolver(TestEFAwsResolver.clients)
-    self.assertRegexpMatches(resolver.lookup(test_string), "^sg-[a-f0-9]{8}$")
-
-  def test_ec2_security_group_security_group_id_none(self):
-    """Does ec2:security-group/security-group-id,cant_possibly_match return None"""
-    test_string = "ec2:security-group/security-group-id,cant_possibly_match"
-    resolver = EFAwsResolver(TestEFAwsResolver.clients)
-    self.assertIsNone(resolver.lookup(test_string))
-
-  def test_ec2_security_group_security_group_id_default(self):
-    """Does ec2:security-group/security-group-id,cant_possibly_match,DEFAULT return default value"""
-    test_string = "ec2:security-group/security-group-id,cant_possibly_match,DEFAULT"
     resolver = EFAwsResolver(TestEFAwsResolver.clients)
     self.assertRegexpMatches(resolver.lookup(test_string), "^DEFAULT$")
 
