@@ -433,9 +433,8 @@ class TestEFAwsResolver(unittest.TestCase):
       ]
     }
     self._clients["ec2"].describe_network_interfaces.return_value = network_interfaces_response
-    lookup_token = "ec2:eni/eni-id,target_description"
     ef_aws_resolver = EFAwsResolver(self._clients)
-    result = ef_aws_resolver.lookup(lookup_token)
+    result = ef_aws_resolver.lookup("ec2:eni/eni-id,target_description")
     self.assertEquals(target_network_interface_id, result)
 
   def test_ec2_eni_eni_id_no_match(self):
@@ -452,9 +451,8 @@ class TestEFAwsResolver(unittest.TestCase):
       "NetworkInterfaces": []
     }
     self._clients["ec2"].describe_network_interfaces.return_value = network_interfaces_response
-    lookup_token = "ec2:eni/eni-id,no_matching_description"
     ef_aws_resolver = EFAwsResolver(self._clients)
-    result = ef_aws_resolver.lookup(lookup_token)
+    result = ef_aws_resolver.lookup("ec2:eni/eni-id,no_matching_description")
     self.assertIsNone(result)
 
   def test_ec2_security_group_security_group_id(self):
@@ -476,9 +474,8 @@ class TestEFAwsResolver(unittest.TestCase):
       ]
     }
     self._clients["ec2"].describe_security_groups.return_value = security_group_response
-    lookup_token = "ec2:security-group/security-group-id,my_security_group"
     ef_aws_resolver = EFAwsResolver(self._clients)
-    result = ef_aws_resolver.lookup(lookup_token)
+    result = ef_aws_resolver.lookup("ec2:security-group/security-group-id,my_security_group")
     self.assertEquals(target_security_group_id, result)
 
   def test_ec2_security_group_security_group_id_no_match(self):
@@ -495,9 +492,49 @@ class TestEFAwsResolver(unittest.TestCase):
       "SecurityGroups": []
     }
     self._clients["ec2"].describe_security_groups.return_value = security_group_response
-    lookup_token = "ec2:security-group/security-group-id,cant_possibly_match"
     ef_aws_resolver = EFAwsResolver(self._clients)
-    result = ef_aws_resolver.lookup(lookup_token)
+    result = ef_aws_resolver.lookup("ec2:security-group/security-group-id,cant_possibly_match")
+    self.assertIsNone(result)
+
+  def test_ec2_subnet_subnet_id(self):
+    """
+    Tests ec2_subnet_subnet_id to see if it returns a subnet ID based on tag: Name value
+
+    Returns:
+      None
+
+    Raises:
+      AssertionError if any of the assert checks fail
+    """
+    target_subnet_id = "subnet-0011"
+    subnet_response = {
+      "Subnets": [
+        {
+          "SubnetId": target_subnet_id
+        }
+      ]
+    }
+    self._clients["ec2"].describe_subnets.return_value = subnet_response
+    ef_aws_resolver = EFAwsResolver(self._clients)
+    result = ef_aws_resolver.lookup("ec2:subnet/subnet-id,target_subnet")
+    self.assertEquals(target_subnet_id, result)
+
+  def test_ec2_subnet_subnet_id_no_match(self):
+    """
+    Tests ec2_subnet_subnet_id to see if it returns None when there is no match
+
+    Returns:
+      None
+
+    Raises:
+      AssertionError if any of the assert checks fail
+    """
+    subnet_response = {
+      "Subnets": []
+    }
+    self._clients["ec2"].describe_subnets.return_value = subnet_response
+    ef_aws_resolver = EFAwsResolver(self._clients)
+    result = ef_aws_resolver.lookup("ec2:subnet/subnet-id,cant_possibly_match")
     self.assertIsNone(result)
 
   def test_ec2_route_table_main_route_table_id(self):
@@ -518,23 +555,7 @@ class TestEFAwsResolver(unittest.TestCase):
     resolver = EFAwsResolver(TestEFAwsResolver.clients)
     self.assertRegexpMatches(resolver.lookup(test_string), "^DEFAULT$")
 
-  def test_ec2_subnet_subnet_id(self):
-    """Does ec2:subnet/subnet-id,subnet-staging-a resolve to a subnet ID"""
-    test_string = "ec2:subnet/subnet-id,subnet-staging-a"
-    resolver = EFAwsResolver(TestEFAwsResolver.clients)
-    self.assertRegexpMatches(resolver.lookup(test_string), "^subnet-[a-f0-9]{8}$")
 
-  def test_ec2_subnet_subnet_id_none(self):
-    """Does ec2:subnet/subnet-id,cant_possibly_match return None"""
-    test_string = "ec2:subnet/subnet-id,cant_possibly_match"
-    resolver = EFAwsResolver(TestEFAwsResolver.clients)
-    self.assertIsNone(resolver.lookup(test_string))
-
-  def test_ec2_subnet_subnet_id_default(self):
-    """Does ec2:subnet/subnet-id,cant_possibly_match,DEFAULT return default value"""
-    test_string = "ec2:subnet/subnet-id,cant_possibly_match,DEFAULT"
-    resolver = EFAwsResolver(TestEFAwsResolver.clients)
-    self.assertRegexpMatches(resolver.lookup(test_string), "^DEFAULT$")
 
   def test_ec2_vpc_availabilityzones(self):
     """Does ec2:vpc/availabilityzones,vpc-staging resolve to correctly-delimited string of AZ(s)"""
