@@ -1495,43 +1495,282 @@ class TestEFAwsResolver(unittest.TestCase):
     result = ef_aws_resolver.lookup("cloudfront:domain-name,cant_possibly_match")
     self.assertIsNone(result)
 
-
-
   def test_cloudfront_origin_access_identity_oai_id(self):
-    """Does cloudfront:origin-access-identity/oai-id,static.cx-proto0.com resolve to oai ID"""
-    test_string = "cloudfront:origin-access-identity/oai-id,static.cx-proto0.com"
-    resolver = EFAwsResolver(TestEFAwsResolver.clients)
-    self.assertRegexpMatches(resolver.lookup(test_string), "^[A-Z0-9]{13,14}$")
+    """
+    Tests cloudfront_origin_access_identity_oai_id to see if it returns the correct origin access identity id based
+    on comment given
 
-  def test_cloudfront_origin_access_identity_oai_id_none(self):
-    """Does cloudfront:origin-access-identity/oai-id,cant_possibly_match return None"""
-    test_string = "cloudfront:origin-access-identity/oai-id,cant_possibly_match"
-    resolver = EFAwsResolver(TestEFAwsResolver.clients)
-    self.assertIsNone(resolver.lookup(test_string))
+    Returns:
+      None
 
-  def test_cloudfront_origin_access_identity_oai_id_default(self):
-    """Does cloudfront:origin-access-identity/oai-id,cant_possibly_match,DEFAULT return default value"""
-    test_string = "cloudfront:origin-access-identity/oai-id,cant_possibly_match,DEFAULT"
-    resolver = EFAwsResolver(TestEFAwsResolver.clients)
-    self.assertRegexpMatches(resolver.lookup(test_string), "^DEFAULT$")
+    Raises:
+      AssertionError if any of the assert checks fail
+    """
+    target_comment = "target comment"
+    target_id = "TARGET_ID"
+    cloudfront_origin_access_identity_response = {
+      "CloudFrontOriginAccessIdentityList": {
+        "Items": [
+          {
+            "Comment": "one comment",
+            "S3CanonicalUserId": "112233aabbcc",
+            "Id": "QRT123ABC"
+          },
+          {
+            "Comment": "another comment",
+            "S3CanonicalUserId": "444555eeefff",
+            "Id": "QRT123BBC"
+          },
+          {
+            "Comment": target_comment,
+            "S3CanonicalUserId": "target_canonical_id",
+            "Id": target_id
+          }
+        ],
+        "IsTruncated": False
+      }
+    }
+    self._clients["cloudfront"].list_cloud_front_origin_access_identities.return_value = \
+      cloudfront_origin_access_identity_response
+    ef_aws_resolver = EFAwsResolver(self._clients)
+    result = ef_aws_resolver.lookup("cloudfront:origin-access-identity/oai-id," + target_comment)
+    self.assertEquals(target_id, result)
+
+  def test_cloudfront_origin_access_identity_oai_id_is_truncated(self):
+    """
+    Tests cloudfront_origin_access_identity_oai_id to see if it returns the correct id when the results are truncated
+
+    Returns:
+      None
+
+    Raises:
+      AssertionError if any of the assert checks fail
+    """
+    target_comment = "target comment"
+    target_id = "TARGET_ID"
+    first_cloudfront_origin_access_identity_response = {
+      "CloudFrontOriginAccessIdentityList": {
+        "Items": [
+          {
+            "Comment": "one comment",
+            "S3CanonicalUserId": "112233aabbcc",
+            "Id": "QRT123ABC"
+          },
+          {
+            "Comment": "another comment",
+            "S3CanonicalUserId": "444555eeefff",
+            "Id": "QRT123BBC"
+          }
+        ],
+        "IsTruncated": True,
+        "NextMarker": "aabbcc"
+      }
+    }
+    second_cloudfront_origin_access_identity_response = {
+      "CloudFrontOriginAccessIdentityList": {
+        "Items": [
+          {
+            "Comment": target_comment,
+            "S3CanonicalUserId": "target_canonical_id",
+            "Id": target_id
+          }
+        ],
+        "IsTruncated": False
+      }
+    }
+    self._clients["cloudfront"].list_cloud_front_origin_access_identities.side_effect = \
+      [first_cloudfront_origin_access_identity_response, second_cloudfront_origin_access_identity_response]
+    ef_aws_resolver = EFAwsResolver(self._clients)
+    result = ef_aws_resolver.lookup("cloudfront:origin-access-identity/oai-id," + target_comment)
+    self.assertEquals(target_id, result)
+
+  def test_cloudfront_origin_access_identity_oai_id_no_match(self):
+    """
+    Tests cloudfront_origin_access_identity_oai_id to see if it returns None when there are no matches
+
+    Returns:
+      None
+
+    Raises:
+      AssertionError if any of the assert checks fail
+    """
+    cloudfront_origin_access_identity_response = {
+      "CloudFrontOriginAccessIdentityList": {
+        "Items": [
+          {
+            "Comment": "one comment",
+            "S3CanonicalUserId": "112233aabbcc",
+            "Id": "QRT123ABC"
+          },
+          {
+            "Comment": "another comment",
+            "S3CanonicalUserId": "444555eeefff",
+            "Id": "QRT123BBC"
+          },
+          {
+            "Comment": "third comment",
+            "S3CanonicalUserId": "aaa4449999iiii",
+            "Id": "QRT9944B"
+          }
+        ],
+        "IsTruncated": False
+      }
+    }
+    self._clients["cloudfront"].list_cloud_front_origin_access_identities.return_value = \
+      cloudfront_origin_access_identity_response
+    ef_aws_resolver = EFAwsResolver(self._clients)
+    result = ef_aws_resolver.lookup("cloudfront:origin-access-identity/oai-id,cant_possibly_match")
+    self.assertIsNone(result)
+
+    cloudfront_origin_access_identity_response = {
+      "CloudFrontOriginAccessIdentityList": {
+        "Items": [],
+        "IsTruncated": False
+      }
+    }
+    self._clients["cloudfront"].list_cloud_front_origin_access_identities.return_value = \
+      cloudfront_origin_access_identity_response
+    result = ef_aws_resolver.lookup("cloudfront:origin-access-identity/oai-id,cant_possibly_match")
+    self.assertIsNone(result)
 
   def test_cloudfront_origin_access_identity_oai_canonical_user_id(self):
-    """Does cloudfront:origin-access-identity/oai-canonical-user-id,static.cx-proto0.com resolve to oai ID"""
-    test_string = "cloudfront:origin-access-identity/oai-canonical-user-id,static.cx-proto0.com"
-    resolver = EFAwsResolver(TestEFAwsResolver.clients)
-    self.assertRegexpMatches(resolver.lookup(test_string), "^[a-z0-9]{96}$")
+    """
+    Tests cloudfront_origin_access_identity_oai_canonical_user_id to see if it returns the correct id based on given
+    comment
 
-  def test_cloudfront_origin_access_identity_oai_canonical_user_id_none(self):
-    """Does cloudfront:origin-access-identity/oai-canonical-user-id,cant_possibly_match return None"""
-    test_string = "cloudfront:origin-access-identity/oai-canonical-user-id,cant_possibly_match"
-    resolver = EFAwsResolver(TestEFAwsResolver.clients)
-    self.assertIsNone(resolver.lookup(test_string))
+    Returns:
+      None
 
-  def test_cloudfront_origin_access_identity_oai_canonical_user_id_default(self):
-    """Does cloudfront:origin-access-identity/oai-canonical-user-id,cant_possibly_match,DEFAULT return default value"""
-    test_string = "cloudfront:origin-access-identity/oai-canonical-user-id,cant_possibly_match,DEFAULT"
-    resolver = EFAwsResolver(TestEFAwsResolver.clients)
-    self.assertRegexpMatches(resolver.lookup(test_string), "^DEFAULT$")
+    Raises:
+      AssertionError if any of the assert checks fail
+    """
+    target_comment = "target comment"
+    target_s3_canonical_user_id = "target_canonical_id"
+    cloudfront_origin_access_identity_response = {
+      "CloudFrontOriginAccessIdentityList": {
+        "Items": [
+          {
+            "Comment": "one comment",
+            "S3CanonicalUserId": "112233aabbcc",
+            "Id": "QRT123ABC"
+          },
+          {
+            "Comment": "another comment",
+            "S3CanonicalUserId": "444555eeefff",
+            "Id": "QRT123BBC"
+          },
+          {
+            "Comment": target_comment,
+            "S3CanonicalUserId": target_s3_canonical_user_id,
+            "Id": "TARGET_ID"
+          }
+        ],
+        "IsTruncated": False
+      }
+    }
+    self._clients["cloudfront"].list_cloud_front_origin_access_identities.return_value = \
+      cloudfront_origin_access_identity_response
+    ef_aws_resolver = EFAwsResolver(self._clients)
+    result = ef_aws_resolver.lookup("cloudfront:origin-access-identity/oai-canonical-user-id," + target_comment)
+    self.assertEquals(target_s3_canonical_user_id, result)
+
+  def test_cloudfront_origin_access_identity_oai_canonical_user_id_is_truncated(self):
+    """
+    Tests cloudfront_origin_access_identity_oai_canonical_user_id to see if it returns the correct id when the result
+    is truncated
+
+    Returns:
+      None
+
+    Raises:
+      AssertionError if any of the assert checks fail
+    """
+    target_comment = "target comment"
+    target_s3_canonical_user_id = "target_canonical_id"
+    first_cloudfront_origin_access_identity_response = {
+      "CloudFrontOriginAccessIdentityList": {
+        "Items": [
+          {
+            "Comment": "one comment",
+            "S3CanonicalUserId": "112233aabbcc",
+            "Id": "QRT123ABC"
+          },
+          {
+            "Comment": "another comment",
+            "S3CanonicalUserId": "444555eeefff",
+            "Id": "QRT123BBC"
+          }
+        ],
+        "IsTruncated": True,
+        "NextMarker": "aabbcc"
+      }
+    }
+    second_cloudfront_origin_access_identity_response = {
+      "CloudFrontOriginAccessIdentityList": {
+        "Items": [
+          {
+            "Comment": target_comment,
+            "S3CanonicalUserId": target_s3_canonical_user_id,
+            "Id": "TARGET_ID"
+          }
+        ],
+        "IsTruncated": False
+      }
+    }
+    self._clients["cloudfront"].list_cloud_front_origin_access_identities.side_effect = \
+      [first_cloudfront_origin_access_identity_response, second_cloudfront_origin_access_identity_response]
+    ef_aws_resolver = EFAwsResolver(self._clients)
+    result = ef_aws_resolver.lookup("cloudfront:origin-access-identity/oai-canonical-user-id," + target_comment)
+    self.assertEquals(target_s3_canonical_user_id, result)
+
+  def test_cloudfront_origin_access_identity_oai_canonical_user_id_no_match(self):
+    """
+    Tests cloudfront_origin_access_identity_oai_canonical_user_id to see if it returns None when there is no match
+
+    Returns:
+      None
+
+    Raises:
+      AssertionError if any of the assert checks fail
+    """
+    cloudfront_origin_access_identity_response = {
+      "CloudFrontOriginAccessIdentityList": {
+        "Items": [
+          {
+            "Comment": "one comment",
+            "S3CanonicalUserId": "112233aabbcc",
+            "Id": "QRT123ABC"
+          },
+          {
+            "Comment": "another comment",
+            "S3CanonicalUserId": "444555eeefff",
+            "Id": "QRT123BBC"
+          },
+          {
+            "Comment": "Some other comment",
+            "S3CanonicalUserId": "888999oookkkk",
+            "Id": "QDTR99FD"
+          }
+        ],
+        "IsTruncated": False
+      }
+    }
+    self._clients["cloudfront"].list_cloud_front_origin_access_identities.return_value = \
+      cloudfront_origin_access_identity_response
+    ef_aws_resolver = EFAwsResolver(self._clients)
+    result = ef_aws_resolver.lookup("cloudfront:origin-access-identity/oai-canonical-user-id,cant_possibly_match")
+    self.assertIsNone(result)
+
+    cloudfront_origin_access_identity_response = {
+      "CloudFrontOriginAccessIdentityList": {
+        "Items": [],
+        "IsTruncated": False
+      }
+    }
+    self._clients["cloudfront"].list_cloud_front_origin_access_identities.return_value = \
+      cloudfront_origin_access_identity_response
+    result = ef_aws_resolver.lookup("cloudfront:origin-access-identity/oai-canonical-user-id,cant_possibly_match")
+    self.assertIsNone(result)
 
 
 if __name__ == '__main__':
