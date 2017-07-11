@@ -27,32 +27,6 @@ from ef_aws_resolver import EFAwsResolver
 class TestEFAwsResolver(unittest.TestCase):
   """Tests for `ef_aws_resolver.py`."""
 
-  # See if I can get rid of this?
-  # _context = EFContext()
-  # _context.env = "test"
-
-  # # initialize based on where running
-  # where = whereami()
-  # if where == "local":
-  #   session = boto3.Session(profile_name=context.account_alias, region_name=EFConfig.DEFAULT_REGION)
-  # elif where == "ec2":
-  #   region = http_get_metadata("placement/availability-zone/")
-  #   region = region[:-1]
-  #   session = boto3.Session(region_name=region)
-  # else:
-  #   fail("Can't test in environment: " + where)
-
-  # session = boto3.Session(profile_name="default", region_name="us-west-2")
-  # _clients = {
-  #   "cloudformation": session.client("cloudformation"),
-  #   "cloudfront": session.client("cloudfront"),
-  #   "ec2": session.client("ec2"),
-  #   "iam": session.client("iam"),
-  #   "route53": session.client("route53"),
-  #   "waf": session.client("waf"),
-  #   "SESSION": session
-  # }
-
   def setUp(self):
     """
     Setup function that is run before every test
@@ -918,6 +892,364 @@ class TestEFAwsResolver(unittest.TestCase):
     result = ef_aws_resolver.lookup("waf:web-acl-id,cant_possibly_match")
     self.assertIsNone(result)
 
+  def test_route53_public_hosted_zone_id(self):
+    """
+    Tests route53_public_hosted_zone_id to see if it returns the hosted zone Id given the domain name and if the
+    hosted zone is not private
+
+    Returns:
+      None
+
+    Raises:
+      AssertionError if any of the assert checks fail
+    """
+    target_hosted_zone_id = "112233"
+    target_hosted_zone_name = "my_domain.com."
+    hosted_zones_by_name_response = {
+      "HostedZones": [
+        {
+          "Config": {
+              "PrivateZone": True
+          },
+          "Id": "/hostedzone/1Z2Y3X",
+          "Name": "other_domain.com."
+        },
+        {
+          "Config": {
+              "PrivateZone": False
+          },
+          "Id": "/hostedzone/B1C1D1",
+          "Name": "other_domain.com."
+        },
+        {
+          "Config": {
+              "PrivateZone": True
+          },
+          "Id": "/hostedzone/AABBCC",
+          "Name": target_hosted_zone_name
+        },
+        {
+          "Config": {
+            "PrivateZone": False
+          },
+          "Id": "/hostedzone/" + target_hosted_zone_id,
+          "Name": target_hosted_zone_name
+        }
+      ],
+      "IsTruncated": False
+    }
+    self._clients["route53"].list_hosted_zones_by_name.return_value = hosted_zones_by_name_response
+    ef_aws_resolver = EFAwsResolver(self._clients)
+    result = ef_aws_resolver.lookup("route53:public-hosted-zone-id," + target_hosted_zone_name)
+    self.assertEquals(target_hosted_zone_id, result)
+
+  def test_route53_public_hosted_zone_id_is_truncated(self):
+    """
+    Tests route53_public_hosted_zone_id to see if it returns the correct hosted zone id for when the results
+    returned need to be truncated based on given domain name
+
+    Returns:
+      None
+
+    Raises:
+      AssertionError if any of the assert checks fail
+    """
+    target_hosted_zone_id = "112233"
+    target_hosted_zone_name = "my_domain.com."
+    first_hosted_zones_by_name_response = {
+      "HostedZones": [
+        {
+          "Config": {
+            "PrivateZone": True
+          },
+          "Id": "/hostedzone/1Z2Y3X",
+          "Name": "other_domain.com."
+        },
+        {
+          "Config": {
+            "PrivateZone": False
+          },
+          "Id": "/hostedzone/B1C1D1",
+          "Name": "other_domain.com."
+        }
+      ],
+      "IsTruncated": True,
+      "NextHostedZoneId": "aabbcc"
+    }
+    second_hosted_zones_by_name_response = {
+      "HostedZones": [
+        {
+          "Config": {
+            "PrivateZone": True
+          },
+          "Id": "/hostedzone/AABBCC",
+          "Name": target_hosted_zone_name
+        },
+        {
+          "Config": {
+            "PrivateZone": False
+          },
+          "Id": "/hostedzone/" + target_hosted_zone_id,
+          "Name": target_hosted_zone_name
+        }
+      ],
+      "IsTruncated": False
+    }
+    self._clients["route53"].list_hosted_zones_by_name.side_effect = [first_hosted_zones_by_name_response,
+                                                                      second_hosted_zones_by_name_response]
+    ef_aws_resolver = EFAwsResolver(self._clients)
+    result = ef_aws_resolver.lookup("route53:public-hosted-zone-id," + target_hosted_zone_name)
+    self.assertEquals(target_hosted_zone_id, result)
+
+  def test_route53_public_hosted_zone_id_malformed_domain_name(self):
+    """
+    Tests route53_public_hosted_zone_id to see if it returns None if the . is missing at the end of the domain name
+
+    Returns:
+      None
+
+    Raises:
+      AssertionError if any of the assert checks fail
+    """
+    ef_aws_resolver = EFAwsResolver(self._clients)
+    result = ef_aws_resolver.lookup("route53:public-hosted-zone-id,malformed_url.com")
+    self.assertIsNone(result)
+
+  def test_route53_public_hosted_zone_id_no_match(self):
+    """
+    Tests route53_public_hosted_zone_id to see if it returns None when there are no matches
+
+    Returns:
+      None
+
+    Raises:
+      AssertionError if any of the assert checks fail
+    """
+    hosted_zones_by_name_response = {
+      "HostedZones": [
+        {
+          "Config": {
+              "PrivateZone": True
+          },
+          "Id": "/hostedzone/1Z2Y3X",
+          "Name": "other_domain.com."
+        },
+        {
+          "Config": {
+              "PrivateZone": False
+          },
+          "Id": "/hostedzone/B1C1D1",
+          "Name": "other_domain.com."
+        },
+        {
+          "Config": {
+              "PrivateZone": True
+          },
+          "Id": "/hostedzone/AABBCC",
+          "Name": "another_domain.com."
+        },
+        {
+          "Config": {
+            "PrivateZone": False
+          },
+          "Id": "/hostedzone/11223344",
+          "Name": "another_domain.com."
+        }
+      ],
+      "IsTruncated": False
+    }
+    self._clients["route53"].list_hosted_zones_by_name.return_value = hosted_zones_by_name_response
+    ef_aws_resolver = EFAwsResolver(self._clients)
+    result = ef_aws_resolver.lookup("route53:public-hosted-zone-id,cant_possibly_match.")
+    self.assertIsNone(result)
+
+    hosted_zones_by_name_response = {
+      "HostedZones": [],
+      "IsTruncated": False
+    }
+    self._clients["route53"].list_hosted_zones_by_name.return_value = hosted_zones_by_name_response
+    result = ef_aws_resolver.lookup("route53:public-hosted-zone-id,cant_possibly_match.")
+    self.assertIsNone(result)
+
+  def test_route53_private_hosted_zone_id(self):
+    """
+    Tests route53_private_hosted_zone_id to see if it returns the correct hosted zone id given the domain name and
+    if the hosted zone is private
+
+    Returns:
+      None
+
+    Raises:
+      AssertionError if any of the assert checks fail
+    """
+    target_hosted_zone_id = "112233"
+    target_hosted_zone_name = "my_domain.com."
+    hosted_zones_by_name_response = {
+      "HostedZones": [
+        {
+          "Config": {
+            "PrivateZone": True
+          },
+          "Id": "/hostedzone/1Z2Y3X",
+          "Name": "other_domain.com."
+        },
+        {
+          "Config": {
+            "PrivateZone": False
+          },
+          "Id": "/hostedzone/B1C1D1",
+          "Name": "other_domain.com."
+        },
+        {
+          "Config": {
+            "PrivateZone": False
+          },
+          "Id": "/hostedzone/AABBCC",
+          "Name": target_hosted_zone_name
+        },
+        {
+          "Config": {
+            "PrivateZone": True
+          },
+          "Id": "/hostedzone/" + target_hosted_zone_id,
+          "Name": target_hosted_zone_name
+        }
+      ],
+      "IsTruncated": False
+    }
+    self._clients["route53"].list_hosted_zones_by_name.return_value = hosted_zones_by_name_response
+    ef_aws_resolver = EFAwsResolver(self._clients)
+    result = ef_aws_resolver.lookup("route53:private-hosted-zone-id," + target_hosted_zone_name)
+    self.assertEquals(target_hosted_zone_id, result)
+
+  def test_route53_private_hosted_zone_id_is_truncated(self):
+    """
+    Tests route53_private_hosted_zone_id to see if it returns the correct hosted zone id if the results are
+    truncated based on domain name given
+
+    Returns:
+      None
+    """
+    target_hosted_zone_id = "112233"
+    target_hosted_zone_name = "my_domain.com."
+    first_hosted_zones_by_name_response = {
+      "HostedZones": [
+        {
+          "Config": {
+            "PrivateZone": True
+          },
+          "Id": "/hostedzone/1Z2Y3X",
+          "Name": "other_domain.com."
+        },
+        {
+          "Config": {
+            "PrivateZone": False
+          },
+          "Id": "/hostedzone/B1C1D1",
+          "Name": "other_domain.com."
+        }
+      ],
+      "IsTruncated": True,
+      "NextHostedZoneId": "aabbcc"
+    }
+    second_hosted_zones_by_name_response = {
+      "HostedZones": [
+        {
+          "Config": {
+            "PrivateZone": False
+          },
+          "Id": "/hostedzone/AABBCC",
+          "Name": target_hosted_zone_name
+        },
+        {
+          "Config": {
+            "PrivateZone": True
+          },
+          "Id": "/hostedzone/" + target_hosted_zone_id,
+          "Name": target_hosted_zone_name
+        }
+      ],
+      "IsTruncated": False
+    }
+    self._clients["route53"].list_hosted_zones_by_name.side_effect = [first_hosted_zones_by_name_response,
+                                                                      second_hosted_zones_by_name_response]
+    ef_aws_resolver = EFAwsResolver(self._clients)
+    result = ef_aws_resolver.lookup("route53:private-hosted-zone-id," + target_hosted_zone_name)
+    self.assertEquals(target_hosted_zone_id, result)
+
+  def test_route53_private_hosted_zone_id_malformed_domain_name(self):
+    """
+    Tests route53_private_hosted_zone_id to see if it returns None when the . is missing at the end of the domain name
+
+    Returns:
+      None
+
+    Raises:
+      AssertionError if any of the assert checks fail
+    """
+    ef_aws_resolver = EFAwsResolver(self._clients)
+    result = ef_aws_resolver.lookup("route53:private-hosted-zone-id,malformed_url.com")
+    self.assertIsNone(result)
+
+  def test_route53_private_hosted_zone_id_no_match(self):
+    """
+    Tests route53_private_hosted_zone_id to see if it returns None when there is no match
+
+    Returns:
+      None
+
+    Raises:
+      AssertionError if any of the assert checks fail
+    """
+    hosted_zones_by_name_response = {
+      "HostedZones": [
+        {
+          "Config": {
+            "PrivateZone": True
+          },
+          "Id": "/hostedzone/1Z2Y3X",
+          "Name": "other_domain.com."
+        },
+        {
+          "Config": {
+            "PrivateZone": False
+          },
+          "Id": "/hostedzone/B1C1D1",
+          "Name": "other_domain.com."
+        },
+        {
+          "Config": {
+            "PrivateZone": True
+          },
+          "Id": "/hostedzone/AABBCC",
+          "Name": "another_domain.com."
+        },
+        {
+          "Config": {
+            "PrivateZone": False
+          },
+          "Id": "/hostedzone/11223344",
+          "Name": "another_domain.com."
+        }
+      ],
+      "IsTruncated": False
+    }
+    self._clients["route53"].list_hosted_zones_by_name.return_value = hosted_zones_by_name_response
+    ef_aws_resolver = EFAwsResolver(self._clients)
+    result = ef_aws_resolver.lookup("route53:private-hosted-zone-id,cant_possibly_match.")
+    self.assertIsNone(result)
+
+    hosted_zones_by_name_response = {
+      "HostedZones": [],
+      "IsTruncated": False
+    }
+    self._clients["route53"].list_hosted_zones_by_name.return_value = hosted_zones_by_name_response
+    result = ef_aws_resolver.lookup("route53:private-hosted-zone-id,cant_possibly_match.")
+    self.assertIsNone(result)
+
+
+
+
   def test_ec2_route_table_main_route_table_id(self):
     """Does ec2:route-table/main-route-table-id,vpc-<env> resolve to route table ID"""
     test_string = "ec2:route-table/main-route-table-id,vpc-"+context.env
@@ -951,44 +1283,6 @@ class TestEFAwsResolver(unittest.TestCase):
   def test_ec2_vpc_subnets_default(self):
     """Does ec2:vpc/subnets,cant_possibly_match,DEFAULT return default value"""
     test_string = "ec2:vpc/subnets,cant_possibly_match,DEFAULT"
-    resolver = EFAwsResolver(TestEFAwsResolver.clients)
-    self.assertRegexpMatches(resolver.lookup(test_string), "^DEFAULT$")
-
-
-
-  def test_route53_private_hosted_zone_id(self):
-    """Does route53:private-hosted-zone-id,cx-proto0.com. resolve to zone ID"""
-    test_string = "route53:private-hosted-zone-id,cx-proto0.com."
-    resolver = EFAwsResolver(TestEFAwsResolver.clients)
-    self.assertRegexpMatches(resolver.lookup(test_string), "^[A-Z0-9]{13,14}$")
-
-  def test_route53_private_hosted_zone_id_none(self):
-    """Does route53:private-hosted-zone-id,cant_possibly_match return None"""
-    test_string = "route53:private-hosted-zone-id,cant_possibly_match"
-    resolver = EFAwsResolver(TestEFAwsResolver.clients)
-    self.assertIsNone(resolver.lookup(test_string))
-
-  def test_route53_private_hosted_zone_id_default(self):
-    """Does route53:private-hosted-zone-id,cant_possibly_match,DEFAULT return default value"""
-    test_string = "route53:private-hosted-zone-id,cant_possibly_match,DEFAULT"
-    resolver = EFAwsResolver(TestEFAwsResolver.clients)
-    self.assertRegexpMatches(resolver.lookup(test_string), "^DEFAULT$")
-
-  def test_route53_public_hosted_zone_id(self):
-    """Does route53:hosted-zone-id,cx-proto0.com. resolve to zone ID"""
-    test_string = "route53:public-hosted-zone-id,cx-proto0.com."
-    resolver = EFAwsResolver(TestEFAwsResolver.clients)
-    self.assertRegexpMatches(resolver.lookup(test_string), "^[A-Z0-9]{13,14}$")
-
-  def test_route53_public_hosted_zone_id_none(self):
-    """Does route53:public-hosted-zone-id,cant_possibly_match return None"""
-    test_string = "route53:public-hosted-zone-id,cant_possibly_match"
-    resolver = EFAwsResolver(TestEFAwsResolver.clients)
-    self.assertIsNone(resolver.lookup(test_string))
-
-  def test_route53_public_hosted_zone_id_default(self):
-    """Does route53:public-hosted-zone-id,cant_possibly_match,DEFAULT return default value"""
-    test_string = "route53:public-hosted-zone-id,cant_possibly_match,DEFAULT"
     resolver = EFAwsResolver(TestEFAwsResolver.clients)
     self.assertRegexpMatches(resolver.lookup(test_string), "^DEFAULT$")
 
