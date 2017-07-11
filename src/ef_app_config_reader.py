@@ -28,12 +28,11 @@ class EFAppConfigReader:
   e.g.: default (if present) - superseded by proto (if present) - superseded by proto<N> (if present)
   or: default (if present) - superseded by staging or prod (if present)
   """
-  def __init__(self, env, service, logging, clients):
+  def __init__(self, env, service, clients):
     """
     Args:
       env: the environment to resolve values for
       service: "all" or "<service">
-      logging: a logger
       clients: a dict of AWS clients, with at least "s3"
     Raises:
       botocore.exceptions.ClientError if config
@@ -41,7 +40,6 @@ class EFAppConfigReader:
     self.clients = clients
     self.env = env
     self.env_short = get_env_short(env)
-    self.logging = logging
     self.parameters = None
     self.service = service
 
@@ -102,7 +100,7 @@ import boto3
 def main():
   session = boto3.Session(profile_name="ellationeng", region_name="us-west-2")
   clients = {"s3": session.client("s3") }
-  configreader = EFAppConfigReader("staging", "qc-pulls", None, clients)
+  configreader = EFAppConfigReader("staging", "qc-pulls", clients)
   print("remote username")
   print(configreader.get_value("remote_username"))
 
