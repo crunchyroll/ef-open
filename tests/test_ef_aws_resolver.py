@@ -491,7 +491,7 @@ class TestEFAwsResolver(unittest.TestCase):
     }
     self._clients["ec2"].describe_subnets.return_value = subnet_response
     ef_aws_resolver = EFAwsResolver(self._clients)
-    result = ef_aws_resolver.lookup("ec2:subnet/subnet-id,target_subnet")
+    result = ef_aws_resolver.lookup("ec2:subnet/subnet-id,target_subnet_name")
     self.assertEquals(target_subnet_id, result)
 
   def test_ec2_subnet_subnet_id_no_match(self):
@@ -515,7 +515,7 @@ class TestEFAwsResolver(unittest.TestCase):
   @patch('ef_aws_resolver.EFAwsResolver.ec2_vpc_vpc_id')
   def test_ec2_vpc_availabilityzones(self, mock_ec2_vpc_vpc_id):
     """
-    Tests ec2_vpc_availabilityzones to see if it returns a string of availability zones based on matching vpc name
+    Tests ec2_vpc_availabilityzones to see if it returns the correct availability zone based on matching vpc name
     in tag
 
     Args:
@@ -528,20 +528,18 @@ class TestEFAwsResolver(unittest.TestCase):
       AssertionError if any of the assert checks fail
     """
     mock_ec2_vpc_vpc_id.return_value = 'mock_vpc_id'
+    target_availability_zone = "us-west-2a"
     availabilityzones_response = {
       "Subnets": [
           {
-            "AvailabilityZone": "us-west-2a"
-          },
-          {
-            "AvailabilityZone": "us-west-2b"
+            "AvailabilityZone": target_availability_zone
           }
       ]
     }
     self._clients["ec2"].describe_subnets.return_value = availabilityzones_response
     ef_aws_resolver = EFAwsResolver(self._clients)
-    result = ef_aws_resolver.lookup("ec2:vpc/availabilityzones,target_vpc_id")
-    self.assertEquals("us-west-2a, us-west-2b", result)
+    result = ef_aws_resolver.lookup("ec2:vpc/availabilityzones,target_subnet_name")
+    self.assertEquals(target_availability_zone, result)
 
   @patch('ef_aws_resolver.EFAwsResolver.ec2_vpc_vpc_id')
   def test_ec2_vpc_availabilityzones_no_vpc_id(self, mock_ec2_vpc_vpc_id):
@@ -559,7 +557,7 @@ class TestEFAwsResolver(unittest.TestCase):
     """
     mock_ec2_vpc_vpc_id.return_value = None
     ef_aws_resolver = EFAwsResolver(self._clients)
-    result = ef_aws_resolver.lookup("ec2:vpc/availabilityzones,target_vpc_id")
+    result = ef_aws_resolver.lookup("ec2:vpc/availabilityzones,target_subnet_name")
     self.assertIsNone(result)
 
   @patch('ef_aws_resolver.EFAwsResolver.ec2_vpc_vpc_id')
@@ -581,7 +579,52 @@ class TestEFAwsResolver(unittest.TestCase):
     }
     self._clients["ec2"].describe_subnets.return_value = availabilityzones_response
     ef_aws_resolver = EFAwsResolver(self._clients)
-    result = ef_aws_resolver.lookup("ec2:vpc/availabilityzones,target_vpc_id")
+    result = ef_aws_resolver.lookup("ec2:vpc/availabilityzones,cant_possibly_match")
+    self.assertIsNone(result)
+
+  @patch('ef_aws_resolver.EFAwsResolver.ec2_vpc_vpc_id')
+  def test_ec2_vpc_subnets(self, mock_ec2_vpc_vpc_id):
+    """
+    Tests ec2_vpc_subnets to see if it returns the correct subnet id based on matching vpc name in tag
+
+    Returns:
+      None
+
+    Raises:
+      AssertionError if any of the assert checks fail
+    """
+    target_subnet_id = "subnet-9c2ea7ea"
+    mock_ec2_vpc_vpc_id.return_value = 'mock_vpc_id'
+    subnets_response = {
+      "Subnets": [
+        {
+          "SubnetId": target_subnet_id
+        }
+      ]
+    }
+    self._clients["ec2"].describe_subnets.return_value = subnets_response
+    ef_aws_resolver = EFAwsResolver(self._clients)
+    result = ef_aws_resolver.lookup("ec2:vpc/subnets,target_subnet_name")
+    self.assertEquals(target_subnet_id, result)
+
+  @patch('ef_aws_resolver.EFAwsResolver.ec2_vpc_vpc_id')
+  def test_ec2_vpc_subnets_no_match(self, mock_ec2_vpc_vpc_id):
+    """
+    Tests ec2_vpc_subnets to see if returns None when there are no matches
+
+    Returns:
+      None
+
+    Raises:
+      AssertionError if any of the assert checks fail
+    """
+    mock_ec2_vpc_vpc_id.return_value = 'mock_vpc_id'
+    availabilityzones_response = {
+      "Subnets": []
+    }
+    self._clients["ec2"].describe_subnets.return_value = availabilityzones_response
+    ef_aws_resolver = EFAwsResolver(self._clients)
+    result = ef_aws_resolver.lookup("ec2:vpc/subnets,cant_possibly_match")
     self.assertIsNone(result)
 
   def test_ec2_vpc_cidrblock(self):
@@ -1247,9 +1290,6 @@ class TestEFAwsResolver(unittest.TestCase):
     result = ef_aws_resolver.lookup("route53:private-hosted-zone-id,cant_possibly_match.")
     self.assertIsNone(result)
 
-
-
-
   def test_ec2_route_table_main_route_table_id(self):
     """Does ec2:route-table/main-route-table-id,vpc-<env> resolve to route table ID"""
     test_string = "ec2:route-table/main-route-table-id,vpc-"+context.env
@@ -1268,23 +1308,10 @@ class TestEFAwsResolver(unittest.TestCase):
     resolver = EFAwsResolver(TestEFAwsResolver.clients)
     self.assertRegexpMatches(resolver.lookup(test_string), "^DEFAULT$")
 
-  def test_ec2_vpc_subnets(self):
-    """Does ec2:vpc/subnets,vpc-staging resolve to correctly-delimited string of AZ(s)"""
-    test_string = "ec2:vpc/subnets,vpc-staging"
-    resolver = EFAwsResolver(TestEFAwsResolver.clients)
-    self.assertRegexpMatches(resolver.lookup(test_string), "^subnet-[a-f0-9]{8}(\", \"subnet-[a-f0-9]{8}){0,1}$")
 
-  def test_ec2_vpc_subnets_none(self):
-    """Does ec2:vpc/subnets,cant_possibly_match return None"""
-    test_string = "ec2:vpc/subnets,cant_possibly_match"
-    resolver = EFAwsResolver(TestEFAwsResolver.clients)
-    self.assertIsNone(resolver.lookup(test_string))
 
-  def test_ec2_vpc_subnets_default(self):
-    """Does ec2:vpc/subnets,cant_possibly_match,DEFAULT return default value"""
-    test_string = "ec2:vpc/subnets,cant_possibly_match,DEFAULT"
-    resolver = EFAwsResolver(TestEFAwsResolver.clients)
-    self.assertRegexpMatches(resolver.lookup(test_string), "^DEFAULT$")
+
+
 
   def test_cloudfront_domain_name(self):
     """Does cloudfront:domain-name,static.cx-proto0.com resolve to a Cloudfront FQDN"""
