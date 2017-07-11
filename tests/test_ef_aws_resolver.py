@@ -589,7 +589,7 @@ class TestEFAwsResolver(unittest.TestCase):
   @patch('ef_aws_resolver.EFAwsResolver.ec2_vpc_vpc_id')
   def test_ec2_vpc_availabilityzones_no_match(self, mock_ec2_vpc_vpc_id):
     """
-    Tests ec2_vpc_availabilityzones to see if it returns None when no matching subnets is found
+    Tests ec2_vpc_availabilityzones to see if it returns None when no match is found
     Args:
       mock_ec2_vpc_vpc_id: MagicMock, returns mock vpc id
 
@@ -606,6 +606,47 @@ class TestEFAwsResolver(unittest.TestCase):
     self._clients["ec2"].describe_subnets.return_value = availabilityzones_response
     ef_aws_resolver = EFAwsResolver(self._clients)
     result = ef_aws_resolver.lookup("ec2:vpc/availabilityzones,vpc-staging")
+    self.assertIsNone(result)
+
+  def test_ec2_vpc_cidrblock(self):
+    """
+    Tests ec2_vpc_cidrblock to see if it returns the target cidr block given a tag: Name value
+
+    Returns:
+      None
+
+    Raises:
+      AssertionError if any of the assert checks fail
+    """
+    target_cidr_block = "10.20.128.0/18"
+    vpc_response = {
+      "Vpcs": [
+        {
+          "CidrBlock": target_cidr_block
+        }
+      ]
+    }
+    self._clients["ec2"].describe_vpcs.return_value = vpc_response
+    ef_aws_resolver = EFAwsResolver(self._clients)
+    result = ef_aws_resolver.lookup("ec2:vpc/cidrblock,target_vpc")
+    self.assertEquals(target_cidr_block, result)
+
+  def test_ec2_vpc_cidrblock_no_match(self):
+    """
+    Tests ec2_vpc_cidrblock to see if it returns None when no match is found
+
+    Returns:
+      None
+
+    Raises:
+      AssertionError if any of the assert checks fail
+    """
+    vpc_response = {
+      "Vpcs": []
+    }
+    self._clients["ec2"].describe_vpcs.return_value = vpc_response
+    ef_aws_resolver = EFAwsResolver(self._clients)
+    result = ef_aws_resolver.lookup("ec2:vpc/cidrblock,cant_possibly_match")
     self.assertIsNone(result)
 
   def test_ec2_route_table_main_route_table_id(self):
@@ -626,23 +667,7 @@ class TestEFAwsResolver(unittest.TestCase):
     resolver = EFAwsResolver(TestEFAwsResolver.clients)
     self.assertRegexpMatches(resolver.lookup(test_string), "^DEFAULT$")
 
-  def test_ec2_vpc_cidrblock(self):
-    """Does ec2:vpc/cidrblock,vpc-staging resolve to a CIDR block"""
-    test_string = "ec2:vpc/cidrblock,vpc-staging"
-    resolver = EFAwsResolver(TestEFAwsResolver.clients)
-    self.assertRegexpMatches(resolver.lookup(test_string), "^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\/\d{2}$")
 
-  def test_ec2_vpc_cidrblock_none(self):
-    """Does ec2:vpc/cidrblock,cant_possibly_match return None"""
-    test_string = "ec2:vpc/cidrblock,cant_possibly_match"
-    resolver = EFAwsResolver(TestEFAwsResolver.clients)
-    self.assertIsNone(resolver.lookup(test_string))
-
-  def test_ec2_vpc_cidrblock_default(self):
-    """Does ec2:vpc/cidrblock,cant_possibly_match,DEFAULT return default value"""
-    test_string = "ec2:vpc/cidrblock,cant_possibly_match,DEFAULT"
-    resolver = EFAwsResolver(TestEFAwsResolver.clients)
-    self.assertRegexpMatches(resolver.lookup(test_string), "^DEFAULT$")
 
   def test_ec2_vpc_subnets(self):
     """Does ec2:vpc/subnets,vpc-staging resolve to correctly-delimited string of AZ(s)"""
