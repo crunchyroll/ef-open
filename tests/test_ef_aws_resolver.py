@@ -727,7 +727,7 @@ class TestEFAwsResolver(unittest.TestCase):
   def test_waf_rule_id_more_rules_than_limit(self):
     """
     Tests waf_rule_id to see if it returns the rule id that matches the rule name where there are more rules
-    than the limit
+    than the limit, thus the NextMarker
 
     Returns:
       None
@@ -735,6 +735,7 @@ class TestEFAwsResolver(unittest.TestCase):
     Raises:
       AssertionError if any of the assert checks fail
     """
+    target_rule_name = "rule_4"
     target_rule_id = "77-88"
     first_rules_response = {
       "Rules": [
@@ -756,14 +757,14 @@ class TestEFAwsResolver(unittest.TestCase):
           "RuleId": "55-66"
         },
         {
-          "Name": "rule_4",
+          "Name": target_rule_name,
           "RuleId": target_rule_id
         }
       ]
     }
     self._clients["waf"].list_rules.side_effect = [first_rules_response, second_rules_response]
     ef_aws_resolver = EFAwsResolver(self._clients)
-    result = ef_aws_resolver.lookup("waf:rule-id,rule_4")
+    result = ef_aws_resolver.lookup("waf:rule-id," + target_rule_name)
     self.assertEquals(target_rule_id, result)
 
   def test_waf_rule_id_no_match(self):
@@ -804,7 +805,118 @@ class TestEFAwsResolver(unittest.TestCase):
     result = ef_aws_resolver.lookup("waf:rule-id,rule4")
     self.assertIsNone(result)
 
+  def test_waf_web_acl_id(self):
+    """
+    Tests waf_web_acl_id to see if it returns the correct web acl id based on given web acl name
 
+    Returns:
+      None
+
+    Raises:
+      AssertionError if any of the assert checks fail
+    """
+    target_web_acl_id = "55-66"
+    web_acls_response = {
+      "WebACLs": [
+        {
+          "WebACLId": "11-22",
+          "Name": "first_web_acl"
+        },
+        {
+          "WebACLId": "33-44",
+          "Name": "second_web_acl"
+        },
+        {
+          "WebACLId": target_web_acl_id,
+          "Name": "third_web_acl"
+        }
+      ]
+    }
+    self._clients["waf"].list_web_acls.return_value = web_acls_response
+    ef_aws_resolver = EFAwsResolver(self._clients)
+    result = ef_aws_resolver.lookup("waf:web-acl-id,third_web_acl")
+    self.assertEquals(target_web_acl_id, result)
+
+  def test_waf_web_acl_id_more_web_acls_than_limit(self):
+    """
+    Tests waf_web_acl_id to see if returns the correct web acl id if the number of waf web acl results is greater than
+    the limit, thus the NextMarker
+
+    Returns:
+      None
+
+    Raises:
+      AssertionError if any of the assert checks fail
+    """
+    target_web_acl_name = "fourth_web_acl"
+    target_web_acl_id = "77-88"
+    first_web_acls_response = {
+      "WebACLs": [
+        {
+          "WebACLId": "11-22",
+          "Name": "first_web_acl"
+        },
+        {
+          "WebACLId": "33-44",
+          "Name": "second_web_acl"
+        }
+      ],
+      "NextMarker": "112233"
+    }
+    second_web_acls_response = {
+      "WebACLs": [
+        {
+          "WebACLId": "55-66",
+          "Name": "third_web_acl"
+        },
+        {
+          "WebACLId": target_web_acl_id,
+          "Name": target_web_acl_name
+        }
+      ]
+    }
+    self._clients["waf"].list_web_acls.side_effect = [first_web_acls_response, second_web_acls_response]
+    ef_aws_resolver = EFAwsResolver(self._clients)
+    result = ef_aws_resolver.lookup("waf:web-acl-id," + target_web_acl_name)
+    self.assertEquals(target_web_acl_id, result)
+
+  def test_waf_web_acl_id_no_match(self):
+    """
+    Tests waf_web_acl_id to see if returns None if there are no matches
+
+    Returns:
+      None
+
+    Raises:
+      AssertionError if any of the assert checks fail
+    """
+    web_acls_response = {
+      "WebACLs": [
+        {
+          "WebACLId": "11-22",
+          "Name": "first_web_acl"
+        },
+        {
+          "WebACLId": "33-44",
+          "Name": "second_web_acl"
+        },
+        {
+          "WebACLId": "55-66",
+          "Name": "third_web_acl"
+        }
+      ]
+    }
+    self._clients["waf"].list_web_acls.return_value = web_acls_response
+    ef_aws_resolver = EFAwsResolver(self._clients)
+    result = ef_aws_resolver.lookup("waf:web-acl-id,cant_possibly_match")
+    self.assertIsNone(result)
+
+    web_acls_response = {
+      "WebACLs": []
+    }
+    self._clients["waf"].list_web_acls.return_value = web_acls_response
+    result = ef_aws_resolver.lookup("waf:web-acl-id,cant_possibly_match")
+    self.assertIsNone(result)
 
   def test_ec2_route_table_main_route_table_id(self):
     """Does ec2:route-table/main-route-table-id,vpc-<env> resolve to route table ID"""
@@ -842,24 +954,7 @@ class TestEFAwsResolver(unittest.TestCase):
     resolver = EFAwsResolver(TestEFAwsResolver.clients)
     self.assertRegexpMatches(resolver.lookup(test_string), "^DEFAULT$")
 
-  def test_waf_web_acl_id(self):
-    """Does waf:web-acl-id,staging-StaticAcl resolve to Web ACL ID"""
-    test_string = "waf:web-acl-id,staging-StaticAcl"
-    resolver = EFAwsResolver(TestEFAwsResolver.clients)
-    self.assertRegexpMatches(resolver.lookup(test_string),
-                             "^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$")
 
-  def test_waf_web_acl_id_none(self):
-    """Does waf:web-acl-id,cant_possibly_match return None"""
-    test_string = "waf:web-acl-id,cant_possibly_match"
-    resolver = EFAwsResolver(TestEFAwsResolver.clients)
-    self.assertIsNone(resolver.lookup(test_string))
-
-  def test_waf_web_acl_id_default(self):
-    """Does waf:web-acl-id,cant_possibly_match,DEFAULT return default value"""
-    test_string = "waf:web-acl-id,cant_possibly_match,DEFAULT"
-    resolver = EFAwsResolver(TestEFAwsResolver.clients)
-    self.assertRegexpMatches(resolver.lookup(test_string), "^DEFAULT$")
 
   def test_route53_private_hosted_zone_id(self):
     """Does route53:private-hosted-zone-id,cx-proto0.com. resolve to zone ID"""
