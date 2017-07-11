@@ -498,7 +498,7 @@ class TestEFAwsResolver(unittest.TestCase):
 
   def test_ec2_subnet_subnet_id(self):
     """
-    Tests ec2_subnet_subnet_id to see if it returns a subnet ID based on tag: Name value
+    Tests ec2_subnet_subnet_id to see if it returns a subnet ID based on matching subnet name in tag
 
     Returns:
       None
@@ -540,7 +540,8 @@ class TestEFAwsResolver(unittest.TestCase):
   @patch('ef_aws_resolver.EFAwsResolver.ec2_vpc_vpc_id')
   def test_ec2_vpc_availabilityzones(self, mock_ec2_vpc_vpc_id):
     """
-    Tests ec2_vpc_availabilityzones to see if it returns a string of availability zones based on tag: Name value
+    Tests ec2_vpc_availabilityzones to see if it returns a string of availability zones based on matching vpc name
+    in tag
 
     Args:
       mock_ec2_vpc_vpc_id: MagicMock, returns mock vpc id
@@ -564,13 +565,13 @@ class TestEFAwsResolver(unittest.TestCase):
     }
     self._clients["ec2"].describe_subnets.return_value = availabilityzones_response
     ef_aws_resolver = EFAwsResolver(self._clients)
-    result = ef_aws_resolver.lookup("ec2:vpc/availabilityzones,vpc-staging")
+    result = ef_aws_resolver.lookup("ec2:vpc/availabilityzones,target_vpc_id")
     self.assertEquals("us-west-2a, us-west-2b", result)
 
   @patch('ef_aws_resolver.EFAwsResolver.ec2_vpc_vpc_id')
   def test_ec2_vpc_availabilityzones_no_vpc_id(self, mock_ec2_vpc_vpc_id):
     """
-    Tests ec2_vpc_availabilityzones to see if it returns None when no vpc_id is returned for given tag: Name value
+    Tests ec2_vpc_availabilityzones to see if it returns None when no vpc_id is returned for vpc name in tag
 
     Args:
       mock_ec2_vpc_vpc_id: MagicMock, returns None
@@ -583,7 +584,7 @@ class TestEFAwsResolver(unittest.TestCase):
     """
     mock_ec2_vpc_vpc_id.return_value = None
     ef_aws_resolver = EFAwsResolver(self._clients)
-    result = ef_aws_resolver.lookup("ec2:vpc/availabilityzones,vpc-staging")
+    result = ef_aws_resolver.lookup("ec2:vpc/availabilityzones,target_vpc_id")
     self.assertIsNone(result)
 
   @patch('ef_aws_resolver.EFAwsResolver.ec2_vpc_vpc_id')
@@ -605,12 +606,12 @@ class TestEFAwsResolver(unittest.TestCase):
     }
     self._clients["ec2"].describe_subnets.return_value = availabilityzones_response
     ef_aws_resolver = EFAwsResolver(self._clients)
-    result = ef_aws_resolver.lookup("ec2:vpc/availabilityzones,vpc-staging")
+    result = ef_aws_resolver.lookup("ec2:vpc/availabilityzones,target_vpc_id")
     self.assertIsNone(result)
 
   def test_ec2_vpc_cidrblock(self):
     """
-    Tests ec2_vpc_cidrblock to see if it returns the target cidr block given a tag: Name value
+    Tests ec2_vpc_cidrblock to see if it returns the target cidr block given vpc name in tag
 
     Returns:
       None
@@ -628,7 +629,7 @@ class TestEFAwsResolver(unittest.TestCase):
     }
     self._clients["ec2"].describe_vpcs.return_value = vpc_response
     ef_aws_resolver = EFAwsResolver(self._clients)
-    result = ef_aws_resolver.lookup("ec2:vpc/cidrblock,target_vpc")
+    result = ef_aws_resolver.lookup("ec2:vpc/cidrblock,target_vpc_name")
     self.assertEquals(target_cidr_block, result)
 
   def test_ec2_vpc_cidrblock_no_match(self):
@@ -649,6 +650,50 @@ class TestEFAwsResolver(unittest.TestCase):
     result = ef_aws_resolver.lookup("ec2:vpc/cidrblock,cant_possibly_match")
     self.assertIsNone(result)
 
+  def test_ec2_vpc_vpc_id(self):
+    """
+    Tests ec2_vpc_vpc_id to see if it returns vpc id based on matching vpc name in tag
+
+    Returns:
+      None
+
+    Raises:
+      AssertionError if any of the assert checks fail
+    """
+    target_vpc_id = "vpc-0011"
+    vpc_response = {
+      "Vpcs": [
+        {
+          "VpcId": target_vpc_id
+        }
+      ]
+    }
+    self._clients["ec2"].describe_vpcs.return_value = vpc_response
+    ef_aws_resolver = EFAwsResolver(self._clients)
+    result = ef_aws_resolver.lookup("ec2:vpc/vpc-id,target_vpc_name")
+    self.assertEquals(target_vpc_id, result)
+
+  def test_ec2_vpc_vpc_id_none(self):
+    """
+    Tests ec2_vpc_vpc_id to see if it returns None when no match is found
+
+    Returns:
+      None
+
+    Raises:
+      AssertionError if any of the assert checks fail
+    """
+    vpc_response = {
+      "Vpcs": []
+    }
+    self._clients["ec2"].describe_vpcs.return_value = vpc_response
+    ef_aws_resolver = EFAwsResolver(self._clients)
+    result = ef_aws_resolver.lookup("ec2:vpc/vpc-id,target_vpc_name")
+    self.assertIsNone(result)
+
+
+
+
   def test_ec2_route_table_main_route_table_id(self):
     """Does ec2:route-table/main-route-table-id,vpc-<env> resolve to route table ID"""
     test_string = "ec2:route-table/main-route-table-id,vpc-"+context.env
@@ -667,8 +712,6 @@ class TestEFAwsResolver(unittest.TestCase):
     resolver = EFAwsResolver(TestEFAwsResolver.clients)
     self.assertRegexpMatches(resolver.lookup(test_string), "^DEFAULT$")
 
-
-
   def test_ec2_vpc_subnets(self):
     """Does ec2:vpc/subnets,vpc-staging resolve to correctly-delimited string of AZ(s)"""
     test_string = "ec2:vpc/subnets,vpc-staging"
@@ -684,24 +727,6 @@ class TestEFAwsResolver(unittest.TestCase):
   def test_ec2_vpc_subnets_default(self):
     """Does ec2:vpc/subnets,cant_possibly_match,DEFAULT return default value"""
     test_string = "ec2:vpc/subnets,cant_possibly_match,DEFAULT"
-    resolver = EFAwsResolver(TestEFAwsResolver.clients)
-    self.assertRegexpMatches(resolver.lookup(test_string), "^DEFAULT$")
-
-  def test_ec2_vpc_vpc_id(self):
-    """Does ec2:vpc/vpc-id,vpc-staging resolve to VPC ID"""
-    test_string = "ec2:vpc/vpc-id,vpc-staging"
-    resolver = EFAwsResolver(TestEFAwsResolver.clients)
-    self.assertRegexpMatches(resolver.lookup(test_string), "^vpc-[a-f0-9]{8}$")
-
-  def test_ec2_vpc_vpc_id_none(self):
-    """Does ec2:vpc/vpc-id,cant_possibly_match return None"""
-    test_string = "ec2:vpc/vpc-id,cant_possibly_match"
-    resolver = EFAwsResolver(TestEFAwsResolver.clients)
-    self.assertIsNone(resolver.lookup(test_string))
-
-  def test_ec2_vpc_vpc_id_default(self):
-    """Does ec2:vpc/vpc-id,cant_possibly_match,DEFAULT return default value"""
-    test_string = "ec2:vpc/vpc-id,cant_possibly_match,DEFAULT"
     resolver = EFAwsResolver(TestEFAwsResolver.clients)
     self.assertRegexpMatches(resolver.lookup(test_string), "^DEFAULT$")
 
