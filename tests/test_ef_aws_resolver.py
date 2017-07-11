@@ -52,6 +52,9 @@ class TestEFAwsResolver(unittest.TestCase):
       "SESSION": mock_session
     }
 
+    # Uncomment if you want to test for real to check something, but you'll need to modify the test so that
+    # the mocking doesn't interfere. You'll need this due to the documentation for aws cli doesn't match
+    # what is given calling the api directly.
     # session = boto3.Session(profile_name="default", region_name="us-west-2")
     # self._clients = {
     #   "cloudformation": session.client("cloudformation"),
@@ -1362,25 +1365,137 @@ class TestEFAwsResolver(unittest.TestCase):
     result = ef_aws_resolver.lookup("ec2:route-table/main-route-table-id,target_vpc_name")
     self.assertIsNone(result)
 
-
-
   def test_cloudfront_domain_name(self):
-    """Does cloudfront:domain-name,static.cx-proto0.com resolve to a Cloudfront FQDN"""
-    test_string = "cloudfront:domain-name,static.cx-proto0.com"
-    resolver = EFAwsResolver(TestEFAwsResolver.clients)
-    self.assertRegexpMatches(resolver.lookup(test_string), "^[a-z0-9]{13,14}.cloudfront.net$")
+    """
+    Tests cloudfront_domain_name to see if it returns the correct domain name given an alias
 
-  def test_cloudfront_domain_name_none(self):
-    """Does cloudfront:domain-name,cant_possibly_match return None"""
-    test_string = "cloudfront:domain-name,cant_possibly_match"
-    resolver = EFAwsResolver(TestEFAwsResolver.clients)
-    self.assertIsNone(resolver.lookup(test_string))
+    Returns:
+      None
 
-  def test_cloudfront_domain_name_default(self):
-    """Does cloudfront:domain-name,cant_possibly_match,DEFAULT return default value"""
-    test_string = "cloudfront:domain-name,cant_possibly_match,DEFAULT"
-    resolver = EFAwsResolver(TestEFAwsResolver.clients)
-    self.assertRegexpMatches(resolver.lookup(test_string), "^DEFAULT$")
+    Raises:
+      AssertionError if any of the assert checks fail
+    """
+    target_domain_name = "1122aabb.cloudfront.net"
+    target_distribution_alias = "my_distribution"
+    distribution_response = {
+      "DistributionList": {
+        "Items": [
+          {
+            "DomainName": target_domain_name,
+            "Aliases": {
+              "Items": [
+                target_distribution_alias
+              ],
+              "Quantity": 1
+            }
+          }
+        ],
+        "Quantity": 1,
+        "IsTruncated": False
+      }
+    }
+    self._clients["cloudfront"].list_distributions.return_value = distribution_response
+    ef_aws_resolver = EFAwsResolver(self._clients)
+    result = ef_aws_resolver.lookup("cloudfront:domain-name," + target_distribution_alias)
+    self.assertEquals(target_domain_name, result)
+
+  def test_cloudfront_domain_name_is_truncated(self):
+    """
+    Tests cloudfront_domain_name to see if it returns the correct domain name when the results have to be truncated
+
+    Returns:
+      None
+
+    Raises:
+      AssertionError if any of the assert checks fail
+    """
+    target_domain_name = "1122aabb.cloudfront.net"
+    target_distribution_alias = "my_distribution"
+    first_distribution_response = {
+      "DistributionList": {
+        "Items": [
+          {
+            "DomainName": "otherdomain.cloudfront.net",
+            "Aliases": {
+              "Items": [
+                "other_cloud_front"
+              ],
+              "Quantity": 1
+            }
+          }
+        ],
+        "Quantity": 1,
+        "IsTruncated": True,
+        "NextMarker": "111aaabbb222=="
+      }
+    }
+    second_distribution_response = {
+      "DistributionList": {
+        "Items": [
+          {
+            "DomainName": target_domain_name,
+            "Aliases": {
+              "Items": [
+                target_distribution_alias
+              ],
+              "Quantity": 1
+            }
+          }
+        ],
+        "Quantity": 1,
+        "IsTruncated": False
+      }
+    }
+    self._clients["cloudfront"].list_distributions.side_effect = [first_distribution_response,
+                                                                  second_distribution_response]
+    ef_aws_resolver = EFAwsResolver(self._clients)
+    result = ef_aws_resolver.lookup("cloudfront:domain-name," + target_distribution_alias)
+    self.assertEquals(target_domain_name, result)
+
+  def test_cloudfront_domain_name_no_match(self):
+    """
+    Tests cloudfront_domain_name to see if it returns None when there is no match
+
+    Returns:
+      None
+
+    Raises:
+      AssertionError if any of the assert checks fail
+    """
+    distribution_response = {
+      "DistributionList": {
+        "Items": [
+          {
+            "DomainName": "something.cloudfront.net",
+            "Aliases": {
+              "Items": [
+                "my_alias"
+              ],
+              "Quantity": 1
+            }
+          }
+        ],
+        "Quantity": 1,
+        "IsTruncated": False
+      }
+    }
+    self._clients["cloudfront"].list_distributions.return_value = distribution_response
+    ef_aws_resolver = EFAwsResolver(self._clients)
+    result = ef_aws_resolver.lookup("cloudfront:domain-name,cant_possibly_match")
+    self.assertIsNone(result)
+
+    distribution_response = {
+      "DistributionList": {
+        "Items": [],
+        "Quantity": 0,
+        "IsTruncated": False
+      }
+    }
+    self._clients["cloudfront"].list_distributions.return_value = distribution_response
+    result = ef_aws_resolver.lookup("cloudfront:domain-name,cant_possibly_match")
+    self.assertIsNone(result)
+
+
 
   def test_cloudfront_origin_access_identity_oai_id(self):
     """Does cloudfront:origin-access-identity/oai-id,static.cx-proto0.com resolve to oai ID"""
