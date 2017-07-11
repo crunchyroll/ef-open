@@ -16,6 +16,7 @@ limitations under the License.
 
 import unittest
 
+import boto3
 from mock import call, Mock, patch
 
 # For local application imports, context_paths must be first despite lexicon ordering
@@ -691,6 +692,117 @@ class TestEFAwsResolver(unittest.TestCase):
     result = ef_aws_resolver.lookup("ec2:vpc/vpc-id,target_vpc_name")
     self.assertIsNone(result)
 
+  def test_waf_rule_id(self):
+    """
+    Tests waf_rule_id to see if it returns the rule id that matches the rule name
+
+    Returns:
+      None
+
+    Raises:
+      AssertionError if any of the assert checks fail
+    """
+    target_rule_id = "55-66"
+    rules_response = {
+      "Rules": [
+        {
+          "Name": "rule_1",
+          "RuleId": "11-22"
+        },
+        {
+          "Name": "rule_2",
+          "RuleId": "33-44"
+        },
+        {
+          "Name": "rule_3",
+          "RuleId": target_rule_id
+        }
+      ]
+    }
+    self._clients["waf"].list_rules.return_value = rules_response
+    ef_aws_resolver = EFAwsResolver(self._clients)
+    result = ef_aws_resolver.lookup("waf:rule-id,rule_3")
+    self.assertEquals(target_rule_id, result)
+
+  def test_waf_rule_id_more_rules_than_limit(self):
+    """
+    Tests waf_rule_id to see if it returns the rule id that matches the rule name where there are more rules
+    than the limit
+
+    Returns:
+      None
+
+    Raises:
+      AssertionError if any of the assert checks fail
+    """
+    target_rule_id = "77-88"
+    first_rules_response = {
+      "Rules": [
+        {
+          "Name": "rule_1",
+          "RuleId": "11-22"
+        },
+        {
+          "Name": "rule_2",
+          "RuleId": "33-44"
+        },
+      ],
+      "NextMarker": "112233"
+    }
+    second_rules_response = {
+      "Rules": [
+        {
+          "Name": "rule_3",
+          "RuleId": "55-66"
+        },
+        {
+          "Name": "rule_4",
+          "RuleId": target_rule_id
+        }
+      ]
+    }
+    self._clients["waf"].list_rules.side_effect = [first_rules_response, second_rules_response]
+    ef_aws_resolver = EFAwsResolver(self._clients)
+    result = ef_aws_resolver.lookup("waf:rule-id,rule_4")
+    self.assertEquals(target_rule_id, result)
+
+  def test_waf_rule_id_no_match(self):
+    """
+    Tests waf_rule_id to see if it returns when there is no match
+
+    Returns:
+      None
+
+    Raises:
+      AssertionError if any of the assert checks fail
+    """
+    rules_response = {
+      "Rules": [
+        {
+          "Name": "rule_1",
+          "RuleId": "11-22"
+        },
+        {
+          "Name": "rule_2",
+          "RuleId": "33-44"
+        },
+        {
+          "Name": "rule_3",
+          "RuleId": "55-66"
+        }
+      ]
+    }
+    self._clients["waf"].list_rules.return_value = rules_response
+    ef_aws_resolver = EFAwsResolver(self._clients)
+    result = ef_aws_resolver.lookup("waf:rule-id,rule_4")
+    self.assertIsNone(result)
+
+    rules_response = {
+      "Rules": []
+    }
+    self._clients["waf"].list_rules.return_value = rules_response
+    result = ef_aws_resolver.lookup("waf:rule-id,rule4")
+    self.assertIsNone(result)
 
 
 
@@ -727,25 +839,6 @@ class TestEFAwsResolver(unittest.TestCase):
   def test_ec2_vpc_subnets_default(self):
     """Does ec2:vpc/subnets,cant_possibly_match,DEFAULT return default value"""
     test_string = "ec2:vpc/subnets,cant_possibly_match,DEFAULT"
-    resolver = EFAwsResolver(TestEFAwsResolver.clients)
-    self.assertRegexpMatches(resolver.lookup(test_string), "^DEFAULT$")
-
-  def test_waf_rule_id(self):
-    """Does waf:rule-id,global-OfficeCidr resolve to WAF ID"""
-    test_string = "waf:rule-id,global-OfficeCidr"
-    resolver = EFAwsResolver(TestEFAwsResolver.clients)
-    self.assertRegexpMatches(resolver.lookup(test_string),
-                             "^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$")
-
-  def test_waf_rule_id_none(self):
-    """Does waf:rule-id,cant_possibly_match return None"""
-    test_string = "waf:rule-id,cant_possibly_match"
-    resolver = EFAwsResolver(TestEFAwsResolver.clients)
-    self.assertIsNone(resolver.lookup(test_string))
-
-  def test_waf_rule_id_default(self):
-    """Does waf:rule-id,cant_possibly_match,DEFAULT return default value"""
-    test_string = "waf:rule-id,cant_possibly_match,DEFAULT"
     resolver = EFAwsResolver(TestEFAwsResolver.clients)
     self.assertRegexpMatches(resolver.lookup(test_string), "^DEFAULT$")
 
