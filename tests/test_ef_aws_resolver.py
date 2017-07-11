@@ -537,6 +537,77 @@ class TestEFAwsResolver(unittest.TestCase):
     result = ef_aws_resolver.lookup("ec2:subnet/subnet-id,cant_possibly_match")
     self.assertIsNone(result)
 
+  @patch('ef_aws_resolver.EFAwsResolver.ec2_vpc_vpc_id')
+  def test_ec2_vpc_availabilityzones(self, mock_ec2_vpc_vpc_id):
+    """
+    Tests ec2_vpc_availabilityzones to see if it returns a string of availability zones based on tag: Name value
+
+    Args:
+      mock_ec2_vpc_vpc_id: MagicMock, returns mock vpc id
+
+    Returns:
+      None
+
+    Raises:
+      AssertionError if any of the assert checks fail
+    """
+    mock_ec2_vpc_vpc_id.return_value = 'mock_vpc_id'
+    availabilityzones_response = {
+      "Subnets": [
+          {
+            "AvailabilityZone": "us-west-2a"
+          },
+          {
+            "AvailabilityZone": "us-west-2b"
+          }
+      ]
+    }
+    self._clients["ec2"].describe_subnets.return_value = availabilityzones_response
+    ef_aws_resolver = EFAwsResolver(self._clients)
+    result = ef_aws_resolver.lookup("ec2:vpc/availabilityzones,vpc-staging")
+    self.assertEquals("us-west-2a, us-west-2b", result)
+
+  @patch('ef_aws_resolver.EFAwsResolver.ec2_vpc_vpc_id')
+  def test_ec2_vpc_availabilityzones_no_vpc_id(self, mock_ec2_vpc_vpc_id):
+    """
+    Tests ec2_vpc_availabilityzones to see if it returns None when no vpc_id is returned for given tag: Name value
+
+    Args:
+      mock_ec2_vpc_vpc_id: MagicMock, returns None
+
+    Returns:
+      None
+
+    Raises:
+      AssertionError if any of the assert checks fail
+    """
+    mock_ec2_vpc_vpc_id.return_value = None
+    ef_aws_resolver = EFAwsResolver(self._clients)
+    result = ef_aws_resolver.lookup("ec2:vpc/availabilityzones,vpc-staging")
+    self.assertIsNone(result)
+
+  @patch('ef_aws_resolver.EFAwsResolver.ec2_vpc_vpc_id')
+  def test_ec2_vpc_availabilityzones_no_match(self, mock_ec2_vpc_vpc_id):
+    """
+    Tests ec2_vpc_availabilityzones to see if it returns None when no matching subnets is found
+    Args:
+      mock_ec2_vpc_vpc_id: MagicMock, returns mock vpc id
+
+    Returns:
+      None
+
+    Raises:
+      AssertionError if any of the assert checks fail
+    """
+    mock_ec2_vpc_vpc_id.return_value = 'mock_vpc_id'
+    availabilityzones_response = {
+      "Subnets": []
+    }
+    self._clients["ec2"].describe_subnets.return_value = availabilityzones_response
+    ef_aws_resolver = EFAwsResolver(self._clients)
+    result = ef_aws_resolver.lookup("ec2:vpc/availabilityzones,vpc-staging")
+    self.assertIsNone(result)
+
   def test_ec2_route_table_main_route_table_id(self):
     """Does ec2:route-table/main-route-table-id,vpc-<env> resolve to route table ID"""
     test_string = "ec2:route-table/main-route-table-id,vpc-"+context.env
@@ -552,26 +623,6 @@ class TestEFAwsResolver(unittest.TestCase):
   def test_ec2_route_table_main_route_table_id_default(self):
     """Does ec2:route-table/main-route-table-id,cant_possibly_match,DEFAULT return default value"""
     test_string = "ec2:route-table/main-route-table-id,cant_possibly_match,DEFAULT"
-    resolver = EFAwsResolver(TestEFAwsResolver.clients)
-    self.assertRegexpMatches(resolver.lookup(test_string), "^DEFAULT$")
-
-
-
-  def test_ec2_vpc_availabilityzones(self):
-    """Does ec2:vpc/availabilityzones,vpc-staging resolve to correctly-delimited string of AZ(s)"""
-    test_string = "ec2:vpc/availabilityzones,vpc-staging"
-    resolver = EFAwsResolver(TestEFAwsResolver.clients)
-    self.assertRegexpMatches(resolver.lookup(test_string), "^us-west-2(a|b)(\", \"us-west-2(a|b)){0,1}$")
-
-  def test_ec2_vpc_availabilityzones_none(self):
-    """Does ec2:vpc/availabilityzones,cant_possibly_match return None"""
-    test_string = "ec2:vpc/availabilityzones,cant_possibly_match"
-    resolver = EFAwsResolver(TestEFAwsResolver.clients)
-    self.assertIsNone(resolver.lookup(test_string))
-
-  def test_ec2_vpc_availabilityzones_default(self):
-    """Does ec2:vpc/availabilityzones,cant_possibly_match,DEFAULT return default value"""
-    test_string = "ec2:vpc/availabilityzones,cant_possibly_match,DEFAULT"
     resolver = EFAwsResolver(TestEFAwsResolver.clients)
     self.assertRegexpMatches(resolver.lookup(test_string), "^DEFAULT$")
 
