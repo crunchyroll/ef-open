@@ -564,6 +564,7 @@ class TestEFAwsResolver(unittest.TestCase):
   def test_ec2_vpc_availabilityzones_no_match(self, mock_ec2_vpc_vpc_id):
     """
     Tests ec2_vpc_availabilityzones to see if it returns None when no match is found
+
     Args:
       mock_ec2_vpc_vpc_id: MagicMock, returns mock vpc id
 
@@ -586,6 +587,9 @@ class TestEFAwsResolver(unittest.TestCase):
   def test_ec2_vpc_subnets(self, mock_ec2_vpc_vpc_id):
     """
     Tests ec2_vpc_subnets to see if it returns the correct subnet id based on matching vpc name in tag
+
+    Args:
+      mock_ec2_vpc_vpc_id: MagicMock, returns mock vpc id
 
     Returns:
       None
@@ -611,6 +615,9 @@ class TestEFAwsResolver(unittest.TestCase):
   def test_ec2_vpc_subnets_no_match(self, mock_ec2_vpc_vpc_id):
     """
     Tests ec2_vpc_subnets to see if returns None when there are no matches
+
+    Args:
+      mock_ec2_vpc_vpc_id: MagicMock, returns mock vpc id
 
     Returns:
       None
@@ -1290,26 +1297,70 @@ class TestEFAwsResolver(unittest.TestCase):
     result = ef_aws_resolver.lookup("route53:private-hosted-zone-id,cant_possibly_match.")
     self.assertIsNone(result)
 
-  def test_ec2_route_table_main_route_table_id(self):
-    """Does ec2:route-table/main-route-table-id,vpc-<env> resolve to route table ID"""
-    test_string = "ec2:route-table/main-route-table-id,vpc-"+context.env
-    resolver = EFAwsResolver(TestEFAwsResolver.clients)
-    self.assertRegexpMatches(resolver.lookup(test_string), "^rtb-[a-f0-9]{8}$")
+  @patch('ef_aws_resolver.EFAwsResolver.ec2_vpc_vpc_id')
+  def test_ec2_route_table_main_route_table_id(self, mock_ec2_vpc_vpc_id):
+    """
+    Tests ec2_route_table_main_route_table_id to see if it returns the correct route table id based on vpc name
 
-  def test_ec2_route_table_main_route_table_id_none(self):
-    """Does ec2:route-table/main-route-table-id,cant_possibly_match return None"""
-    test_string = "ec2:route-table/main-route-table-id,cant_possibly_match"
-    resolver = EFAwsResolver(TestEFAwsResolver.clients)
-    self.assertIsNone(resolver.lookup(test_string))
+    Args:
+      mock_ec2_vpc_vpc_id: MagicMock, returns mock vpc id
 
-  def test_ec2_route_table_main_route_table_id_default(self):
-    """Does ec2:route-table/main-route-table-id,cant_possibly_match,DEFAULT return default value"""
-    test_string = "ec2:route-table/main-route-table-id,cant_possibly_match,DEFAULT"
-    resolver = EFAwsResolver(TestEFAwsResolver.clients)
-    self.assertRegexpMatches(resolver.lookup(test_string), "^DEFAULT$")
+    Returns:
+      None
 
+    Raises:
+      AssertionError if any of the assert checks fail
+    """
+    target_route_table_id = "rtb-111222"
+    mock_ec2_vpc_vpc_id.return_value = "mock_vpc_id"
+    route_table_response = {
+      "RouteTables": [
+        {
+          "RouteTableId": target_route_table_id
+        }
+      ]
+    }
+    self._clients["ec2"].describe_route_tables.return_value = route_table_response
+    ef_aws_resolver = EFAwsResolver(self._clients)
+    result = ef_aws_resolver.lookup("ec2:route-table/main-route-table-id,target_vpc_name")
+    self.assertEquals(target_route_table_id, result)
 
+  @patch('ef_aws_resolver.EFAwsResolver.ec2_vpc_vpc_id')
+  def test_ec2_route_table_main_route_table_id_no_single_match(self, mock_ec2_vpc_vpc_id):
+    """
+    Tests ec2_route_table_main_route_table_id to see if it returns None if no matches or more than one match occurs
 
+    Args:
+      mock_ec2_vpc_vpc_id: MagicMock, returns mock vpc id
+
+    Returns:
+      None
+
+    Raises:
+      AssertionError if any of the assert checks fail
+    """
+    mock_ec2_vpc_vpc_id.return_value = "mock_vpc_id"
+    route_table_response = {
+      "RouteTables": [
+        {
+          "RouteTableId": "rtb-111222"
+        },
+        {
+          "RouteTableId": "rtb-333444"
+        }
+      ]
+    }
+    self._clients["ec2"].describe_route_tables.return_value = route_table_response
+    ef_aws_resolver = EFAwsResolver(self._clients)
+    result = ef_aws_resolver.lookup("ec2:route-table/main-route-table-id,target_vpc_name")
+    self.assertIsNone(result)
+
+    route_table_response = {
+      "RouteTables": []
+    }
+    self._clients["ec2"].describe_route_tables.return_value = route_table_response
+    result = ef_aws_resolver.lookup("ec2:route-table/main-route-table-id,target_vpc_name")
+    self.assertIsNone(result)
 
 
 
