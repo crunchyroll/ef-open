@@ -1772,6 +1772,29 @@ class TestEFAwsResolver(unittest.TestCase):
     result = ef_aws_resolver.lookup("cloudfront:origin-access-identity/oai-canonical-user-id,cant_possibly_match")
     self.assertIsNone(result)
 
+  def test_lookup_invalid_input(self):
+    """
+    Tests lookup with all invalid inputs
+
+    NOTE: Don't need to create valid input test cases since all the other unit tests do that with each different
+    lookup.
+
+    Returns:
+      None
+
+    Raises:
+      AssertionError if any of the assert checks fail
+    """
+    ef_aws_resolver = EFAwsResolver(self._clients)
+
+    result = ef_aws_resolver.lookup(None)
+    self.assertIsNone(result)
+
+    result = ef_aws_resolver.lookup("service_does_not_exist")
+    self.assertIsNone(result)
+
+    result = ef_aws_resolver.lookup("")
+    self.assertIsNone(result)
 
 if __name__ == '__main__':
   unittest.main()
