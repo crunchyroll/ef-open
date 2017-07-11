@@ -49,7 +49,10 @@ class EFServiceRegistry(object):
       raise IOError("Not a file: {}".format(self._service_registry_file))
     # Read the service registry
     service_registry_fh = open(self._service_registry_file, "r")
-    self.service_registry_json = json.load(service_registry_fh)
+    try:
+      self.service_registry_json = json.load(service_registry_fh)
+    except ValueError:
+      raise Exception("Malformed service registry file")
     # Validate service registry
     # 1. All service groups listed in EFConfig.SERVICE_GROUPS must be present
     for service_group in EFConfig.SERVICE_GROUPS:
