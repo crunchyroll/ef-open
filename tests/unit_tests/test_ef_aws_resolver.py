@@ -25,7 +25,9 @@ from ef_aws_resolver import EFAwsResolver
 
 
 class TestEFAwsResolver(unittest.TestCase):
-  """Tests for `ef_aws_resolver.py`."""
+  """
+  Unit tests for `ef_aws_resolver.py`.
+  """
 
   def setUp(self):
     """
