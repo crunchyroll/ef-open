@@ -54,9 +54,8 @@ class TestEFAwsResolver(unittest.TestCase):
       "SESSION": mock_session
     }
 
-    # Uncomment if you want to test for real to check something, but you'll need to modify the test so that
-    # the mocking doesn't interfere. You'll need this due to the documentation for aws cli doesn't match
-    # what is given calling the api directly.
+    # Uncomment this section and comment the above section if you want to test for real to check something.
+    # You'll also need to modify the test you want to check so that the mocking doesn't interfere.
     # session = boto3.Session(profile_name="default", region_name="us-west-2")
     # self._clients = {
     #   "cloudformation": session.client("cloudformation"),
