@@ -34,7 +34,7 @@ from os.path import dirname, normpath
 import sys
 import time
 
-import botocore.exceptions
+from botocore.exceptions import ClientError
 
 from ef_aws_resolver import EFAwsResolver
 from ef_config import EFConfig
@@ -288,7 +288,7 @@ def conditionally_create_role(role_name, sr_entry):
         new_role = CLIENTS["iam"].create_role(
           RoleName=role_name, AssumeRolePolicyDocument=assume_role_policy_document
         )
-      except botocore.exceptions.ClientError as error:
+      except ClientError as error:
         fail("Exception creating new role named: {} {}".format(role_name, sys.exc_info(), error))
       print(new_role["Role"]["RoleId"])
   else:
@@ -310,7 +310,7 @@ def conditionally_create_profile(role_name, service_type):
     if CONTEXT.commit:
       try:
         instance_profile = CLIENTS["iam"].create_instance_profile(InstanceProfileName=role_name)
-      except botocore.exceptions.ClientError as error:
+      except ClientError as error:
         fail("Exception creating instance profile named: {} {}".format(role_name, sys.exc_info(), error))
   else:
     print_if_verbose("instance profile already exists: {}".format(role_name))
@@ -320,7 +320,7 @@ def conditionally_create_profile(role_name, service_type):
     if CONTEXT.commit:
       try:
         CLIENTS["iam"].add_role_to_instance_profile(InstanceProfileName=role_name, RoleName=role_name)
-      except botocore.exceptions.ClientError as error:
+      except ClientError as error:
         fail("Exception adding role to instance profile: {} {}".format(role_name, sys.exc_info(), error))
   else:
     print_if_verbose("instance profile already contains role: {}".format(role_name))
@@ -361,15 +361,17 @@ def conditionally_create_kms_key(role_name, service_type):
       role_name: name of the role that kms key is being created for; it will be given decrypt privileges.
       service_type: service registry service type: 'aws_ec2', 'aws_lambda', or 'http_service'
   """
-  # TODO: CREATE TESTS
   if service_type not in KMS_SERVICE_TYPES:
     print_if_verbose("not eligible for kms; service_type: {} is not valid for kms".format(service_type))
     return
 
   try:
     kms_key = CLIENTS["kms"].describe_key(KeyId='alias/{}'.format(role_name))
-  except botocore.exceptions.ClientError:
-    kms_key = None
+  except ClientError as error:
+    if error.response['Error']['Code'] == 'NotFoundException':
+      kms_key = None
+    else:
+      fail("Exception describing KMS key: {} {}".format(role_name, error))
 
   formatted_principal = '"AWS": "arn:aws:iam::{}:role/{}"'.format(CONTEXT.account_id, role_name)
   kms_key_policy = '''{
@@ -407,7 +409,7 @@ def conditionally_create_kms_key(role_name, service_type):
             Description='Master Key for {}'.format(role_name)
           )
           break
-        except botocore.exceptions.ClientError as error:
+        except ClientError as error:
           if error.response['Error']['Code'] == 'MalformedPolicyDocumentException':
             if create_key_failures == 5:
               fail("Exception creating kms key: {} {}".format(role_name, error))
@@ -420,7 +422,7 @@ def conditionally_create_kms_key(role_name, service_type):
           AliasName='alias/{}'.format(role_name),
           TargetKeyId=new_kms_key['KeyMetadata']['KeyId']
         )
-      except botocore.exceptions.ClientError as error:
+      except ClientError as error:
         fail("Exception creating alias for kms key: {} {}".format(role_name, error))
   else:
     print_if_verbose("KMS key already exists: {}".format(role_name))
