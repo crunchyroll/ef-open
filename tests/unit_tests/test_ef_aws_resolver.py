@@ -78,29 +78,37 @@ class TestEFAwsResolver(unittest.TestCase):
 
   _CERTIFICATE_ARN_PREFIX = "arn:aws:acm:us-west-2:111000:certificate/"
 
-  def _generate_certificate_summary_list(self):
+  def _generate_certificate_summary_list(self, make_empty=False):
     """
-    Generates a generic certificate summary list of non targets
+    Generates a generic certificate summary list. Can be filled with dummy certificate summaries or be an empty list.
+
+    Args:
+      make_empty: bool
 
     Returns:
       Dictionary object containing the certificate summary list, mimicking Amazon ACM actual JSON response
     """
-    certificate_summary_list = {
-      "CertificateSummaryList": [
-        {
-          "CertificateArn": self._CERTIFICATE_ARN_PREFIX + "not_target_cert",
-          "DomainName": "first.com"
-        },
-        {
-          "CertificateArn": self._CERTIFICATE_ARN_PREFIX + "not_target_cert",
-          "DomainName": "second.com"
-        },
-        {
-          "CertificateArn": self._CERTIFICATE_ARN_PREFIX + "not_target_cert",
-          "DomainName": "third.com"
-        }
-      ]
-    }
+    if make_empty:
+      certificate_summary_list = {
+        "CertificateSummaryList": []
+      }
+    else:
+      certificate_summary_list = {
+        "CertificateSummaryList": [
+          {
+            "CertificateArn": self._CERTIFICATE_ARN_PREFIX + "not_target_cert",
+            "DomainName": "first.com"
+          },
+          {
+            "CertificateArn": self._CERTIFICATE_ARN_PREFIX + "not_target_cert",
+            "DomainName": "second.com"
+          },
+          {
+            "CertificateArn": self._CERTIFICATE_ARN_PREFIX + "not_target_cert",
+            "DomainName": "third.com"
+          }
+        ]
+      }
     return certificate_summary_list
 
   def _generate_certificate_summary(self, certificate_arn, domain_name):
@@ -181,7 +189,7 @@ class TestEFAwsResolver(unittest.TestCase):
 
     # Generate target certificate description
     target_certificate = self._generate_certificate_description(target_certificate_arn, target_domain_name, 1111)
-    mock_acm_client.describe_certificate.side_effect = [target_certificate]
+    mock_acm_client.describe_certificate.return_value = target_certificate
 
     # Test actual function and assert results
     self._clients["SESSION"].client.return_value = mock_acm_client
@@ -256,9 +264,9 @@ class TestEFAwsResolver(unittest.TestCase):
     result_certificate_arn = ef_aws_resolver.lookup(lookup_token)
     self.assertIsNone(result_certificate_arn)
 
-  def test_acm_certificate_arn_no_certificates(self):
+  def test_acm_certificate_arn_no_match(self):
     """
-    Test acm_certificate_arn to see if it returns None when no certificates are found.
+    Test acm_certificate_arn to see if it returns None when there is no match
 
     Returns:
       None
@@ -266,13 +274,26 @@ class TestEFAwsResolver(unittest.TestCase):
     Raises:
       AssertionError if any of the assert checks fail
     """
-    mock_acm_client = Mock(name="Mock ACM Client")
-    mock_acm_client.list_certificates.return_value = {"CertificateSummaryList": []}
+    # Generate a certificate summary list with no target certificate summary
+    certificate_summary_list = self._generate_certificate_summary_list()
 
+    mock_acm_client = Mock(name="Mock ACM Client")
+    mock_acm_client.list_certificates.return_value = certificate_summary_list
+
+    # Test actual function and assert results
     self._clients["SESSION"].client.return_value = mock_acm_client
     ef_aws_resolver = EFAwsResolver(self._clients)
-    result_certificate_arn = ef_aws_resolver.lookup("acm:certificate-arn,us-west-2/second.com")
-    self.assertEquals(result_certificate_arn, None)
+    result_certificate_arn = ef_aws_resolver.lookup("acm:certificate-arn,us-west-2/cant_possibly_match")
+    self.assertIsNone(result_certificate_arn)
+
+    # Generate an empty certificate summary list
+    certificate_summary_list = self._generate_certificate_summary_list(make_empty=True)
+
+    mock_acm_client.list_certificates.return_value = certificate_summary_list
+
+    # Test actual function and assert results
+    result_certificate_arn = ef_aws_resolver.lookup("acm:certificate-arn,us-west-2/cant_possibly_match")
+    self.assertIsNone(result_certificate_arn)
 
   def test_acm_certificate_arn_old_matching_certificate_has_no_issued_date(self):
     """
@@ -993,6 +1014,111 @@ class TestEFAwsResolver(unittest.TestCase):
     result = ef_aws_resolver.lookup("waf:web-acl-id,cant_possibly_match")
     self.assertIsNone(result)
 
+  _HOSTED_ZONE_ID_PREFIX = "/hostedzone/"
+
+  def _generate_hosted_zones_list(self, make_empty=False):
+    """
+    Generates a generic hosted zones JSON object. IsTruncated is False. Can be an empty list or one with dummy
+    hosted zones.
+
+    Args:
+      make_empty: bool
+
+    Returns:
+      Dictionary object of hosted zones
+    """
+    if make_empty:
+      hosted_zones = {
+        "HostedZones": [],
+        "IsTruncated": False
+      }
+    else:
+      hosted_zones = {
+        "HostedZones": [
+          {
+            "Config": {
+                "PrivateZone": True
+            },
+            "Id": self._HOSTED_ZONE_ID_PREFIX + "AAAAA1",
+            "Name": "other_domain.com."
+          },
+          {
+            "Config": {
+                "PrivateZone": False
+            },
+            "Id": self._HOSTED_ZONE_ID_PREFIX + "AAAAA2",
+            "Name": "other_domain.com."
+          },
+          {
+            "Config": {
+                "PrivateZone": True
+            },
+            "Id": self._HOSTED_ZONE_ID_PREFIX + "BBBBB1",
+            "Name": "another_domain.com"
+          },
+          {
+            "Config": {
+              "PrivateZone": False
+            },
+            "Id": self._HOSTED_ZONE_ID_PREFIX + "BBBBB2",
+            "Name": "another_domain.com"
+          }
+        ],
+        "IsTruncated": False
+      }
+    return hosted_zones
+
+  def _generate_hosted_zone(self, hosted_zone_id, hosted_zone_domain_name, is_private=False):
+    """
+    Generates a hosted zone with given parameters
+
+    Args:
+      hosted_zone_id: string
+      hosted_zone_domain_name: string
+      is_private: bool
+
+    Returns:
+      Dictionary object of a hosted zone
+    """
+    hosted_zone = {
+        "Config": {
+            "PrivateZone": is_private
+        },
+        "Id": self._HOSTED_ZONE_ID_PREFIX + hosted_zone_id,
+        "Name": hosted_zone_domain_name
+    }
+    return hosted_zone
+
+  def _insert_hosted_zone_into_hosted_zones_list(self, hosted_zone, hosted_zones_list):
+    """
+    Appends the hosted_zone to the hosted_zones_list
+
+    Args:
+      hosted_zone: Dictionary object of one hosted zone
+      hosted_zones_list: Dictionary object of a hosted zones list
+
+    Returns:
+      None
+    """
+    if hosted_zones_list and hosted_zones_list.get("HostedZones", None) and hosted_zone:
+      hosted_zones_list["HostedZones"].append(hosted_zone)
+
+  def _set_hosted_zones_list_to_truncated(self, hosted_zones_list):
+    """
+    Sets the IsTruncated field to True and adds the NextHostedZoneId and NextDNSName field like an actual
+    JSON response from Amazon would if the number of items in a result excited max items size.
+
+    Args:
+      hosted_zones_list: Dictionary object
+
+    Returns:
+      None
+    """
+    if hosted_zones_list:
+      hosted_zones_list["IsTruncated"] = True
+      hosted_zones_list["NextHostedZoneId"] = "ZZZZZ1"
+      hosted_zones_list["NextDNSName"] = "whatever_domain.com"
+
   def test_route53_public_hosted_zone_id(self):
     """
     Tests route53_public_hosted_zone_id to see if it returns the hosted zone Id given the domain name and if the
@@ -1004,42 +1130,17 @@ class TestEFAwsResolver(unittest.TestCase):
     Raises:
       AssertionError if any of the assert checks fail
     """
+    # Sets the fields of the target hosted zone
     target_hosted_zone_id = "112233"
-    target_hosted_zone_name = "my_domain.com."
-    hosted_zones_by_name_response = {
-      "HostedZones": [
-        {
-          "Config": {
-              "PrivateZone": True
-          },
-          "Id": "/hostedzone/1Z2Y3X",
-          "Name": "other_domain.com."
-        },
-        {
-          "Config": {
-              "PrivateZone": False
-          },
-          "Id": "/hostedzone/B1C1D1",
-          "Name": "other_domain.com."
-        },
-        {
-          "Config": {
-              "PrivateZone": True
-          },
-          "Id": "/hostedzone/AABBCC",
-          "Name": target_hosted_zone_name
-        },
-        {
-          "Config": {
-            "PrivateZone": False
-          },
-          "Id": "/hostedzone/" + target_hosted_zone_id,
-          "Name": target_hosted_zone_name
-        }
-      ],
-      "IsTruncated": False
-    }
-    self._clients["route53"].list_hosted_zones_by_name.return_value = hosted_zones_by_name_response
+    target_hosted_zone_name = "target_domain.com."
+
+    # Generates a list of hosted zones with the target hosted zone inside that list
+    hosted_zones_list = self._generate_hosted_zones_list()
+    target_hosted_zone = self._generate_hosted_zone(target_hosted_zone_id, target_hosted_zone_name)
+    self._insert_hosted_zone_into_hosted_zones_list(target_hosted_zone, hosted_zones_list)
+
+    # Test the function and assert the results
+    self._clients["route53"].list_hosted_zones_by_name.return_value = hosted_zones_list
     ef_aws_resolver = EFAwsResolver(self._clients)
     result = ef_aws_resolver.lookup("route53:public-hosted-zone-id," + target_hosted_zone_name)
     self.assertEquals(target_hosted_zone_id, result)
@@ -1055,49 +1156,21 @@ class TestEFAwsResolver(unittest.TestCase):
     Raises:
       AssertionError if any of the assert checks fail
     """
+    # Generate first truncated hosted zones list
+    first_hosted_zones_list = self._generate_hosted_zones_list()
+    self._set_hosted_zones_list_to_truncated(first_hosted_zones_list)
+
+    # Set the fields of the target hosted zone
     target_hosted_zone_id = "112233"
     target_hosted_zone_name = "my_domain.com."
-    first_hosted_zones_by_name_response = {
-      "HostedZones": [
-        {
-          "Config": {
-            "PrivateZone": True
-          },
-          "Id": "/hostedzone/1Z2Y3X",
-          "Name": "other_domain.com."
-        },
-        {
-          "Config": {
-            "PrivateZone": False
-          },
-          "Id": "/hostedzone/B1C1D1",
-          "Name": "other_domain.com."
-        }
-      ],
-      "IsTruncated": True,
-      "NextHostedZoneId": "aabbcc"
-    }
-    second_hosted_zones_by_name_response = {
-      "HostedZones": [
-        {
-          "Config": {
-            "PrivateZone": True
-          },
-          "Id": "/hostedzone/AABBCC",
-          "Name": target_hosted_zone_name
-        },
-        {
-          "Config": {
-            "PrivateZone": False
-          },
-          "Id": "/hostedzone/" + target_hosted_zone_id,
-          "Name": target_hosted_zone_name
-        }
-      ],
-      "IsTruncated": False
-    }
-    self._clients["route53"].list_hosted_zones_by_name.side_effect = [first_hosted_zones_by_name_response,
-                                                                      second_hosted_zones_by_name_response]
+
+    # Generate second hosted zones list with target hosted zone in it
+    second_hosted_zones_list = self._generate_hosted_zones_list()
+    target_hosted_zone = self._generate_hosted_zone(target_hosted_zone_id, target_hosted_zone_name)
+    self._insert_hosted_zone_into_hosted_zones_list(target_hosted_zone, second_hosted_zones_list)
+
+    # Test the function and assert the results
+    self._clients["route53"].list_hosted_zones_by_name.side_effect = [first_hosted_zones_list, second_hosted_zones_list]
     ef_aws_resolver = EFAwsResolver(self._clients)
     result = ef_aws_resolver.lookup("route53:public-hosted-zone-id," + target_hosted_zone_name)
     self.assertEquals(target_hosted_zone_id, result)
@@ -1126,49 +1199,20 @@ class TestEFAwsResolver(unittest.TestCase):
     Raises:
       AssertionError if any of the assert checks fail
     """
-    hosted_zones_by_name_response = {
-      "HostedZones": [
-        {
-          "Config": {
-              "PrivateZone": True
-          },
-          "Id": "/hostedzone/1Z2Y3X",
-          "Name": "other_domain.com."
-        },
-        {
-          "Config": {
-              "PrivateZone": False
-          },
-          "Id": "/hostedzone/B1C1D1",
-          "Name": "other_domain.com."
-        },
-        {
-          "Config": {
-              "PrivateZone": True
-          },
-          "Id": "/hostedzone/AABBCC",
-          "Name": "another_domain.com."
-        },
-        {
-          "Config": {
-            "PrivateZone": False
-          },
-          "Id": "/hostedzone/11223344",
-          "Name": "another_domain.com."
-        }
-      ],
-      "IsTruncated": False
-    }
-    self._clients["route53"].list_hosted_zones_by_name.return_value = hosted_zones_by_name_response
+    # Generate hosted zones list, no target hosted zone in it
+    hosted_zones_list = self._generate_hosted_zones_list()
+
+    # Test the function and assert the results
+    self._clients["route53"].list_hosted_zones_by_name.return_value = hosted_zones_list
     ef_aws_resolver = EFAwsResolver(self._clients)
     result = ef_aws_resolver.lookup("route53:public-hosted-zone-id,cant_possibly_match.")
     self.assertIsNone(result)
 
-    hosted_zones_by_name_response = {
-      "HostedZones": [],
-      "IsTruncated": False
-    }
-    self._clients["route53"].list_hosted_zones_by_name.return_value = hosted_zones_by_name_response
+    # Generated empty hosted zones list
+    hosted_zones_list = self._generate_hosted_zones_list(make_empty=True)
+
+    # Test the function and assert the results
+    self._clients["route53"].list_hosted_zones_by_name.return_value = hosted_zones_list
     result = ef_aws_resolver.lookup("route53:public-hosted-zone-id,cant_possibly_match.")
     self.assertIsNone(result)
 
@@ -1183,42 +1227,17 @@ class TestEFAwsResolver(unittest.TestCase):
     Raises:
       AssertionError if any of the assert checks fail
     """
+    # Generate values for target hosted zone
     target_hosted_zone_id = "112233"
     target_hosted_zone_name = "my_domain.com."
-    hosted_zones_by_name_response = {
-      "HostedZones": [
-        {
-          "Config": {
-            "PrivateZone": True
-          },
-          "Id": "/hostedzone/1Z2Y3X",
-          "Name": "other_domain.com."
-        },
-        {
-          "Config": {
-            "PrivateZone": False
-          },
-          "Id": "/hostedzone/B1C1D1",
-          "Name": "other_domain.com."
-        },
-        {
-          "Config": {
-            "PrivateZone": False
-          },
-          "Id": "/hostedzone/AABBCC",
-          "Name": target_hosted_zone_name
-        },
-        {
-          "Config": {
-            "PrivateZone": True
-          },
-          "Id": "/hostedzone/" + target_hosted_zone_id,
-          "Name": target_hosted_zone_name
-        }
-      ],
-      "IsTruncated": False
-    }
-    self._clients["route53"].list_hosted_zones_by_name.return_value = hosted_zones_by_name_response
+
+    # Generate hosted zones list with target hosted zone in it
+    hosted_zones_list = self._generate_hosted_zones_list()
+    target_hosted_zone = self._generate_hosted_zone(target_hosted_zone_id, target_hosted_zone_name, is_private=True)
+    self._insert_hosted_zone_into_hosted_zones_list(target_hosted_zone, hosted_zones_list)
+
+    # Test the function and assert the results
+    self._clients["route53"].list_hosted_zones_by_name.return_value = hosted_zones_list
     ef_aws_resolver = EFAwsResolver(self._clients)
     result = ef_aws_resolver.lookup("route53:private-hosted-zone-id," + target_hosted_zone_name)
     self.assertEquals(target_hosted_zone_id, result)
@@ -1231,49 +1250,22 @@ class TestEFAwsResolver(unittest.TestCase):
     Returns:
       None
     """
+    # Create first hosted zones list and set it to truncated
+    first_hosted_zones_list = self._generate_hosted_zones_list()
+    self._set_hosted_zones_list_to_truncated(first_hosted_zones_list)
+
+    # Generate values for target hosted zone
     target_hosted_zone_id = "112233"
     target_hosted_zone_name = "my_domain.com."
-    first_hosted_zones_by_name_response = {
-      "HostedZones": [
-        {
-          "Config": {
-            "PrivateZone": True
-          },
-          "Id": "/hostedzone/1Z2Y3X",
-          "Name": "other_domain.com."
-        },
-        {
-          "Config": {
-            "PrivateZone": False
-          },
-          "Id": "/hostedzone/B1C1D1",
-          "Name": "other_domain.com."
-        }
-      ],
-      "IsTruncated": True,
-      "NextHostedZoneId": "aabbcc"
-    }
-    second_hosted_zones_by_name_response = {
-      "HostedZones": [
-        {
-          "Config": {
-            "PrivateZone": False
-          },
-          "Id": "/hostedzone/AABBCC",
-          "Name": target_hosted_zone_name
-        },
-        {
-          "Config": {
-            "PrivateZone": True
-          },
-          "Id": "/hostedzone/" + target_hosted_zone_id,
-          "Name": target_hosted_zone_name
-        }
-      ],
-      "IsTruncated": False
-    }
-    self._clients["route53"].list_hosted_zones_by_name.side_effect = [first_hosted_zones_by_name_response,
-                                                                      second_hosted_zones_by_name_response]
+
+    # Generate second hosted zones list with target hosted zone in it
+    second_hosted_zones_list = self._generate_hosted_zones_list()
+    target_hosted_zone = self._generate_hosted_zone(target_hosted_zone_id, target_hosted_zone_name, is_private=True)
+    self._insert_hosted_zone_into_hosted_zones_list(target_hosted_zone, second_hosted_zones_list)
+
+    # Test the function and assert the results
+    self._clients["route53"].list_hosted_zones_by_name.side_effect = [first_hosted_zones_list,
+                                                                      second_hosted_zones_list]
     ef_aws_resolver = EFAwsResolver(self._clients)
     result = ef_aws_resolver.lookup("route53:private-hosted-zone-id," + target_hosted_zone_name)
     self.assertEquals(target_hosted_zone_id, result)
@@ -1302,49 +1294,20 @@ class TestEFAwsResolver(unittest.TestCase):
     Raises:
       AssertionError if any of the assert checks fail
     """
-    hosted_zones_by_name_response = {
-      "HostedZones": [
-        {
-          "Config": {
-            "PrivateZone": True
-          },
-          "Id": "/hostedzone/1Z2Y3X",
-          "Name": "other_domain.com."
-        },
-        {
-          "Config": {
-            "PrivateZone": False
-          },
-          "Id": "/hostedzone/B1C1D1",
-          "Name": "other_domain.com."
-        },
-        {
-          "Config": {
-            "PrivateZone": True
-          },
-          "Id": "/hostedzone/AABBCC",
-          "Name": "another_domain.com."
-        },
-        {
-          "Config": {
-            "PrivateZone": False
-          },
-          "Id": "/hostedzone/11223344",
-          "Name": "another_domain.com."
-        }
-      ],
-      "IsTruncated": False
-    }
-    self._clients["route53"].list_hosted_zones_by_name.return_value = hosted_zones_by_name_response
+    # Generate hosted zones list without target hosted zone
+    hosted_zones_list = self._generate_hosted_zones_list()
+
+    # Test the function and assert the results
+    self._clients["route53"].list_hosted_zones_by_name.return_value = hosted_zones_list
     ef_aws_resolver = EFAwsResolver(self._clients)
     result = ef_aws_resolver.lookup("route53:private-hosted-zone-id,cant_possibly_match.")
     self.assertIsNone(result)
 
-    hosted_zones_by_name_response = {
-      "HostedZones": [],
-      "IsTruncated": False
-    }
-    self._clients["route53"].list_hosted_zones_by_name.return_value = hosted_zones_by_name_response
+    # Generate empty hosted zones list
+    hosted_zones_list = self._generate_hosted_zones_list(make_empty=True)
+
+    # Test the function and assert the results
+    self._clients["route53"].list_hosted_zones_by_name.return_value = hosted_zones_list
     result = ef_aws_resolver.lookup("route53:private-hosted-zone-id,cant_possibly_match.")
     self.assertIsNone(result)
 
