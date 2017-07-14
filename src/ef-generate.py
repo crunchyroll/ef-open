@@ -355,6 +355,13 @@ def conditionally_inline_policies(role_name, sr_entry):
 
 
 def conditionally_create_kms_key(role_name, service_type):
+  """
+  Create KMS Master Key for encryption/decryption of sensitive values in cf templates and latebind configs
+  Args:
+      role_name: name of the role that kms key is being created for; it will be given decrypt privileges.
+      service_type: service registry service type: 'aws_ec2', 'aws_lambda', or 'http_service'
+  """
+  # TODO: CREATE TESTS
   if service_type not in KMS_SERVICE_TYPES:
     print_if_verbose("not eligible for kms; service_type: {} is not valid for kms".format(service_type))
     return
@@ -391,7 +398,7 @@ def conditionally_create_kms_key(role_name, service_type):
     print("Create KMS key: {}".format(role_name))
     if CONTEXT.commit:
       # Create KMS Master Key. Due to AWS eventual consistency a newly created IAM role may not yet be visible to KMS.
-      # Retrying up to 5 times to account for this behavior.
+      # Retrying up to 5 times (25 seconds) to account for this behavior.
       create_key_failures = 0
       while create_key_failures <= 5:
         try:
