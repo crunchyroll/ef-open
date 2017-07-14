@@ -76,6 +76,87 @@ class TestEFAwsResolver(unittest.TestCase):
     """
     pass
 
+  _CERTIFICATE_ARN_PREFIX = "arn:aws:acm:us-west-2:111000:certificate/"
+
+  def _generate_certificate_summary_list(self):
+    """
+    Generates a generic certificate summary list of non targets
+
+    Returns:
+      Dictionary object containing the certificate summary list, mimicking Amazon ACM actual JSON response
+    """
+    certificate_summary_list = {
+      "CertificateSummaryList": [
+        {
+          "CertificateArn": self._CERTIFICATE_ARN_PREFIX + "not_target_cert",
+          "DomainName": "first.com"
+        },
+        {
+          "CertificateArn": self._CERTIFICATE_ARN_PREFIX + "not_target_cert",
+          "DomainName": "second.com"
+        },
+        {
+          "CertificateArn": self._CERTIFICATE_ARN_PREFIX + "not_target_cert",
+          "DomainName": "third.com"
+        }
+      ]
+    }
+    return certificate_summary_list
+
+  def _generate_certificate_summary(self, certificate_arn, domain_name):
+    """
+    Creates a certificate summary from given parameters
+
+    Args:
+      certificate_arn: string
+      domain_name: string
+
+    Returns:
+      Dictionary object of the certificate summary, mimicking Amazon ACM actual JSON response
+    """
+    certificate_summary = {
+      "CertificateArn": certificate_arn,
+      "DomainName": domain_name
+    }
+    return certificate_summary
+
+  def _generate_certificate_description(self, certificate_arn, domain_name, issued_at=None):
+    """
+    Creates a certificate description from given parameters
+
+    Args:
+      certificate_arn: string
+      domain_name: string
+      issued_at: float
+
+    Returns:
+      Dictionary object of a certificate description, mimicking Amazon ACM actual JSON response
+    """
+    certificate = {
+      "Certificate": {
+        "CertificateArn": certificate_arn,
+        "DomainName": domain_name,
+        "IssuedAt": issued_at
+      }
+    }
+    if not issued_at:
+      certificate["Certificate"].pop("IssuedAt", None)
+    return certificate
+
+  def _insert_cert_summary_into_cert_summary_list(self, target_certificate_summary, certificate_summary_list):
+    """
+    Appends the target certificate description into the certificate summary list
+
+    Args:
+      target_certificate_summary: dictionary object
+      certificate_summary_list: dictionary object that contains the CertificateSummaryList array
+
+    Returns:
+      None
+    """
+    if certificate_summary_list and certificate_summary_list.get("CertificateSummaryList", None):
+      certificate_summary_list["CertificateSummaryList"].append(target_certificate_summary)
+
   def test_acm_certificate_arn(self):
     """
     Tests acm_certificate_arn regular success case in obtaining the target certificate
@@ -86,35 +167,27 @@ class TestEFAwsResolver(unittest.TestCase):
     Raises:
       AssertionError if any of the assert checks fail
     """
-    target_certificate_arn = "arn:aws:acm:us-west-2:111000:certificate/target_cert"
-    target_domain_name = "second.com"
-    lookup_token = "acm:certificate-arn,us-west-2/" + target_domain_name
-    mock_acm_client = Mock(name="Mock ACM Client")
-    mock_acm_client.list_certificates.return_value = {
-      "CertificateSummaryList": [
-        {
-          "CertificateArn": "arn:aws:acm:us-west-2:111000:certificate/not_target_cert",
-          "DomainName": "first.com"
-        },
-        {
-          "CertificateArn": target_certificate_arn,
-          "DomainName": target_domain_name
-        }
-      ]
-    }
-    target_certificate = {
-      "Certificate": {
-        "IssuedAt": 1472845485.0,
-        "DomainName": target_domain_name,
-        "CertificateArn": target_certificate_arn
-      }
-    }
+    # Designate values of target certificate
+    target_certificate_arn = self._CERTIFICATE_ARN_PREFIX + "target_cert"
+    target_domain_name = "my_target.com"
 
+    # Generate certificate summary list with target certificate summary in it
+    certificate_summary_list = self._generate_certificate_summary_list()
+    target_certificate_summary = self._generate_certificate_summary(target_certificate_arn, target_domain_name)
+    self._insert_cert_summary_into_cert_summary_list(target_certificate_summary, certificate_summary_list)
+
+    mock_acm_client = Mock(name="Mock ACM Client")
+    mock_acm_client.list_certificates.return_value = certificate_summary_list
+
+    # Generate target certificate description
+    target_certificate = self._generate_certificate_description(target_certificate_arn, target_domain_name, 1111)
     mock_acm_client.describe_certificate.side_effect = [target_certificate]
+
+    # Test actual function and assert results
     self._clients["SESSION"].client.return_value = mock_acm_client
     ef_aws_resolver = EFAwsResolver(self._clients)
-    result_certificate_arn = ef_aws_resolver.lookup(lookup_token)
-    self.assertEquals(result_certificate_arn, target_certificate_arn)
+    result_certificate_arn = ef_aws_resolver.lookup("acm:certificate-arn,us-west-2/" + target_domain_name)
+    self.assertEqual(result_certificate_arn, target_certificate_arn)
 
   def test_acm_certificate_arn_multiple_matching_certificates(self):
     """
@@ -127,44 +200,35 @@ class TestEFAwsResolver(unittest.TestCase):
     Raises:
       AssertionError if any of the assert checks fail
     """
-    target_certificate_arn = "arn:aws:acm:us-west-2:111000:certificate/target_cert"
-    target_domain_name = "second.com"
-    lookup_token = "acm:certificate-arn,us-west-2/" + target_domain_name
+    # Designate values of target certificate
+    target_certificate_arn = self._CERTIFICATE_ARN_PREFIX + "target_cert"
+    target_domain_name = "my_target.com"
+
+    # Designate values of old certificate
+    old_certificate_arn = self._CERTIFICATE_ARN_PREFIX + "older_target_cert"
+
+    # Generate certificate summary list with old and target certificate summaries in it
+    certificate_summary_list = self._generate_certificate_summary_list()
+    old_certificate_summary = self._generate_certificate_summary(self._CERTIFICATE_ARN_PREFIX + "older_target_cert",
+                                                                 target_domain_name)
+    target_certificate_summary  = self._generate_certificate_summary(target_certificate_arn, target_domain_name)
+
+    self._insert_cert_summary_into_cert_summary_list(old_certificate_summary, certificate_summary_list)
+    self._insert_cert_summary_into_cert_summary_list(target_certificate_summary, certificate_summary_list)
+
     mock_acm_client = Mock(name="Mock ACM Client")
-    mock_acm_client.list_certificates.return_value = {
-      "CertificateSummaryList": [
-        {
-          "CertificateArn": "arn:aws:acm:us-west-2:111000:certificate/not_target_cert",
-          "DomainName": "first.com"
-        },
-        {
-          "CertificateArn": target_certificate_arn,
-          "DomainName": target_domain_name
-        },
-        {
-          "CertificateArn": target_certificate_arn,
-          "DomainName": target_domain_name
-        }
-      ]
-    }
-    old_certificate = {
-      "Certificate": {
-        "IssuedAt": 1472845000.0,
-        "DomainName": target_domain_name,
-        "CertificateArn": "arn:aws:acm:us-west-2:111000:certificate/older_target_cert"
-      }
-    }
-    target_certificate = {
-      "Certificate": {
-        "IssuedAt": 1472845485.0,
-        "DomainName": target_domain_name,
-        "CertificateArn": target_certificate_arn
-      }
-    }
-    mock_acm_client.describe_certificate.side_effect = [old_certificate, target_certificate]
+    mock_acm_client.list_certificates.return_value = certificate_summary_list
+
+    # Generate old and target certificate descriptions
+    old_certificate_description = self._generate_certificate_description(old_certificate_arn, target_domain_name, 1111)
+    target_certificate_description = self._generate_certificate_description(target_certificate_arn, target_domain_name,
+                                                                            2222)
+    mock_acm_client.describe_certificate.side_effect = [old_certificate_description, target_certificate_description]
+
+    # Test actual function and assert results
     self._clients["SESSION"].client.return_value = mock_acm_client
     ef_aws_resolver = EFAwsResolver(self._clients)
-    result_certificate_arn = ef_aws_resolver.lookup(lookup_token)
+    result_certificate_arn = ef_aws_resolver.lookup("acm:certificate-arn,us-west-2/" + target_domain_name)
     self.assertEquals(result_certificate_arn, target_certificate_arn)
 
   def test_acm_certificate_arn_bad_input(self):
@@ -202,13 +266,12 @@ class TestEFAwsResolver(unittest.TestCase):
     Raises:
       AssertionError if any of the assert checks fail
     """
-    target_domain_name = "second.com"
-    lookup_token = "acm:certificate-arn,us-west-2/" + target_domain_name
     mock_acm_client = Mock(name="Mock ACM Client")
     mock_acm_client.list_certificates.return_value = {"CertificateSummaryList": []}
+
     self._clients["SESSION"].client.return_value = mock_acm_client
     ef_aws_resolver = EFAwsResolver(self._clients)
-    result_certificate_arn = ef_aws_resolver.lookup(lookup_token)
+    result_certificate_arn = ef_aws_resolver.lookup("acm:certificate-arn,us-west-2/second.com")
     self.assertEquals(result_certificate_arn, None)
 
   def test_acm_certificate_arn_old_matching_certificate_has_no_issued_date(self):
@@ -222,48 +285,41 @@ class TestEFAwsResolver(unittest.TestCase):
     Raises:
       AssertionError if any of the assert checks fail
     """
-    target_certificate_arn = "arn:aws:acm:us-west-2:111000:certificate/target_cert"
-    target_domain_name = "second.com"
-    lookup_token = "acm:certificate-arn,us-west-2/" + target_domain_name
+    # Designate values of target certificate
+    target_certificate_arn = self._CERTIFICATE_ARN_PREFIX + "target_cert"
+    target_domain_name = "my_target.com"
+
+    # Designate values of old certificate
+    old_certificate_arn = self._CERTIFICATE_ARN_PREFIX + "older_target_cert"
+
+    # Generate certificate summary list with old and target certificate summaries in it
+    certificate_summary_list = self._generate_certificate_summary_list()
+    old_certificate_summary = self._generate_certificate_summary(old_certificate_arn, target_domain_name)
+    target_certificate_summary = self._generate_certificate_summary(target_certificate_arn, target_domain_name)
+    self._insert_cert_summary_into_cert_summary_list(old_certificate_summary, certificate_summary_list)
+    self._insert_cert_summary_into_cert_summary_list(target_certificate_summary, certificate_summary_list)
+
     mock_acm_client = Mock(name="Mock ACM Client")
-    mock_acm_client.list_certificates.return_value = {
-      "CertificateSummaryList": [
-        {
-          "CertificateArn": "arn:aws:acm:us-west-2:111000:certificate/not_target_cert",
-          "DomainName": "first.com"
-        },
-        {
-          "CertificateArn": target_certificate_arn,
-          "DomainName": target_domain_name
-        },
-        {
-          "CertificateArn": target_certificate_arn,
-          "DomainName": target_domain_name
-        }
-      ]
-    }
-    old_certificate = {
-      "Certificate": {
-        "DomainName": target_domain_name,
-        "CertificateArn": "arn:aws:acm:us-west-2:111000:certificate/older_target_cert"
-      }
-    }
-    target_certificate = {
-      "Certificate": {
-        "IssuedAt": 1472845485.0,
-        "DomainName": target_domain_name,
-        "CertificateArn": target_certificate_arn
-      }
-    }
-    mock_acm_client.describe_certificate.side_effect = [old_certificate, target_certificate]
+    mock_acm_client.list_certificates.return_value = certificate_summary_list
+
+    # Generate old certificate description without issued at date
+    old_certificate_description = self._generate_certificate_description(old_certificate_arn, target_domain_name)
+
+    # Generate target certificate description
+    target_certificate_description = self._generate_certificate_description(target_certificate_arn, target_domain_name,
+                                                                            2222)
+    mock_acm_client.describe_certificate.side_effect = [old_certificate_description, target_certificate_description]
+
+    # Test actual function and assert results
     self._clients["SESSION"].client.return_value = mock_acm_client
     ef_aws_resolver = EFAwsResolver(self._clients)
-    result_certificate_arn = ef_aws_resolver.lookup(lookup_token)
+    result_certificate_arn = ef_aws_resolver.lookup("acm:certificate-arn,us-west-2/" + target_domain_name)
     self.assertEquals(result_certificate_arn, target_certificate_arn)
 
   def test_acm_certificate_arn_target_certificate_has_no_issued_date(self):
     """
-    Tests acm_certificate_arn to see if target certificate is returned even when it has no date issued.
+    Tests acm_certificate_arn to see if target certificate is returned even when it has no date issued. The older
+    target certificate has an issued date.
 
     Returns:
       None
@@ -271,43 +327,34 @@ class TestEFAwsResolver(unittest.TestCase):
     Raises:
       AssertionError if any of the assert checks fail
     """
-    target_certificate_arn = "arn:aws:acm:us-west-2:111000:certificate/target_cert"
-    target_domain_name = "second.com"
-    lookup_token = "acm:certificate-arn,us-west-2/" + target_domain_name
+    # Designate values of target certificate
+    target_certificate_arn = self._CERTIFICATE_ARN_PREFIX + "target_cert"
+    target_domain_name = "my_target.com"
+
+    # Designate values of old certificate
+    old_certificate_arn = self._CERTIFICATE_ARN_PREFIX + "older_target_cert"
+
+    # Generate certificate summary list with old and target certificate summaries in it
+    certificate_summary_list = self._generate_certificate_summary_list()
+    old_certificate_summary = self._generate_certificate_summary(old_certificate_arn, target_domain_name)
+    target_certificate_summary = self._generate_certificate_summary(target_certificate_arn, target_domain_name)
+    self._insert_cert_summary_into_cert_summary_list(old_certificate_summary, certificate_summary_list)
+    self._insert_cert_summary_into_cert_summary_list(target_certificate_summary, certificate_summary_list)
+
     mock_acm_client = Mock(name="Mock ACM Client")
-    mock_acm_client.list_certificates.return_value = {
-      "CertificateSummaryList": [
-        {
-          "CertificateArn": "arn:aws:acm:us-west-2:111000:certificate/not_target_cert",
-          "DomainName": "first.com"
-        },
-        {
-          "CertificateArn": target_certificate_arn,
-          "DomainName": target_domain_name
-        },
-        {
-          "CertificateArn": target_certificate_arn,
-          "DomainName": target_domain_name
-        }
-      ]
-    }
-    old_certificate = {
-      "Certificate": {
-        "IssuedAt": 1472845000.0,
-        "DomainName": target_domain_name,
-        "CertificateArn": "arn:aws:acm:us-west-2:111000:certificate/older_target_cert"
-      }
-    }
-    target_certificate = {
-      "Certificate": {
-        "DomainName": target_domain_name,
-        "CertificateArn": target_certificate_arn
-      }
-    }
-    mock_acm_client.describe_certificate.side_effect = [old_certificate, target_certificate]
+    mock_acm_client.list_certificates.return_value = certificate_summary_list
+
+    # Generate old certificate description with an issued at date
+    old_certificate_description = self._generate_certificate_description(old_certificate_arn, target_domain_name, 1111)
+
+    # Generate target certificate description without issued at date
+    target_certificate_description = self._generate_certificate_description(target_certificate_arn, target_domain_name)
+    mock_acm_client.describe_certificate.side_effect = [old_certificate_description, target_certificate_description]
+
+    # Test actual function and assert results
     self._clients["SESSION"].client.return_value = mock_acm_client
     ef_aws_resolver = EFAwsResolver(self._clients)
-    result_certificate_arn = ef_aws_resolver.lookup(lookup_token)
+    result_certificate_arn = ef_aws_resolver.lookup("acm:certificate-arn,us-west-2/" + target_domain_name)
     self.assertEquals(result_certificate_arn, target_certificate_arn)
 
   @patch('ef_aws_resolver.EFAwsResolver.ec2_elasticip_elasticip_ipaddress')
