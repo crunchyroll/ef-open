@@ -16,7 +16,7 @@ limitations under the License.
 
 import unittest
 
-from ef_service_registry import EFServiceRegistry
+from src.ef_service_registry import EFServiceRegistry
 
 class TestEFUtils(unittest.TestCase):
   """Tests for 'ef_service_registry.py'"""

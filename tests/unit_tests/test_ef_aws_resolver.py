@@ -18,10 +18,10 @@ import unittest
 
 import boto3
 
-from ef_aws_resolver import EFAwsResolver
-from ef_config import EFConfig
-from ef_context import EFContext
-from ef_utils import fail, http_get_metadata, whereami
+from src.ef_aws_resolver import EFAwsResolver
+from src.ef_config import EFConfig
+from src.ef_context import EFContext
+from src.ef_utils import fail, http_get_metadata, whereami
 
 context = EFContext()
 context.env = "mgmt.ellationeng"
