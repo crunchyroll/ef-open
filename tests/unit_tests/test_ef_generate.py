@@ -14,12 +14,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-from StringIO import StringIO
-import subprocess
 import unittest
 
-from mock import call, Mock, patch
-import botocore.exceptions
+from mock import Mock
 
 from ef_context import EFContext
 ef_generate = __import__("ef-generate")
@@ -42,5 +39,3 @@ class TestEFGenerate(unittest.TestCase):
         role_name = "proto0-test-service"
         service_type = "http_service"
         ef_generate.conditionally_create_kms_key(role_name, service_type)
-
-    def
