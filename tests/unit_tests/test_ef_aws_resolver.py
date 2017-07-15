@@ -151,7 +151,7 @@ class TestEFAwsResolver(unittest.TestCase):
       certificate["Certificate"].pop("IssuedAt", None)
     return certificate
 
-  def _insert_cert_summary_into_cert_summary_list(self, target_certificate_summary, certificate_summary_list):
+  def _insert_cert_summary_into_list(self, target_certificate_summary, certificate_summary_list):
     """
     Appends the target certificate description into the certificate summary list
 
@@ -182,7 +182,7 @@ class TestEFAwsResolver(unittest.TestCase):
     # Generate certificate summary list with target certificate summary in it
     certificate_summary_list = self._generate_certificate_summary_list()
     target_certificate_summary = self._generate_certificate_summary(target_certificate_arn, target_domain_name)
-    self._insert_cert_summary_into_cert_summary_list(target_certificate_summary, certificate_summary_list)
+    self._insert_cert_summary_into_list(target_certificate_summary, certificate_summary_list)
 
     mock_acm_client = Mock(name="Mock ACM Client")
     mock_acm_client.list_certificates.return_value = certificate_summary_list
@@ -221,8 +221,8 @@ class TestEFAwsResolver(unittest.TestCase):
                                                                  target_domain_name)
     target_certificate_summary  = self._generate_certificate_summary(target_certificate_arn, target_domain_name)
 
-    self._insert_cert_summary_into_cert_summary_list(old_certificate_summary, certificate_summary_list)
-    self._insert_cert_summary_into_cert_summary_list(target_certificate_summary, certificate_summary_list)
+    self._insert_cert_summary_into_list(old_certificate_summary, certificate_summary_list)
+    self._insert_cert_summary_into_list(target_certificate_summary, certificate_summary_list)
 
     mock_acm_client = Mock(name="Mock ACM Client")
     mock_acm_client.list_certificates.return_value = certificate_summary_list
@@ -317,8 +317,8 @@ class TestEFAwsResolver(unittest.TestCase):
     certificate_summary_list = self._generate_certificate_summary_list()
     old_certificate_summary = self._generate_certificate_summary(old_certificate_arn, target_domain_name)
     target_certificate_summary = self._generate_certificate_summary(target_certificate_arn, target_domain_name)
-    self._insert_cert_summary_into_cert_summary_list(old_certificate_summary, certificate_summary_list)
-    self._insert_cert_summary_into_cert_summary_list(target_certificate_summary, certificate_summary_list)
+    self._insert_cert_summary_into_list(old_certificate_summary, certificate_summary_list)
+    self._insert_cert_summary_into_list(target_certificate_summary, certificate_summary_list)
 
     mock_acm_client = Mock(name="Mock ACM Client")
     mock_acm_client.list_certificates.return_value = certificate_summary_list
@@ -359,8 +359,8 @@ class TestEFAwsResolver(unittest.TestCase):
     certificate_summary_list = self._generate_certificate_summary_list()
     old_certificate_summary = self._generate_certificate_summary(old_certificate_arn, target_domain_name)
     target_certificate_summary = self._generate_certificate_summary(target_certificate_arn, target_domain_name)
-    self._insert_cert_summary_into_cert_summary_list(old_certificate_summary, certificate_summary_list)
-    self._insert_cert_summary_into_cert_summary_list(target_certificate_summary, certificate_summary_list)
+    self._insert_cert_summary_into_list(old_certificate_summary, certificate_summary_list)
+    self._insert_cert_summary_into_list(target_certificate_summary, certificate_summary_list)
 
     mock_acm_client = Mock(name="Mock ACM Client")
     mock_acm_client.list_certificates.return_value = certificate_summary_list
@@ -1089,7 +1089,7 @@ class TestEFAwsResolver(unittest.TestCase):
     }
     return hosted_zone
 
-  def _insert_hosted_zone_into_hosted_zones_list(self, hosted_zone, hosted_zones_list):
+  def _insert_hosted_zone_into_list(self, hosted_zone, hosted_zones_list):
     """
     Appends the hosted_zone to the hosted_zones_list
 
@@ -1137,7 +1137,7 @@ class TestEFAwsResolver(unittest.TestCase):
     # Generates a list of hosted zones with the target hosted zone inside that list
     hosted_zones_list = self._generate_hosted_zones_list()
     target_hosted_zone = self._generate_hosted_zone(target_hosted_zone_id, target_hosted_zone_name)
-    self._insert_hosted_zone_into_hosted_zones_list(target_hosted_zone, hosted_zones_list)
+    self._insert_hosted_zone_into_list(target_hosted_zone, hosted_zones_list)
 
     # Test the function and assert the results
     self._clients["route53"].list_hosted_zones_by_name.return_value = hosted_zones_list
@@ -1167,7 +1167,7 @@ class TestEFAwsResolver(unittest.TestCase):
     # Generate second hosted zones list with target hosted zone in it
     second_hosted_zones_list = self._generate_hosted_zones_list()
     target_hosted_zone = self._generate_hosted_zone(target_hosted_zone_id, target_hosted_zone_name)
-    self._insert_hosted_zone_into_hosted_zones_list(target_hosted_zone, second_hosted_zones_list)
+    self._insert_hosted_zone_into_list(target_hosted_zone, second_hosted_zones_list)
 
     # Test the function and assert the results
     self._clients["route53"].list_hosted_zones_by_name.side_effect = [first_hosted_zones_list, second_hosted_zones_list]
@@ -1234,7 +1234,7 @@ class TestEFAwsResolver(unittest.TestCase):
     # Generate hosted zones list with target hosted zone in it
     hosted_zones_list = self._generate_hosted_zones_list()
     target_hosted_zone = self._generate_hosted_zone(target_hosted_zone_id, target_hosted_zone_name, is_private=True)
-    self._insert_hosted_zone_into_hosted_zones_list(target_hosted_zone, hosted_zones_list)
+    self._insert_hosted_zone_into_list(target_hosted_zone, hosted_zones_list)
 
     # Test the function and assert the results
     self._clients["route53"].list_hosted_zones_by_name.return_value = hosted_zones_list
@@ -1261,7 +1261,7 @@ class TestEFAwsResolver(unittest.TestCase):
     # Generate second hosted zones list with target hosted zone in it
     second_hosted_zones_list = self._generate_hosted_zones_list()
     target_hosted_zone = self._generate_hosted_zone(target_hosted_zone_id, target_hosted_zone_name, is_private=True)
-    self._insert_hosted_zone_into_hosted_zones_list(target_hosted_zone, second_hosted_zones_list)
+    self._insert_hosted_zone_into_list(target_hosted_zone, second_hosted_zones_list)
 
     # Test the function and assert the results
     self._clients["route53"].list_hosted_zones_by_name.side_effect = [first_hosted_zones_list,
@@ -1506,6 +1506,102 @@ class TestEFAwsResolver(unittest.TestCase):
     result = ef_aws_resolver.lookup("cloudfront:domain-name,cant_possibly_match")
     self.assertIsNone(result)
 
+  def _generate_cloudfront_origin_access_identity_list(self, make_empty=False):
+    """
+    Generate generic cloudfront origin access identity list. Can make a empty or non empty list.
+
+    Args:
+      make_empty: bool
+
+    Returns:
+      Dictionary object of cloud front origin access identity list
+
+    """
+    if make_empty:
+      cloudfront_origin_access_identity_list = {
+        "CloudFrontOriginAccessIdentityList": {
+          "Items": [],
+          "IsTruncated": False
+        }
+      }
+    else:
+      cloudfront_origin_access_identity_list = {
+        "CloudFrontOriginAccessIdentityList": {
+          "Items": [
+            {
+              "Comment": "one comment",
+              "S3CanonicalUserId": "1a2b3c",
+              "Id": "AAAAAA1"
+            },
+            {
+              "Comment": "another comment",
+              "S3CanonicalUserId": "1aa2bb3cc",
+              "Id": "AAAAAA2"
+            },
+            {
+              "Comment": "other comment",
+              "S3CanonicalUserId": "1aaa2bbb3ccc",
+              "Id": "AAAAAA3"
+            }
+          ],
+          "IsTruncated": False
+        }
+      }
+    return cloudfront_origin_access_identity_list
+
+  def _generate_cloudfront_origin_access_identity(self, comment, id=None, s3_canonical_user_id=None):
+    """
+    Generates a cloudfront origin access identity
+
+    Args:
+      comment: string
+      id: string
+      s3_canonical_user_id: string, default None
+
+    Returns:
+      Dictdionary object of a cloudfront origin access identity
+    """
+    cloudfront_origin_access_identity = {
+      "Comment": comment,
+      "S3CanonicalUserId": s3_canonical_user_id,
+      "Id": id
+    }
+    return cloudfront_origin_access_identity
+
+  def _insert_cloudfront_origin_access_identity_into_list(self, cloudfront_origin_access_identity,
+                                                          cloudfront_origin_access_identity_list):
+    """
+    Insert cloudfront origin access identity into cloudfront origin access identity list
+
+    Args:
+      cloudfront_origin_access_identity: dictionary object of cloudfront origin access identity
+      cloudfront_origin_access_identity_list: dictionary object of cloudfront origin access identity list
+
+    Returns:
+      None
+    """
+    if cloudfront_origin_access_identity_list and \
+      cloudfront_origin_access_identity_list.get("CloudFrontOriginAccessIdentityList", None) and \
+      cloudfront_origin_access_identity_list["CloudFrontOriginAccessIdentityList"].get("Items", None):
+      cloudfront_origin_access_identity_list["CloudFrontOriginAccessIdentityList"]["Items"].append(
+        cloudfront_origin_access_identity)
+
+  def _set_cloudfront_origin_access_identity_list_to_truncated(self, cloudfront_origin_access_identity_list):
+    """
+    Modify the cloudfront origin access identity list to truncated and add a NextMarker field
+
+    Args:
+      cloudfront_origin_access_identity_list: Dictionary object of cloudfront origin access identity list
+
+    Returns:
+      None
+    """
+    if cloudfront_origin_access_identity_list and \
+        cloudfront_origin_access_identity_list.get("CloudFrontOriginAccessIdentityList", None):
+      cloudfront_origin_access_identity_list["CloudFrontOriginAccessIdentityList"]["IsTruncated"] = True
+      cloudfront_origin_access_identity_list["CloudFrontOriginAccessIdentityList"]["NextMarker"] = "aabbcc"
+
+
   def test_cloudfront_origin_access_identity_oai_id(self):
     """
     Tests cloudfront_origin_access_identity_oai_id to see if it returns the correct origin access identity id based
@@ -1517,32 +1613,19 @@ class TestEFAwsResolver(unittest.TestCase):
     Raises:
       AssertionError if any of the assert checks fail
     """
+    # Generate values for target identity
     target_comment = "target comment"
     target_id = "TARGET_ID"
-    cloudfront_origin_access_identity_response = {
-      "CloudFrontOriginAccessIdentityList": {
-        "Items": [
-          {
-            "Comment": "one comment",
-            "S3CanonicalUserId": "112233aabbcc",
-            "Id": "QRT123ABC"
-          },
-          {
-            "Comment": "another comment",
-            "S3CanonicalUserId": "444555eeefff",
-            "Id": "QRT123BBC"
-          },
-          {
-            "Comment": target_comment,
-            "S3CanonicalUserId": "target_canonical_id",
-            "Id": target_id
-          }
-        ],
-        "IsTruncated": False
-      }
-    }
+
+    # Generate cloudfront origin access identity list with target in it
+    cloudfront_origin_access_identity_list = self._generate_cloudfront_origin_access_identity_list()
+    cloudfront_origin_access_identity = self._generate_cloudfront_origin_access_identity(target_comment, id=target_id)
+    self._insert_cloudfront_origin_access_identity_into_list(cloudfront_origin_access_identity,
+                                                             cloudfront_origin_access_identity_list)
+
+    # Test method and assert results
     self._clients["cloudfront"].list_cloud_front_origin_access_identities.return_value = \
-      cloudfront_origin_access_identity_response
+      cloudfront_origin_access_identity_list
     ef_aws_resolver = EFAwsResolver(self._clients)
     result = ef_aws_resolver.lookup("cloudfront:origin-access-identity/oai-id," + target_comment)
     self.assertEquals(target_id, result)
@@ -1557,40 +1640,23 @@ class TestEFAwsResolver(unittest.TestCase):
     Raises:
       AssertionError if any of the assert checks fail
     """
+    # Generate values for target identity
     target_comment = "target comment"
     target_id = "TARGET_ID"
-    first_cloudfront_origin_access_identity_response = {
-      "CloudFrontOriginAccessIdentityList": {
-        "Items": [
-          {
-            "Comment": "one comment",
-            "S3CanonicalUserId": "112233aabbcc",
-            "Id": "QRT123ABC"
-          },
-          {
-            "Comment": "another comment",
-            "S3CanonicalUserId": "444555eeefff",
-            "Id": "QRT123BBC"
-          }
-        ],
-        "IsTruncated": True,
-        "NextMarker": "aabbcc"
-      }
-    }
-    second_cloudfront_origin_access_identity_response = {
-      "CloudFrontOriginAccessIdentityList": {
-        "Items": [
-          {
-            "Comment": target_comment,
-            "S3CanonicalUserId": "target_canonical_id",
-            "Id": target_id
-          }
-        ],
-        "IsTruncated": False
-      }
-    }
+
+    # Generate first cloudfront origin access identity list and truncate it
+    first_cloudfront_origin_access_identity_list = self._generate_cloudfront_origin_access_identity_list()
+    self._set_cloudfront_origin_access_identity_list_to_truncated(first_cloudfront_origin_access_identity_list)
+
+    # Generate second cloudfront origin access identity list with target in it
+    second_cloudfront_origin_access_identity_list = self._generate_cloudfront_origin_access_identity_list()
+    cloudfront_origin_access_identity = self._generate_cloudfront_origin_access_identity(target_comment, id=target_id)
+    self._insert_cloudfront_origin_access_identity_into_list(cloudfront_origin_access_identity,
+                                                             second_cloudfront_origin_access_identity_list)
+
+    # Test method and assert results
     self._clients["cloudfront"].list_cloud_front_origin_access_identities.side_effect = \
-      [first_cloudfront_origin_access_identity_response, second_cloudfront_origin_access_identity_response]
+      [first_cloudfront_origin_access_identity_list, second_cloudfront_origin_access_identity_list]
     ef_aws_resolver = EFAwsResolver(self._clients)
     result = ef_aws_resolver.lookup("cloudfront:origin-access-identity/oai-id," + target_comment)
     self.assertEquals(target_id, result)
@@ -1605,42 +1671,20 @@ class TestEFAwsResolver(unittest.TestCase):
     Raises:
       AssertionError if any of the assert checks fail
     """
-    cloudfront_origin_access_identity_response = {
-      "CloudFrontOriginAccessIdentityList": {
-        "Items": [
-          {
-            "Comment": "one comment",
-            "S3CanonicalUserId": "112233aabbcc",
-            "Id": "QRT123ABC"
-          },
-          {
-            "Comment": "another comment",
-            "S3CanonicalUserId": "444555eeefff",
-            "Id": "QRT123BBC"
-          },
-          {
-            "Comment": "third comment",
-            "S3CanonicalUserId": "aaa4449999iiii",
-            "Id": "QRT9944B"
-          }
-        ],
-        "IsTruncated": False
-      }
-    }
+    # Generate list without target in it
+    cloudfront_origin_access_identity_list = self._generate_cloudfront_origin_access_identity_list()
+
     self._clients["cloudfront"].list_cloud_front_origin_access_identities.return_value = \
-      cloudfront_origin_access_identity_response
+      cloudfront_origin_access_identity_list
     ef_aws_resolver = EFAwsResolver(self._clients)
     result = ef_aws_resolver.lookup("cloudfront:origin-access-identity/oai-id,cant_possibly_match")
     self.assertIsNone(result)
 
-    cloudfront_origin_access_identity_response = {
-      "CloudFrontOriginAccessIdentityList": {
-        "Items": [],
-        "IsTruncated": False
-      }
-    }
+    # Generate empty list
+    cloudfront_origin_access_identity_list = self._generate_cloudfront_origin_access_identity_list(make_empty=True)
+
     self._clients["cloudfront"].list_cloud_front_origin_access_identities.return_value = \
-      cloudfront_origin_access_identity_response
+      cloudfront_origin_access_identity_list
     result = ef_aws_resolver.lookup("cloudfront:origin-access-identity/oai-id,cant_possibly_match")
     self.assertIsNone(result)
 
@@ -1655,32 +1699,20 @@ class TestEFAwsResolver(unittest.TestCase):
     Raises:
       AssertionError if any of the assert checks fail
     """
+    # Generate values for target
     target_comment = "target comment"
     target_s3_canonical_user_id = "target_canonical_id"
-    cloudfront_origin_access_identity_response = {
-      "CloudFrontOriginAccessIdentityList": {
-        "Items": [
-          {
-            "Comment": "one comment",
-            "S3CanonicalUserId": "112233aabbcc",
-            "Id": "QRT123ABC"
-          },
-          {
-            "Comment": "another comment",
-            "S3CanonicalUserId": "444555eeefff",
-            "Id": "QRT123BBC"
-          },
-          {
-            "Comment": target_comment,
-            "S3CanonicalUserId": target_s3_canonical_user_id,
-            "Id": "TARGET_ID"
-          }
-        ],
-        "IsTruncated": False
-      }
-    }
+
+    # Generate list with target in it
+    cloudfront_origin_access_identity_list = self._generate_cloudfront_origin_access_identity_list()
+    cloudfront_origin_access_identity = self._generate_cloudfront_origin_access_identity(
+      target_comment, s3_canonical_user_id=target_s3_canonical_user_id)
+    self._insert_cloudfront_origin_access_identity_into_list(cloudfront_origin_access_identity,
+                                                             cloudfront_origin_access_identity_list)
+
+    # Test method and assert results
     self._clients["cloudfront"].list_cloud_front_origin_access_identities.return_value = \
-      cloudfront_origin_access_identity_response
+      cloudfront_origin_access_identity_list
     ef_aws_resolver = EFAwsResolver(self._clients)
     result = ef_aws_resolver.lookup("cloudfront:origin-access-identity/oai-canonical-user-id," + target_comment)
     self.assertEquals(target_s3_canonical_user_id, result)
@@ -1696,40 +1728,24 @@ class TestEFAwsResolver(unittest.TestCase):
     Raises:
       AssertionError if any of the assert checks fail
     """
+    # Generate target values
     target_comment = "target comment"
     target_s3_canonical_user_id = "target_canonical_id"
-    first_cloudfront_origin_access_identity_response = {
-      "CloudFrontOriginAccessIdentityList": {
-        "Items": [
-          {
-            "Comment": "one comment",
-            "S3CanonicalUserId": "112233aabbcc",
-            "Id": "QRT123ABC"
-          },
-          {
-            "Comment": "another comment",
-            "S3CanonicalUserId": "444555eeefff",
-            "Id": "QRT123BBC"
-          }
-        ],
-        "IsTruncated": True,
-        "NextMarker": "aabbcc"
-      }
-    }
-    second_cloudfront_origin_access_identity_response = {
-      "CloudFrontOriginAccessIdentityList": {
-        "Items": [
-          {
-            "Comment": target_comment,
-            "S3CanonicalUserId": target_s3_canonical_user_id,
-            "Id": "TARGET_ID"
-          }
-        ],
-        "IsTruncated": False
-      }
-    }
+
+    # Generate first list and set it to truncated
+    first_cloudfront_origin_access_identity_list = self._generate_cloudfront_origin_access_identity_list()
+    self._set_cloudfront_origin_access_identity_list_to_truncated(first_cloudfront_origin_access_identity_list)
+
+    # Generate second list and insert target into it
+    second_cloudfront_origin_access_identity_list = self._generate_cloudfront_origin_access_identity_list()
+    cloudfront_origin_access_identity = self._generate_cloudfront_origin_access_identity(
+      target_comment, s3_canonical_user_id=target_s3_canonical_user_id)
+    self._insert_cloudfront_origin_access_identity_into_list(cloudfront_origin_access_identity,
+                                                             second_cloudfront_origin_access_identity_list)
+
+    # Test method and assert results
     self._clients["cloudfront"].list_cloud_front_origin_access_identities.side_effect = \
-      [first_cloudfront_origin_access_identity_response, second_cloudfront_origin_access_identity_response]
+      [first_cloudfront_origin_access_identity_list, second_cloudfront_origin_access_identity_list]
     ef_aws_resolver = EFAwsResolver(self._clients)
     result = ef_aws_resolver.lookup("cloudfront:origin-access-identity/oai-canonical-user-id," + target_comment)
     self.assertEquals(target_s3_canonical_user_id, result)
@@ -1744,42 +1760,22 @@ class TestEFAwsResolver(unittest.TestCase):
     Raises:
       AssertionError if any of the assert checks fail
     """
-    cloudfront_origin_access_identity_response = {
-      "CloudFrontOriginAccessIdentityList": {
-        "Items": [
-          {
-            "Comment": "one comment",
-            "S3CanonicalUserId": "112233aabbcc",
-            "Id": "QRT123ABC"
-          },
-          {
-            "Comment": "another comment",
-            "S3CanonicalUserId": "444555eeefff",
-            "Id": "QRT123BBC"
-          },
-          {
-            "Comment": "Some other comment",
-            "S3CanonicalUserId": "888999oookkkk",
-            "Id": "QDTR99FD"
-          }
-        ],
-        "IsTruncated": False
-      }
-    }
+    # Generate list with no target in it
+    cloudfront_origin_access_identity_list = self._generate_cloudfront_origin_access_identity_list()
+
+    # Test method and assert results
     self._clients["cloudfront"].list_cloud_front_origin_access_identities.return_value = \
-      cloudfront_origin_access_identity_response
+      cloudfront_origin_access_identity_list
     ef_aws_resolver = EFAwsResolver(self._clients)
     result = ef_aws_resolver.lookup("cloudfront:origin-access-identity/oai-canonical-user-id,cant_possibly_match")
     self.assertIsNone(result)
 
-    cloudfront_origin_access_identity_response = {
-      "CloudFrontOriginAccessIdentityList": {
-        "Items": [],
-        "IsTruncated": False
-      }
-    }
+    # Generate empty list
+    cloudfront_origin_access_identity_list = self._generate_cloudfront_origin_access_identity_list(make_empty=True)
+
+    # Test method and assert results
     self._clients["cloudfront"].list_cloud_front_origin_access_identities.return_value = \
-      cloudfront_origin_access_identity_response
+      cloudfront_origin_access_identity_list
     result = ef_aws_resolver.lookup("cloudfront:origin-access-identity/oai-canonical-user-id,cant_possibly_match")
     self.assertIsNone(result)
 
