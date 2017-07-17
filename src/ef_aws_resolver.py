@@ -458,52 +458,47 @@ class EFAwsResolver(object):
       else:
         return default
 
-
   def lookup(self, token):
+    """
+    Maps etp cloudformation symbols to their corresponding lookup method and calls it with the provided parameter(s)
+
+    Args:
+      token: A comma-separated string containing the etp cloudformation symbol and lookup value. Example:
+        'aws:ec2:security-group/security-group-id,prod-service-ec2'
+
+    Returns:
+        Mapped function return value or None
+    """
+    # Map of etp symbols (key) and the corresponding lookup method (value)
+    etp_symbols = {
+      "acm:certificate-arn": "acm_certificate_arn",
+      "cloudfront:domain-name": "cloudfront_domain_name",
+      "cloudfront:origin-access-identity/oai-canonical-user-id": "cloudfront_origin_access_identity_oai_canonical_user_id",
+      "cloudfront:origin-access-identity/oai-id": "cloudfront_origin_access_identity_oai_id",
+      "ec2:elasticip/elasticip-id": "ec2_elasticip_elasticip_id",
+      "ec2:elasticip/elasticip-ipaddress": "ec2_elasticip_elasticip_ipaddress",
+      "ec2:eni/eni-id": "ec2_eni_eni_id",
+      "ec2:route-table/main-route-table-id": "ec2_route_table_main_route_table_id",
+      "ec2:security-group/security-group-id": "ec2_security_group_security_group_id",
+      "ec2:subnet/subnet-id": "ec2_subnet_subnet_id",
+      "ec2:vpc/availabilityzones": "ec2_vpc_availabilityzones",
+      "ec2:vpc/cidrblock": "ec2_vpc_cidrblock",
+      "ec2:vpc/subnets": "ec2_vpc_subnets",
+      "ec2:vpc/vpc-id": "ec2_vpc_vpc_id",
+      "route53:private-hosted-zone-id": "route53_private_hosted_zone_id",
+      "route53:public-hosted-zone-id": "route53_public_hosted_zone_id",
+      "waf:rule-id": "waf_rule_id",
+      "waf:web-acl-id": "waf_web_acl_id"
+    }
     try:
       kv = token.split(",")
     except ValueError:
       return None
-    if kv[0] == "acm:certificate-arn":
-      return self.acm_certificate_arn(*kv[1:])
-    elif kv[0] == "cloudfront:domain-name":
-      return self.cloudfront_domain_name(*kv[1:])
-    elif kv[0] == "cloudfront:origin-access-identity/oai-canonical-user-id":
-      return self.cloudfront_origin_access_identity_oai_canonical_user_id(*kv[1:])
-    elif kv[0] == "cloudfront:origin-access-identity/oai-id":
-      return self.cloudfront_origin_access_identity_oai_id(*kv[1:])
-    elif kv[0] == "ec2:elasticip/elasticip-id":
-      return self.ec2_elasticip_elasticip_id(*kv[1:])
-    elif kv[0] == "ec2:elasticip/elasticip-ipaddress":
-      return self.ec2_elasticip_elasticip_ipaddress(*kv[1:])
-    elif kv[0] == "ec2:eni/eni-id":
-      return self.ec2_eni_eni_id(*kv[1:])
-    elif kv[0] == "ec2:route-table/main-route-table-id":
-      return self.ec2_route_table_main_route_table_id(*kv[1:])
-    elif kv[0] == "ec2:security-group/security-group-id":
-      return self.ec2_security_group_security_group_id(*kv[1:])
-    elif kv[0] == "ec2:subnet/subnet-id":
-      return self.ec2_subnet_subnet_id(*kv[1:])
-    elif kv[0] == "ec2:vpc/availabilityzones":
-      return self.ec2_vpc_availabilityzones(*kv[1:])
-    elif kv[0] == "ec2:vpc/cidrblock":
-      return self.ec2_vpc_cidrblock(*kv[1:])
-    elif kv[0] == "ec2:vpc/subnets":
-      return self.ec2_vpc_subnets(*kv[1:])
-    elif kv[0] == "ec2:vpc/vpc-id":
-      return self.ec2_vpc_vpc_id(*kv[1:])
-    elif kv[0] == "route53:private-hosted-zone-id":
-      return self.route53_private_hosted_zone_id(*kv[1:])
-    elif kv[0] == "route53:public-hosted-zone-id":
-      return self.route53_public_hosted_zone_id(*kv[1:])
-    elif kv[0] == "waf:rule-id":
-      return self.waf_rule_id(*kv[1:])
-    elif kv[0] == "waf:web-acl-id":
-      return self.waf_web_acl_id(*kv[1:])
+    if kv[0] in etp_symbols:
+      return getattr(self, etp_symbols[kv[0]])(*kv[1:])
     else:
       return None
       # raise("No lookup function for: "+kv[0])
-
 
   def __init__(self, clients):
     """
