@@ -25,17 +25,31 @@ ef_generate = __import__("ef-generate")
 class TestEFGenerate(unittest.TestCase):
 
     def setUp(self):
+        self.service_name = "proto0-test-service"
+        self.service_type = "http_service"
         ef_generate.CONTEXT = EFContext()
         ef_generate.CONTEXT.commit = True
         ef_generate.CONTEXT.account_id = "1234"
-        mock_kms = Mock(name="mocked kms client")
-        mock_kms.describe_key.return_value = None
-        mock_kms.create_key.return_value = {"KeyMetadata": {"KeyId": "1234"}}
+        self.mock_kms = Mock(name="mocked kms client")
+        self.mock_kms.describe_key.return_value = None
+        self.mock_kms.create_key.return_value = {"KeyMetadata": {"KeyId": "1234"}}
         ef_generate.CLIENTS = {
-            "kms": mock_kms
+            "kms": self.mock_kms
         }
 
-    def test_conditionally_create_kms_key(self):
-        role_name = "proto0-test-service"
-        service_type = "http_service"
-        ef_generate.conditionally_create_kms_key(role_name, service_type)
+    def test_create_kms_key(self):
+        ef_generate.conditionally_create_kms_key(self.service_name, self.service_type)
+
+        self.mock_kms.describe_key.assert_called()
+        self.mock_kms.create_key.assert_called()
+        self.mock_kms.create_alias.assert_called_with(
+            AliasName='alias/{}'.format(self.service_name),
+            TargetKeyId='1234'
+        )
+
+    def test_kms_key_already_exists(self):
+        self.mock_kms.describe_key.return_value = Mock()
+        ef_generate.conditionally_create_kms_key(self.service_name, self.service_type)
+
+        self.mock_kms.create_key.assert_not_called()
+        self.mock_kms.create_alias.assert_not_called()
