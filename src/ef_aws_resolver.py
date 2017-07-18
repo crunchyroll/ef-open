@@ -21,6 +21,7 @@ import re
 
 from botocore.exceptions import ClientError
 
+
 class EFAwsResolver(object):
   """
   For keys to look up, we use partial ARN syntax to identify system and information sought:
@@ -28,7 +29,7 @@ class EFAwsResolver(object):
   Not all possible lookups are supported
 
   Expects these clients to be pre-made and passed in:
-    cloudfront, cloudformation, ec2, iam, lambda, route53, waf
+    cloudfront, cloudformation, ec2, iam, kms, lambda, route53, waf
 
   Example:
     the ARN of a security group ID is:
@@ -45,8 +46,56 @@ class EFAwsResolver(object):
       EFAwsResolver.lookup("ec2:security-group/security-group-id","proto2-ess-elb")
   """
 
-  # dictionary of boto3 clients: {"ec2":ec2_client, ... } made with ef_utils.create_aws_clients
-  __CLIENTS = {}
+  # Map of etp symbols (key) and the corresponding lookup method (value)
+  ETP_SYMBOLS = {
+    "acm:certificate-arn": "acm_certificate_arn",
+    "cloudfront:domain-name": "cloudfront_domain_name",
+    "cloudfront:origin-access-identity/oai-canonical-user-id": "cloudfront_origin_access_identity_oai_canonical_user_id",
+    "cloudfront:origin-access-identity/oai-id": "cloudfront_origin_access_identity_oai_id",
+    "ec2:elasticip/elasticip-id": "ec2_elasticip_elasticip_id",
+    "ec2:elasticip/elasticip-ipaddress": "ec2_elasticip_elasticip_ipaddress",
+    "ec2:eni/eni-id": "ec2_eni_eni_id",
+    "ec2:route-table/main-route-table-id": "ec2_route_table_main_route_table_id",
+    "ec2:security-group/security-group-id": "ec2_security_group_security_group_id",
+    "ec2:subnet/subnet-id": "ec2_subnet_subnet_id",
+    "ec2:vpc/availabilityzones": "ec2_vpc_availabilityzones",
+    "ec2:vpc/cidrblock": "ec2_vpc_cidrblock",
+    "ec2:vpc/subnets": "ec2_vpc_subnets",
+    "ec2:vpc/vpc-id": "ec2_vpc_vpc_id",
+    "route53:private-hosted-zone-id": "route53_private_hosted_zone_id",
+    "route53:public-hosted-zone-id": "route53_public_hosted_zone_id",
+    "waf:rule-id": "waf_rule_id",
+    "waf:web-acl-id": "waf_web_acl_id"
+  }
+
+  def __init__(self, clients):
+    """
+    ARGS
+      clients - dictionary of ready-to-go boto3 clients using aws prefixes:
+      expected: clients["ec2"], clients["iam"], clients["lambda"]
+    """
+    self.__CLIENTS = clients
+
+  def lookup(self, token):
+    """
+    Maps etp cloudformation symbols to their corresponding lookup method and calls it with the provided parameter(s)
+
+    Args:
+      token: A comma-separated string containing the etp cloudformation symbol and lookup value. Example:
+        'aws:ec2:security-group/security-group-id,prod-service-ec2'
+
+    Returns:
+        Mapped function return value or None
+    """
+    try:
+      kv = token.split(",")
+    except ValueError:
+      return None
+    if kv[0] in EFAwsResolver.ETP_SYMBOLS:
+      return getattr(self, EFAwsResolver.ETP_SYMBOLS[kv[0]])(*kv[1:])
+    else:
+      return None
+      # raise("No lookup function for: "+kv[0])
 
   def acm_certificate_arn(self, lookup, default=None):
     """
@@ -65,7 +114,7 @@ class EFAwsResolver(object):
     try:
       # This a region-specific client, so we'll make a new client in the right place using existing SESSION
       region_name, domain_name = lookup.split("/")
-      acm_client = EFAwsResolver.__CLIENTS["SESSION"].client(service_name="acm", region_name=region_name)
+      acm_client = self.__CLIENTS["SESSION"].client(service_name="acm", region_name=region_name)
       response = acm_client.list_certificates(
         CertificateStatuses=['ISSUED'],
         MaxItems=100
@@ -103,7 +152,7 @@ class EFAwsResolver(object):
     if public_ip is None:
       return default
     try:
-      eips = EFAwsResolver.__CLIENTS["ec2"].describe_addresses(
+      eips = self.__CLIENTS["ec2"].describe_addresses(
         PublicIps=[public_ip]
       )
     # Public IP not found
@@ -128,7 +177,7 @@ class EFAwsResolver(object):
     env = m.group(2).lower()
     stackname = "{}-elasticip".format(env)
     # Look up the EIP resource in the stack to get the IP address assigned to the EIP
-    eip_stack = EFAwsResolver.__CLIENTS["cloudformation"].describe_stack_resources(
+    eip_stack = self.__CLIENTS["cloudformation"].describe_stack_resources(
       StackName=stackname,
       LogicalResourceId=lookup
     )
@@ -150,7 +199,7 @@ class EFAwsResolver(object):
     Returns:
       The ID of the first ENI found with a description matching 'lookup' or default/None if no match found
     """
-    enis = EFAwsResolver.__CLIENTS["ec2"].describe_network_interfaces(Filters=[{
+    enis = self.__CLIENTS["ec2"].describe_network_interfaces(Filters=[{
       'Name': 'description',
       'Values': [lookup]
     }])
@@ -168,7 +217,7 @@ class EFAwsResolver(object):
       Security group ID if target found or default/None if no match
     """
     try:
-      response = EFAwsResolver.__CLIENTS["ec2"].describe_security_groups(Filters=[{
+      response = self.__CLIENTS["ec2"].describe_security_groups(Filters=[{
         'Name':'group-name', 'Values':[lookup]
       }])
     except:
@@ -186,7 +235,7 @@ class EFAwsResolver(object):
       lookup: the friendly name of the subnet to look up (subnet-<env>-a or subnet-<env>-b)
       default: the optional value to return if lookup failed; returns None if not set
     """
-    subnets = EFAwsResolver.__CLIENTS["ec2"].describe_subnets(Filters=[{
+    subnets = self.__CLIENTS["ec2"].describe_subnets(Filters=[{
       'Name': 'tag:Name',
       'Values': [lookup]
     }])
@@ -206,7 +255,7 @@ class EFAwsResolver(object):
     vpc_id = self.ec2_vpc_vpc_id(lookup)
     if vpc_id is None:
       return default
-    subnets = EFAwsResolver.__CLIENTS["ec2"].describe_subnets(Filters=[{
+    subnets = self.__CLIENTS["ec2"].describe_subnets(Filters=[{
       'Name': 'vpc-id',
       'Values': [vpc_id]
     }])
@@ -228,7 +277,7 @@ class EFAwsResolver(object):
     vpc_id = self.ec2_vpc_vpc_id(lookup)
     if vpc_id is None:
       return default
-    subnets = EFAwsResolver.__CLIENTS["ec2"].describe_subnets(Filters=[{
+    subnets = self.__CLIENTS["ec2"].describe_subnets(Filters=[{
       'Name': 'vpc-id',
       'Values': [vpc_id]
     }])
@@ -247,7 +296,7 @@ class EFAwsResolver(object):
     Returns:
       The CIDR block of the named VPC, or default/None if no match found
     """
-    vpcs = EFAwsResolver.__CLIENTS["ec2"].describe_vpcs(Filters=[{
+    vpcs = self.__CLIENTS["ec2"].describe_vpcs(Filters=[{
       'Name': 'tag:Name',
       'Values': [lookup]
     }])
@@ -264,7 +313,7 @@ class EFAwsResolver(object):
     Returns:
       The ID of the first VPC found with a label matching 'lookup' or default/None if no match found
     """
-    vpcs = EFAwsResolver.__CLIENTS["ec2"].describe_vpcs(Filters=[{
+    vpcs = self.__CLIENTS["ec2"].describe_vpcs(Filters=[{
       'Name': 'tag:Name',
       'Values': [lookup]
     }])
@@ -283,13 +332,13 @@ class EFAwsResolver(object):
     """
     # list_rules returns at most 100 rules per request
     list_limit = 100
-    rules = EFAwsResolver.__CLIENTS["waf"].list_rules(Limit=list_limit)
+    rules = self.__CLIENTS["waf"].list_rules(Limit=list_limit)
     while True:
       for rule in rules["Rules"]:
         if rule["Name"] == lookup:
           return rule["RuleId"]
       if rules.has_key("NextMarker"):
-        rules = EFAwsResolver.__CLIENTS["waf"].list_rules(Limit=list_limit, NextMarker=rules["NextMarker"])
+        rules = self.__CLIENTS["waf"].list_rules(Limit=list_limit, NextMarker=rules["NextMarker"])
       else:
         return default
 
@@ -303,13 +352,13 @@ class EFAwsResolver(object):
     """
     # list_rules returns at most 100 rules per request
     list_limit = 100
-    acls = EFAwsResolver.__CLIENTS["waf"].list_web_acls(Limit=list_limit)
+    acls = self.__CLIENTS["waf"].list_web_acls(Limit=list_limit)
     while True:
       for acl in acls["WebACLs"]:
         if acl["Name"] == lookup:
           return acl["WebACLId"]
       if acls.has_key("NextMarker"):
-        acls = EFAwsResolver.__CLIENTS["waf"].list_web_acls(Limit=list_limit, NextMarker=acls["NextMarker"])
+        acls = self.__CLIENTS["waf"].list_web_acls(Limit=list_limit, NextMarker=acls["NextMarker"])
       else:
         return default
 
@@ -325,7 +374,7 @@ class EFAwsResolver(object):
     # enforce terminal '.' in name, otherwise we could get a partial match of the incorrect zones
     if lookup[-1] != '.':
       return default
-    hosted_zones = EFAwsResolver.__CLIENTS["route53"].list_hosted_zones_by_name(DNSName=lookup, MaxItems=list_limit)
+    hosted_zones = self.__CLIENTS["route53"].list_hosted_zones_by_name(DNSName=lookup, MaxItems=list_limit)
     # Return if the account has no HostedZones
     if not hosted_zones.has_key("HostedZones"):
       return default
@@ -334,7 +383,7 @@ class EFAwsResolver(object):
         if lookup == hosted_zone["Name"] and not hosted_zone["Config"]["PrivateZone"]:
           return hosted_zone["Id"].split("/")[2]
       if hosted_zones["IsTruncated"]:
-        hosted_zones = EFAwsResolver.__CLIENTS["route53"].list_hosted_zones_by_name(
+        hosted_zones = self.__CLIENTS["route53"].list_hosted_zones_by_name(
           MaxItems=list_limit, Marker=hosted_zones["NextMarker"])
       else:
         return default
@@ -351,7 +400,7 @@ class EFAwsResolver(object):
     # enforce terminal '.' in name, otherwise we could get a partial match of the incorrect zones
     if lookup[-1] != '.':
       return default
-    hosted_zones = EFAwsResolver.__CLIENTS["route53"].list_hosted_zones_by_name(DNSName=lookup, MaxItems=list_limit)
+    hosted_zones = self.__CLIENTS["route53"].list_hosted_zones_by_name(DNSName=lookup, MaxItems=list_limit)
     # Return if the account has no HostedZones
     if not hosted_zones.has_key("HostedZones"):
       return default
@@ -360,7 +409,7 @@ class EFAwsResolver(object):
         if lookup == hosted_zone["Name"] and hosted_zone["Config"]["PrivateZone"]:
           return hosted_zone["Id"].split("/")[2]
       if hosted_zones["IsTruncated"]:
-        hosted_zones = EFAwsResolver.__CLIENTS["route53"].list_hosted_zones_by_name(
+        hosted_zones = self.__CLIENTS["route53"].list_hosted_zones_by_name(
           MaxItems=list_limit, Marker=hosted_zones["NextMarker"])
       else:
         return default
@@ -376,7 +425,7 @@ class EFAwsResolver(object):
     vpc_id = self.ec2_vpc_vpc_id(lookup)
     if vpc_id is None:
       return default
-    route_table = EFAwsResolver.__CLIENTS["ec2"].describe_route_tables(Filters=[
+    route_table = self.__CLIENTS["ec2"].describe_route_tables(Filters=[
       {'Name': 'vpc-id', 'Values': [vpc_id]},
       {'Name': 'association.main', 'Values': ['true']}
     ])
@@ -394,7 +443,7 @@ class EFAwsResolver(object):
     """
     # list_distributions returns at most 100 distributions per request
     list_limit = "100"
-    distributions = EFAwsResolver.__CLIENTS["cloudfront"].list_distributions(MaxItems=list_limit)["DistributionList"]
+    distributions = self.__CLIENTS["cloudfront"].list_distributions(MaxItems=list_limit)["DistributionList"]
     # Return if the account has no Distributions
     if not distributions.has_key("Items"):
       return default
@@ -403,7 +452,7 @@ class EFAwsResolver(object):
         if lookup in distribution["Aliases"]["Items"]:
           return distribution["DomainName"]
       if distributions["IsTruncated"]:
-        distributions = EFAwsResolver.__CLIENTS["cloudfront"].list_distributions(
+        distributions = self.__CLIENTS["cloudfront"].list_distributions(
           MaxItems=list_limit, Marker=distributions["NextMarker"])["DistributionList"]
       else:
         return default
@@ -418,7 +467,7 @@ class EFAwsResolver(object):
     """
     # list_cloud_front_origin_access_identities returns at most 100 oai's per request
     list_limit = "100"
-    oais = EFAwsResolver.__CLIENTS["cloudfront"].list_cloud_front_origin_access_identities(
+    oais = self.__CLIENTS["cloudfront"].list_cloud_front_origin_access_identities(
       MaxItems=list_limit)["CloudFrontOriginAccessIdentityList"]
     # Return if the account has no OriginAccessIdentities
     if not oais.has_key("Items"):
@@ -428,7 +477,7 @@ class EFAwsResolver(object):
         if oai["Comment"] == lookup:
           return oai["Id"]
       if oais["IsTruncated"]:
-        oais = EFAwsResolver.__CLIENTS["cloudfront"].list_cloud_front_origin_access_identities(
+        oais = self.__CLIENTS["cloudfront"].list_cloud_front_origin_access_identities(
           MaxItems=list_limit, Marker=oais["NextMarker"])["CloudFrontOriginAccessIdentityList"]
       else:
         return default
@@ -443,7 +492,7 @@ class EFAwsResolver(object):
     """
     # list_cloud_front_origin_access_identities returns at most 100 oai's per request
     list_limit = "100"
-    oais = EFAwsResolver.__CLIENTS["cloudfront"].list_cloud_front_origin_access_identities(
+    oais = self.__CLIENTS["cloudfront"].list_cloud_front_origin_access_identities(
       MaxItems=list_limit)["CloudFrontOriginAccessIdentityList"]
     # Return if the account has no OriginAccessIdentities
     if not oais.has_key("Items"):
@@ -453,57 +502,7 @@ class EFAwsResolver(object):
         if oai["Comment"] == lookup:
           return oai["S3CanonicalUserId"]
       if oais["IsTruncated"]:
-        oais = EFAwsResolver.__CLIENTS["cloudfront"].list_cloud_front_origin_access_identities(
+        oais = self.__CLIENTS["cloudfront"].list_cloud_front_origin_access_identities(
           MaxItems=list_limit, Marker=oais["NextMarker"])["CloudFrontOriginAccessIdentityList"]
       else:
         return default
-
-  def lookup(self, token):
-    """
-    Maps etp cloudformation symbols to their corresponding lookup method and calls it with the provided parameter(s)
-
-    Args:
-      token: A comma-separated string containing the etp cloudformation symbol and lookup value. Example:
-        'aws:ec2:security-group/security-group-id,prod-service-ec2'
-
-    Returns:
-        Mapped function return value or None
-    """
-    # Map of etp symbols (key) and the corresponding lookup method (value)
-    etp_symbols = {
-      "acm:certificate-arn": "acm_certificate_arn",
-      "cloudfront:domain-name": "cloudfront_domain_name",
-      "cloudfront:origin-access-identity/oai-canonical-user-id": "cloudfront_origin_access_identity_oai_canonical_user_id",
-      "cloudfront:origin-access-identity/oai-id": "cloudfront_origin_access_identity_oai_id",
-      "ec2:elasticip/elasticip-id": "ec2_elasticip_elasticip_id",
-      "ec2:elasticip/elasticip-ipaddress": "ec2_elasticip_elasticip_ipaddress",
-      "ec2:eni/eni-id": "ec2_eni_eni_id",
-      "ec2:route-table/main-route-table-id": "ec2_route_table_main_route_table_id",
-      "ec2:security-group/security-group-id": "ec2_security_group_security_group_id",
-      "ec2:subnet/subnet-id": "ec2_subnet_subnet_id",
-      "ec2:vpc/availabilityzones": "ec2_vpc_availabilityzones",
-      "ec2:vpc/cidrblock": "ec2_vpc_cidrblock",
-      "ec2:vpc/subnets": "ec2_vpc_subnets",
-      "ec2:vpc/vpc-id": "ec2_vpc_vpc_id",
-      "route53:private-hosted-zone-id": "route53_private_hosted_zone_id",
-      "route53:public-hosted-zone-id": "route53_public_hosted_zone_id",
-      "waf:rule-id": "waf_rule_id",
-      "waf:web-acl-id": "waf_web_acl_id"
-    }
-    try:
-      kv = token.split(",")
-    except ValueError:
-      return None
-    if kv[0] in etp_symbols:
-      return getattr(self, etp_symbols[kv[0]])(*kv[1:])
-    else:
-      return None
-      # raise("No lookup function for: "+kv[0])
-
-  def __init__(self, clients):
-    """
-    ARGS
-      clients - dictionary of ready-to-go boto3 clients using aws prefixes:
-      expected: clients["ec2"], clients["iam"], clients["lambda"]
-    """
-    EFAwsResolver.__CLIENTS = clients
