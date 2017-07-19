@@ -16,9 +16,9 @@ limitations under the License.
 
 import unittest
 
-from ef_config import EFConfig
-from ef_template_resolver import EFTemplateResolver
-from ef_utils import get_account_alias
+from src.ef_config import EFConfig
+from src.ef_template_resolver import EFTemplateResolver
+from src.ef_utils import get_account_alias
 
 TEST_PROFILE = get_account_alias("proto0")
 TEST_REGION = EFConfig.DEFAULT_REGION
