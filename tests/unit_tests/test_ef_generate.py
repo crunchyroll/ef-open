@@ -28,6 +28,9 @@ ef_generate = __import__("ef-generate")
 class TestEFGenerate(unittest.TestCase):
 
     def setUp(self):
+        """
+        Creates mocked objects for use in the below unit tests.
+        """
         self.service_name = "proto0-test-service"
         self.service_type = "http_service"
         self.malformed_policy_response = {'Error': {'Code': 'MalformedPolicyDocumentException',
@@ -64,6 +67,17 @@ class TestEFGenerate(unittest.TestCase):
         self.mock_kms.describe_key.return_value = Mock()
         ef_generate.conditionally_create_kms_key(self.service_name, self.service_type)
 
+        self.mock_kms.create_key.assert_not_called()
+        self.mock_kms.create_alias.assert_not_called()
+
+    def test_not_kms_service_type(self):
+        """
+        Validates that a key/alias is not created for unsupported service types
+        """
+        self.service_type = "invalid_service"
+        ef_generate.conditionally_create_kms_key(self.service_name, self.service_type)
+
+        self.mock_kms.describe_key.assert_not_called()
         self.mock_kms.create_key.assert_not_called()
         self.mock_kms.create_alias.assert_not_called()
 
