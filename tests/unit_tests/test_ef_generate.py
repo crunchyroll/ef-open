@@ -16,9 +16,8 @@ limitations under the License.
 
 import unittest
 
-from mock import Mock, patch
-
 from botocore.exceptions import ClientError
+from mock import Mock, patch
 
 import context_paths
 from ef_context import EFContext
@@ -28,9 +27,6 @@ ef_generate = __import__("ef-generate")
 class TestEFGenerate(unittest.TestCase):
 
     def setUp(self):
-        """
-        Creates mocked objects for use in the below unit tests.
-        """
         self.service_name = "proto0-test-service"
         self.service_type = "http_service"
         self.malformed_policy_response = {'Error': {'Code': 'MalformedPolicyDocumentException',
