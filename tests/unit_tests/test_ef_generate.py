@@ -16,8 +16,11 @@ limitations under the License.
 
 import unittest
 
-from mock import Mock
+from mock import Mock, patch
 
+from botocore.exceptions import ClientError
+
+import context_paths
 from ef_context import EFContext
 ef_generate = __import__("ef-generate")
 
@@ -33,11 +36,19 @@ class TestEFGenerate(unittest.TestCase):
         self.mock_kms = Mock(name="mocked kms client")
         self.mock_kms.describe_key.return_value = None
         self.mock_kms.create_key.return_value = {"KeyMetadata": {"KeyId": "1234"}}
+        self.malformed_policy_response = {
+            'Error': {'Code': 'MalformedPolicyDocumentException', 'Message': 'Error creating key'}
+        }
+        self.malformed_policy_client_error = ClientError(self.malformed_policy_response, "create_key")
         ef_generate.CLIENTS = {
             "kms": self.mock_kms
         }
 
     def test_create_kms_key(self):
+        """
+        Check that when an existing key is not found that the create key/alias methods are called with the correct
+        parameters.
+        """
         ef_generate.conditionally_create_kms_key(self.service_name, self.service_type)
 
         self.mock_kms.describe_key.assert_called()
@@ -48,8 +59,40 @@ class TestEFGenerate(unittest.TestCase):
         )
 
     def test_kms_key_already_exists(self):
+        """
+        Check that when an existing key is found the create key/alias methods are not called.
+        """
         self.mock_kms.describe_key.return_value = Mock()
         ef_generate.conditionally_create_kms_key(self.service_name, self.service_type)
 
         self.mock_kms.create_key.assert_not_called()
         self.mock_kms.create_alias.assert_not_called()
+
+    @patch('time.sleep', return_value=None)
+    def test_kms_eventual_consistency_resilience(self, patched_time_sleep):
+        """
+        Validate that conditionally_create_kms_key will account for aws eventual consistency when attempting to
+        reference a newly created ec2 role. Providing three exceptions and then success.
+        """
+        self.mock_kms.create_key.side_effect = [
+            self.malformed_policy_client_error,
+            self.malformed_policy_client_error,
+            self.malformed_policy_client_error,
+            {"KeyMetadata": {"KeyId": "1234"}}
+        ]
+        ef_generate.conditionally_create_kms_key(self.service_name, self.service_type)
+
+        self.mock_kms.create_alias.assert_called_with(
+            AliasName='alias/{}'.format(self.service_name),
+            TargetKeyId='1234'
+        )
+
+    @patch('time.sleep', return_value=None)
+    def test_kms_create_key_eventual_consistency_failure(self, patched_time_sleep):
+        """
+        Validate that create_key call fails after 5 MalformedPolicyDocumentException's.
+        """
+        self.mock_kms.create_key.side_effect = self.malformed_policy_client_error
+        with self.assertRaises(SystemExit) as error:
+            ef_generate.conditionally_create_kms_key(self.service_name, self.service_type)
+        self.assertEquals(error.exception.code, 1)
