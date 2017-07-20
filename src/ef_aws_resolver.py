@@ -28,7 +28,7 @@ class EFAwsResolver(object):
   Not all possible lookups are supported
 
   Expects these clients to be pre-made and passed in:
-    cloudfront, cloudformation, ec2, iam, lambda, route53, waf
+    cloudfront, cloudformation, ec2, iam, kms, lambda, route53, waf
 
   Example:
     the ARN of a security group ID is:
@@ -492,7 +492,7 @@ class EFAwsResolver(object):
       return self.ec2_elasticip_elasticip_ipaddress(*kv[1:])
     elif kv[0] == "ec2:eni/eni-id":
       return self.ec2_eni_eni_id(*kv[1:])
-    elif kv[0] == "kms:key":
+    elif kv[0] == "kms:decrypt":
       return self.kms_decrypt_value(*kv[1:])
     elif kv[0] == "ec2:route-table/main-route-table-id":
       return self.ec2_route_table_main_route_table_id(*kv[1:])
