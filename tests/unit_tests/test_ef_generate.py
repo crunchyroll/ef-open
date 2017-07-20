@@ -30,19 +30,18 @@ class TestEFGenerate(unittest.TestCase):
     def setUp(self):
         self.service_name = "proto0-test-service"
         self.service_type = "http_service"
+        self.malformed_policy_response = {'Error': {'Code': 'MalformedPolicyDocumentException',
+                                                    'Message': 'Error creating key'}}
+        self.malformed_policy_client_error = ClientError(self.malformed_policy_response, "create_key")
+        self.not_found_response = {'Error': {'Code': 'NotFoundException', 'Message': 'Error describing key'}}
+        self.not_found_client_error = ClientError(self.not_found_response, "describe_key")
+        self.mock_kms = Mock(name="mocked kms client")
+        self.mock_kms.create_key.return_value = {"KeyMetadata": {"KeyId": "1234"}}
+        self.mock_kms.describe_key.side_effect = self.not_found_client_error
         ef_generate.CONTEXT = EFContext()
         ef_generate.CONTEXT.commit = True
         ef_generate.CONTEXT.account_id = "1234"
-        self.mock_kms = Mock(name="mocked kms client")
-        self.mock_kms.describe_key.return_value = None
-        self.mock_kms.create_key.return_value = {"KeyMetadata": {"KeyId": "1234"}}
-        self.malformed_policy_response = {
-            'Error': {'Code': 'MalformedPolicyDocumentException', 'Message': 'Error creating key'}
-        }
-        self.malformed_policy_client_error = ClientError(self.malformed_policy_response, "create_key")
-        ef_generate.CLIENTS = {
-            "kms": self.mock_kms
-        }
+        ef_generate.CLIENTS = {"kms": self.mock_kms}
 
     def test_create_kms_key(self):
         """
@@ -51,7 +50,6 @@ class TestEFGenerate(unittest.TestCase):
         """
         ef_generate.conditionally_create_kms_key(self.service_name, self.service_type)
 
-        self.mock_kms.describe_key.assert_called()
         self.mock_kms.create_key.assert_called()
         self.mock_kms.create_alias.assert_called_with(
             AliasName='alias/{}'.format(self.service_name),
@@ -62,6 +60,7 @@ class TestEFGenerate(unittest.TestCase):
         """
         Check that when an existing key is found the create key/alias methods are not called.
         """
+        self.mock_kms.describe_key.side_effect = None
         self.mock_kms.describe_key.return_value = Mock()
         ef_generate.conditionally_create_kms_key(self.service_name, self.service_type)
 
