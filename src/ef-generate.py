@@ -413,8 +413,12 @@ def conditionally_create_kms_key(role_name, service_type):
           if error.response['Error']['Code'] == 'MalformedPolicyDocumentException':
             if create_key_failures == 5:
               fail("Exception creating kms key: {} {}".format(role_name, error))
-            create_key_failures += 1
-            time.sleep(5)
+            else:
+              create_key_failures += 1
+              time.sleep(5)
+          else:
+            fail("Exception creating kms key: {} {}".format(role_name, error))
+
       # Assign Key an alias.
       # We use this alias when validating whether a given service already has a master key (kms_key).
       try:
