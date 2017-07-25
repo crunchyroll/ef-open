@@ -39,7 +39,6 @@ class TestEFAwsResolver(unittest.TestCase):
     mock_cloud_formation_client = Mock(name="Mock CloudFormation Client")
     mock_cloud_front_client = Mock(name="Mock CloudFront Client")
     mock_ec2_client = Mock(name="Mock EC2 Client")
-    mock_iam_client = Mock(name="Mock IAM Client")
     mock_route_53_client = Mock(name="Mock Route 53 Client")
     mock_waf_client = Mock(name="Mock WAF Client")
     mock_session = Mock(name="Mock Client")
@@ -48,7 +47,6 @@ class TestEFAwsResolver(unittest.TestCase):
       "cloudformation": mock_cloud_formation_client,
       "cloudfront": mock_cloud_front_client,
       "ec2": mock_ec2_client,
-      "iam": mock_iam_client,
       "route53": mock_route_53_client,
       "waf": mock_waf_client,
       "SESSION": mock_session
