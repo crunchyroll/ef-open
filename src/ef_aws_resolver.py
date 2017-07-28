@@ -468,7 +468,7 @@ class EFAwsResolver(object):
     """
     try:
       decrypted_value = EFAwsResolver.__CLIENTS["kms"].decrypt(
-        CiphertextBlob=lookup.decode('base64'))['Plaintext'].decode("utf-8")
+        CiphertextBlob=lookup.decode('base64'))['Plaintext']
     except ClientError:
       return default
     return decrypted_value
