@@ -286,7 +286,8 @@ def kms_encrypt(kms_client, service, env, secret):
   except ClientError as error:
     if error.response['Error']['Code'] == "NotFoundException":
       fail("Key '{}-{}' not found. You may need to run ef-generate for this environment.".format(env, service), error)
-    fail("boto3 exception occurred while performing encrypt operation.", error)
+    else:
+      fail("boto3 exception occurred while performing kms encrypt operation.", error)
   encrypted_secret = base64.b64encode(response['CiphertextBlob'])
   return encrypted_secret
 
@@ -309,7 +310,8 @@ def kms_decrypt(kms_client, secret):
     if error.response["Error"]["Code"] == "InvalidCiphertextException":
       fail("The decrypt request was rejected because the specified ciphertext \
       has been corrupted or is otherwise invalid.", error)
-    if error.response["Error"]["Code"] == "NotFoundException":
+    elif error.response["Error"]["Code"] == "NotFoundException":
       fail("The decrypt request was rejected because the specified entity or resource could not be found.", error)
-    fail("boto3 exception occurred while performing decrypt operation.", error)
+    else:
+      fail("boto3 exception occurred while performing kms decrypt operation.", error)
   return decrypted_secret
