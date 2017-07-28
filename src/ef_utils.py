@@ -269,7 +269,7 @@ def kms_encrypt(kms_client, service, env, secret):
   """
   Encrypt string for use by a given service/environment
   Args:
-    kms_client (boto3 kms client object): Usually created through create_aws_clients.
+    kms_client (boto3 kms client object): Instantiated kms client object. Usually created through create_aws_clients.
     service (string): name of the service that the secret is being encrypted for.
     env (string): environment that the secret is being encrypted for.
     secret (string): value to be encrypted
@@ -295,7 +295,7 @@ def kms_decrypt(kms_client, secret):
   """
   Decrypt kms-encrypted string
   Args:
-    kms_client (boto3 kms client object): Usually created through create_aws_clients.
+    kms_client (boto3 kms client object): Instantiated kms client object. Usually created through create_aws_clients.
     secret (string): base64 encoded value to be decrypted
   Returns:
     a populated EFPWContext object
