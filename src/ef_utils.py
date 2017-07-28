@@ -276,7 +276,7 @@ def kms_encrypt(kms_client, service, env, secret):
   Returns:
     a populated EFPWContext object
   Raises:
-    None
+    SystemExit(1): If there is an error with the boto3 encryption call (ex. missing kms key)
   """
   try:
     response = kms_client.encrypt(
@@ -300,7 +300,7 @@ def kms_decrypt(kms_client, secret):
   Returns:
     a populated EFPWContext object
   Raises:
-    None
+    SystemExit(1): If there is an error with the boto3 decryption call (ex. malformed secret)
   """
   try:
     decrypted_secret = kms_client.decrypt(CiphertextBlob=base64.b64decode(secret))['Plaintext']
