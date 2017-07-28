@@ -65,6 +65,8 @@ def generate_secret(length):
         length (int): Length of the generated password
     Returns:
         a randomly generated secret string
+    Raises:
+        None
     """
     alphabet = string.ascii_letters + string.digits
     random_bytes = os.urandom(length)
@@ -81,9 +83,9 @@ def kms_encrypt(kms_client, service, env, secret):
         env (string): environment that the secret is being encrypted for.
         secret (string): value to be encrypted
     Returns:
-        a populated EFPWContext object
+        an encrypted secret string
     Raises:
-        None
+        SystemExit: when providing custom output for a caught exception
     """
     try:
         response = kms_client.encrypt(
@@ -105,9 +107,9 @@ def kms_decrypt(kms_client, secret):
         kms_client (boto3 kms client object): Usually created through ef_utils.create_aws_clients.
         secret (string): base64 encoded value to be decrypted
     Returns:
-        a populated EFPWContext object
+        a decrypted copy of secret string
     Raises:
-        None
+        SystemExit: when providing custom output for a caught exception
     """
     try:
         decrypted_secret = kms_client.decrypt(CiphertextBlob=base64.b64decode(secret))['Plaintext']
