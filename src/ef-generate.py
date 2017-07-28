@@ -399,7 +399,7 @@ def conditionally_create_kms_key(role_name, service_type):
   if not kms_key:
     print("Create KMS key: {}".format(role_name))
     if CONTEXT.commit:
-      # Create KMS Master Key. Due to AWS eventual consistency a newly created IAM role may not be
+      # Create KMS Master Key. Due to AWS eventual consistency a newly created IAM role may not be 
       # immediately visible to KMS. Retrying up to 5 times (25 seconds) to account for this behavior.
       create_key_failures = 0
       while create_key_failures <= 5:
@@ -419,8 +419,7 @@ def conditionally_create_kms_key(role_name, service_type):
           else:
             fail("Exception creating kms key: {} {}".format(role_name, error))
 
-      # Assign Key an alias.
-      # We use this alias when validating whether a given service already has a master key (kms_key).
+      # Assign key an alias. This is used for all future references to it (rather than the key ARN)
       try:
         CLIENTS["kms"].create_alias(
           AliasName='alias/{}'.format(role_name),
