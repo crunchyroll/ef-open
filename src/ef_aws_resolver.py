@@ -21,6 +21,8 @@ import re
 
 from botocore.exceptions import ClientError
 
+import ef_utils
+
 class EFAwsResolver(object):
   """
   For keys to look up, we use partial ARN syntax to identify system and information sought:
@@ -458,20 +460,15 @@ class EFAwsResolver(object):
       else:
         return default
 
-  def kms_decrypt_value(self, lookup, default=None):
+  def kms_decrypt_value(self, lookup):
     """
     Args:
       lookup: the encrypted value to be decrypted by KMS; base64 encoded
-      default: the optional value to return if lookup failed; returns None if not set
     Returns:
-      The decrypted key value
+      The decrypted lookup value
     """
-    try:
-      decrypted_value = EFAwsResolver.__CLIENTS["kms"].decrypt(
-        CiphertextBlob=lookup.decode('base64'))['Plaintext']
-    except ClientError:
-      return default
-    return decrypted_value
+    decrypted_lookup = ef_utils.kms_decrypt(EFAwsResolver.__CLIENTS["kms"], lookup)
+    return decrypted_lookup
 
   def lookup(self, token):
     try:
