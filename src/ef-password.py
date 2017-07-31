@@ -11,14 +11,14 @@ from botocore.exceptions import ClientError
 
 from ef_config import EFConfig
 from ef_context import EFContext
-from ef_utils import create_aws_clients, fail
+import ef_utils
 
 
 class EFPWContext(EFContext):
     def __init__(self):
         super(EFPWContext, self).__init__()
         self._decrypt = None
-        self._length = None
+        self._length = 32
         self._plaintext = None
 
     @property
@@ -40,9 +40,11 @@ class EFPWContext(EFContext):
     @length.setter
     def length(self, value):
         try:
+            if int(value) < 10:
+                raise ValueError("length value must be >= 10")
             self._length = int(value)
-        except ValueError:
-            raise ValueError("length value must be int")
+        except TypeError:
+            raise TypeError("length value must be int")
 
     @property
     def plaintext(self):
@@ -58,7 +60,7 @@ class EFPWContext(EFContext):
         self._plaintext = value
 
 
-def generate_secret(length):
+def generate_secret(length=32):
     """
     Generate a random secret consisting of mixed-case letters and numbers
     Args:
@@ -72,57 +74,6 @@ def generate_secret(length):
     random_bytes = os.urandom(length)
     indices = [int(len(alphabet) * (ord(byte) / 256.0)) for byte in random_bytes]
     return "".join([alphabet[index] for index in indices])
-
-
-def kms_encrypt(kms_client, service, env, secret):
-    """
-    Encrypt string for use by a given service/environment
-    Args:
-        kms_client (boto3 kms client object): Usually created through ef_utils.create_aws_clients.
-        service (string): name of the service that the secret is being encrypted for.
-        env (string): environment that the secret is being encrypted for.
-        secret (string): value to be encrypted
-    Returns:
-        an encrypted secret string
-    Raises:
-        SystemExit: when providing custom output for a caught exception
-    """
-    try:
-        response = kms_client.encrypt(
-            KeyId='alias/{}-{}'.format(env, service),
-            Plaintext=secret.encode()
-        )
-    except ClientError as error:
-        if error.response['Error']['Code'] == "NotFoundException":
-            fail("Key '{}-{}' not found. You may need to run ef-generate for this environment.".format(env, service), error)
-        fail("boto3 exception occurred while performing encrypt operation.", error)
-    encrypted_secret = base64.b64encode(response['CiphertextBlob'])
-    return encrypted_secret
-
-
-def kms_decrypt(kms_client, secret):
-    """
-    Decrypt kms-encrypted string
-    Args:
-        kms_client (boto3 kms client object): Usually created through ef_utils.create_aws_clients.
-        secret (string): base64 encoded value to be decrypted
-    Returns:
-        a decrypted copy of secret string
-    Raises:
-        SystemExit: when providing custom output for a caught exception
-    """
-    try:
-        decrypted_secret = kms_client.decrypt(CiphertextBlob=base64.b64decode(secret))['Plaintext']
-    except TypeError:
-        fail("Malformed base64 string data")
-    except ClientError as error:
-        if error.response["Error"]["Code"] == "InvalidCiphertextException":
-            fail("The decrypt request was rejected because the specified ciphertext \
-            has been corrupted or is otherwise invalid.", error)
-        if error.response["Error"]["Code"] == "NotFoundException":
-            fail("The decrypt request was rejected because the specified entity or resource could not be found.", error)
-        fail("boto3 exception occurred while performing decrypt operation.", error)
-    return decrypted_secret
 
 
 def handle_args_and_set_context(args):
@@ -146,7 +97,7 @@ def handle_args_and_set_context(args):
     try:
         context.env = parsed_args["env"]
     except ValueError as e:
-        fail("Error in env: {}".format(e.message))
+        ef_utils.fail("Error in env: {}".format(e.message))
     context.service = parsed_args["service"]
     context.decrypt = parsed_args["decrypt"]
     context.length = parsed_args["length"]
@@ -159,12 +110,15 @@ def main():
     profile = None if context.whereami == "ec2" else context.account_alias
 
     try:
-        clients = create_aws_clients(EFConfig.DEFAULT_REGION, profile, "kms")
+        clients = ef_utils.create_aws_clients(EFConfig.DEFAULT_REGION, profile, "kms")
     except RuntimeError as error:
-        fail("Exception creating clients in region {} with profile {}".format(EFConfig.DEFAULT_REGION, profile), error)
+        ef_utils.fail(
+            "Exception creating clients in region {} with profile {}".format(EFConfig.DEFAULT_REGION, profile),
+            error
+        )
 
     if context.decrypt:
-        decrypted_password = kms_decrypt(kms_client=clients['kms'], secret=context.decrypt)
+        decrypted_password = ef_utils.kms_decrypt(kms_client=clients['kms'], secret=context.decrypt)
         print(decrypted_password)
         return
 
@@ -173,7 +127,7 @@ def main():
     else:
         password = generate_secret(context.length)
         print("Generated Secret: {}".format(password))
-    encrypted_password = kms_encrypt(clients['kms'], context.service, context.env, password)
+    encrypted_password = ef_utils.kms_encrypt(clients['kms'], context.service, context.env, password)
     print("Encrypted Secret: {}".format(encrypted_password))
     return
 
