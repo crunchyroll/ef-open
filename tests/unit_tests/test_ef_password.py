@@ -14,8 +14,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-import base64
+
 import unittest
+import base64
 
 from botocore.exceptions import ClientError
 from mock import Mock, patch
@@ -24,7 +25,7 @@ import context_paths
 ef_password = __import__("ef-password")
 
 
-class TestEFGenerate(unittest.TestCase):
+class TestEFPassword(unittest.TestCase):
 
     def setUp(self):
         self.service = "test-service"
@@ -79,3 +80,7 @@ class TestEFGenerate(unittest.TestCase):
         self.mock_kms.decrypt.side_effect = self.client_error
         with self.assertRaises((SystemExit, ClientError)):
             ef_password.kms_decrypt(self.mock_kms, self.secret)
+
+    @patch('sys.argv')
+    def test_ef_password_fails_non_int_length(self, patched_argv):
+        patched_argv.return_value = ['test', self.service, self.env]
