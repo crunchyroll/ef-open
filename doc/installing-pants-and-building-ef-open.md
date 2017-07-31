@@ -103,6 +103,7 @@ Tools will be built in ef-open/dist:<br>
   ef-cf.pex
   ef-check-config.pex
   ef-generate.pex
+  ef-password.pex
   ef-resolve-config.pex
   ef-version.pex
 ```
@@ -172,6 +173,7 @@ fatal: Not a git repository (or any of the parent directories):
                    created pex copy dist/ef-cf.pex
                    created pex copy dist/ef-check-config.pex
                    created pex copy dist/ef-generate.pex
+                   created pex copy dist/ef-password.pex
                    created pex copy dist/ef-resolve-config.pex
                    created pex copy dist/ef-version.pex
 15:28:37 00:00     [jvm]
