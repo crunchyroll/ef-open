@@ -2,12 +2,9 @@
 
 from __future__ import print_function
 import argparse
-import base64
 import os
 import string
 import sys
-
-from botocore.exceptions import ClientError
 
 from ef_config import EFConfig
 from ef_context import EFContext
