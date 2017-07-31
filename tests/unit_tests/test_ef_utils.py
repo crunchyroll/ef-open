@@ -155,7 +155,7 @@ class TestEFUtils(unittest.TestCase):
     mock_urllib2.return_value = mock_response
     with self.assertRaises(IOError) as exception:
       ef_utils.http_get_metadata("ami-id")
-    self.assertIn("Non-200 response", str(exception.exception.message))
+    self.assertIn("Non-200 response", exception.exception.message)
 
   @patch('ef_utils.gethostname')
   def test_whereami_local(self, mock_gethostname):
