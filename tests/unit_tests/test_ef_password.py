@@ -14,9 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-
-import unittest
 import base64
+import unittest
 
 from botocore.exceptions import ClientError
 from mock import Mock, patch
@@ -29,7 +28,7 @@ class TestEFPassword(unittest.TestCase):
 
     def setUp(self):
         self.service = "test-service"
-        self.env = "test0"
+        self.env = "test"
         self.secret = "secret"
         self.error_response = {'Error': {'Code': 'FakeError', 'Message': 'Testing catch of all ClientErrors'}}
         self.client_error = ClientError(self.error_response, "boto3")
@@ -81,6 +80,74 @@ class TestEFPassword(unittest.TestCase):
         with self.assertRaises((SystemExit, ClientError)):
             ef_password.kms_decrypt(self.mock_kms, self.secret)
 
-    @patch('sys.argv')
-    def test_ef_password_fails_non_int_length(self, patched_argv):
-        patched_argv.return_value = ['test', self.service, self.env]
+    def test_args(self):
+        """Test parsing args with all valid values"""
+        args = [self.service, self.env, "--length", "8", "--plaintext", "test", "--decrypt", "test"]
+        context = ef_password.handle_args_and_set_context(args)
+        self.assertEqual(context.env, self.env)
+        self.assertEqual(context.service, self.service)
+        self.assertEqual(context.plaintext, "test")
+        self.assertEqual(context.decrypt, "test")
+
+    def test_args_invalid_env(self):
+        """Verify that an invalid environment arg raises an exception"""
+        args = [self.service, "invalid_env"]
+        with self.assertRaises((SystemExit, ValueError)):
+            ef_password.handle_args_and_set_context(args)
+
+    def test_args_nonint_length(self):
+        """A non-integer value for the length param should raise an exception"""
+        args = [self.service, self.env, "--length", "8a"]
+        with self.assertRaises((SystemExit, ValueError)):
+            ef_password.handle_args_and_set_context(args)
+
+    @patch('ef-password.generate_secret', return_value="mock_secret")
+    @patch('ef-password.create_aws_clients')
+    @patch('ef-password.handle_args_and_set_context')
+    def test_main(self, mock_context, mock_create_aws, mock_gen):
+        """Test valid main() call with just service and env.
+        Ensure generate_password and encrypt are called with the correct parameters"""
+        context = ef_password.EFPWContext()
+        context.env, context.service = self.env, self.service
+        mock_context.return_value = context
+        mock_create_aws.return_value = {"kms": self.mock_kms}
+        ef_password.main()
+        mock_gen.assert_called()
+        self.mock_kms.decrypt.assert_not_called()
+        self.mock_kms.encrypt.assert_called_once_with(
+            KeyId='alias/{}-{}'.format(self.env, self.service),
+            Plaintext="mock_secret".encode()
+        )
+
+    @patch('ef-password.generate_secret', return_value="mock_secret")
+    @patch('ef-password.create_aws_clients')
+    @patch('ef-password.handle_args_and_set_context')
+    def test_main_plaintext(self, mock_context, mock_create_aws, mock_gen):
+        """Test valid main() call with service, env, and --plaintext.
+        Ensure generate_password and encrypt are called with the correct parameters"""
+        context = ef_password.EFPWContext()
+        context.env, context.service, context.plaintext = self.env, self.service, self.secret
+        mock_context.return_value = context
+        mock_create_aws.return_value = {"kms": self.mock_kms}
+        ef_password.main()
+        mock_gen.assert_not_called()
+        self.mock_kms.decrypt.assert_not_called()
+        self.mock_kms.encrypt.assert_called_once_with(
+            KeyId='alias/{}-{}'.format(self.env, self.service),
+            Plaintext=self.secret.encode()
+        )
+
+    @patch('ef-password.generate_secret')
+    @patch('ef-password.create_aws_clients')
+    @patch('ef-password.handle_args_and_set_context')
+    def test_main_decrypt(self, mock_context, mock_create_aws, mock_gen):
+        """Test valid main() call with service, env, and --decrypt.
+        Ensure decrypt is called with the correct parameters"""
+        context = ef_password.EFPWContext()
+        context.env, context.service, context.decrypt = self.env, self.service, base64.b64encode(self.secret)
+        mock_context.return_value = context
+        mock_create_aws.return_value = {"kms": self.mock_kms}
+        ef_password.main()
+        mock_gen.assert_not_called()
+        self.mock_kms.encrypt.assert_not_called()
+        self.mock_kms.decrypt.assert_called_once_with(CiphertextBlob=self.secret)
