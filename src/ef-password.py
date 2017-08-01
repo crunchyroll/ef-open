@@ -116,7 +116,7 @@ def main():
 
     if context.decrypt:
         decrypted_password = ef_utils.kms_decrypt(kms_client=clients['kms'], secret=context.decrypt)
-        print(decrypted_password)
+        print("Decrypted Secret: {}".format(decrypted_password))
         return
 
     if context.plaintext:
