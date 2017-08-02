@@ -745,7 +745,7 @@ class TestEFUtilsKMS(unittest.TestCase):
     def test_kms_encrypt_fails_client_error(self):
         """Ensures that function fails a generic ClientError despite any special handling for specific error codes"""
         self.mock_kms.encrypt.side_effect = self.client_error
-        with self.assertRaises((SystemExit, ClientError)):
+        with self.assertRaises(SystemExit):
             ef_utils.kms_encrypt(self.mock_kms, self.service, self.env, self.secret)
 
     def test_kms_decrypt_call(self):
@@ -756,13 +756,13 @@ class TestEFUtilsKMS(unittest.TestCase):
 
     def test_kms_decrypt_fails_without_b64_secret(self):
         """Ensures that function fails when passed a non-base64 encoded secret"""
-        with self.assertRaises((SystemExit, TypeError)):
+        with self.assertRaises(SystemExit):
             ef_utils.kms_decrypt(self.mock_kms, self.secret)
 
     def test_kms_decrypt_fails_client_error(self):
         """Ensures that function fails a generic ClientError despite any special handling for specific error codes"""
         self.mock_kms.decrypt.side_effect = self.client_error
-        with self.assertRaises((SystemExit, ClientError)):
+        with self.assertRaises(SystemExit):
             ef_utils.kms_decrypt(self.mock_kms, self.secret)
 
 if __name__ == '__main__':
