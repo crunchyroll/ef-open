@@ -56,19 +56,19 @@ class TestEFPassword(unittest.TestCase):
     def test_args_invalid_env(self):
         """Verify that an invalid environment arg raises an exception"""
         args = [self.service, "invalid_env"]
-        with self.assertRaises((SystemExit, ValueError)):
+        with self.assertRaises(SystemExit):
             ef_password.handle_args_and_set_context(args)
 
     def test_args_nonint_length(self):
         """A non-integer value for the length param should raise an exception"""
         args = [self.service, self.env, "--length", "8a"]
-        with self.assertRaises((SystemExit, ValueError)):
+        with self.assertRaises(ValueError):
             ef_password.handle_args_and_set_context(args)
 
     def test_args_length_too_small(self):
         """A length value less than 10 should raise an exception"""
         args = [self.service, self.env, "--length", "5"]
-        with self.assertRaises((SystemExit, ValueError)):
+        with self.assertRaises(ValueError):
             ef_password.handle_args_and_set_context(args)
 
     @patch('ef-password.generate_secret', return_value="mock_secret")
