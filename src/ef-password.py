@@ -36,12 +36,12 @@ class EFPWContext(EFContext):
 
     @length.setter
     def length(self, value):
-        try:
-            if int(value) < 10:
-                raise ValueError("length value must be >= 10")
+        if not value.isdigit():
+            raise ValueError("length value must be int")
+        elif int(value) < 10:
+            raise ValueError("length value must be >= 10")
+        else:
             self._length = int(value)
-        except TypeError:
-            raise TypeError("length value must be int")
 
     @property
     def plaintext(self):
