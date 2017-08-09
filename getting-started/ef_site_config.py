@@ -54,6 +54,10 @@ class EFSiteConfig:
     "proto": 4
   }
 
+  # Env name for local development with vagrant, used for rendering config templates.
+  # Vagrantfile vm.hostname domain should match the rendered value.
+  VAGRANT_ENV = "local"
+
   # Bucket where late-bound service configs are found. See doc/name-patterns.md for S3 bucket naming conventions
   #   Bucket name should be in this form: <S3PREFIX>-global-configs
   #   Bucket does not have to exist yet (you will need the built tools to create it via CloudFormation)
