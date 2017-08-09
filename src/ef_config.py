@@ -28,7 +28,6 @@ class EFConfig(EFSiteConfig):
 
   # Default service registry file name
   DEFAULT_SERVICE_REGISTRY_FILE = "service_registry.json"
-  LOCAL_VM_LABEL = "localvm"
   PARAMETER_FILE_SUFFIX = ".parameters.json"
   POLICY_TEMPLATE_PATH_SUFFIX = "/policy_templates/"
   # the service group 'fixtures' always exists
