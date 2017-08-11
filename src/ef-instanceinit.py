@@ -34,6 +34,7 @@ import boto3
 import boto3.utils
 import botocore.exceptions
 
+from ef_config import EFConfig
 from ef_instanceinit_config_reader import EFInstanceinitConfigReader
 from ef_utils import http_get_instance_role, http_get_metadata, whereami
 from ef_template_resolver import EFTemplateResolver
@@ -43,8 +44,9 @@ LOG_IDENT = "ef-instanceinit"
 VIRTUALBOX_CONFIG_ROOT = "/vagrant/configs"
 
 # globals
-RESOURCES = {} #boto resources (easier to use for some things)
+RESOURCES = {}  # boto resources (easier to use for some things)
 WHERE = None
+
 
 def log_info(message):
   """
@@ -55,6 +57,7 @@ def log_info(message):
   print(message)
   syslog(message)
 
+
 def critical(message):
   """
   Log critical error to log_info and console and exit with error status
@@ -62,6 +65,7 @@ def critical(message):
   log_info(message)
   closelog()
   sys.exit(1)
+
 
 def merge_files(service):
   """
@@ -87,7 +91,7 @@ def merge_files(service):
     if WHERE == "ec2":
       resolver = EFTemplateResolver()
     elif WHERE == "virtualbox-kvm":
-      resolver = EFTemplateResolver(env="localvm", service=service)
+      resolver = EFTemplateResolver(env=EFConfig.VAGRANT_ENV, service=service)
 
     log_info("checking: {}".format(config_reader.current_key))
 
@@ -96,8 +100,8 @@ def merge_files(service):
     if dest.has_key("environments"):
       if not resolver.resolved["ENV_SHORT"] in dest["environments"]:
         log_info("Environment: {} not enabled for {}".format(
-                  resolver.resolved["ENV_SHORT"], config_reader.current_key)
-                )
+          resolver.resolved["ENV_SHORT"], config_reader.current_key)
+        )
         continue
 
     # Process the template_body - apply context + parameters
@@ -177,6 +181,7 @@ def main():
 
   log_info("exit: success")
   closelog()
+
 
 if __name__ == "__main__":
   main()
