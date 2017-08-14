@@ -365,8 +365,11 @@ def conditionally_create_kms_key(role_name, service_type):
     print_if_verbose("not eligible for kms; service_type: {} is not valid for kms".format(service_type))
     return
 
+  # Converting all periods to underscores because they are invalid in KMS alias names
+  key_alias = role_name.replace('.', '_')
+
   try:
-    kms_key = CLIENTS["kms"].describe_key(KeyId='alias/{}'.format(role_name))
+    kms_key = CLIENTS["kms"].describe_key(KeyId='alias/{}'.format(key_alias))
   except ClientError as error:
     if error.response['Error']['Code'] == 'NotFoundException':
       kms_key = None
@@ -422,13 +425,13 @@ def conditionally_create_kms_key(role_name, service_type):
       # Assign key an alias. This is used for all future references to it (rather than the key ARN)
       try:
         CLIENTS["kms"].create_alias(
-          AliasName='alias/{}'.format(role_name),
+          AliasName='alias/{}'.format(key_alias),
           TargetKeyId=new_kms_key['KeyMetadata']['KeyId']
         )
       except ClientError as error:
         fail("Exception creating alias for kms key: {} {}".format(role_name, error))
   else:
-    print_if_verbose("KMS key already exists: {}".format(role_name))
+    print_if_verbose("KMS key already exists: {}".format(key_alias))
 
 def main():
   global CONTEXT, CLIENTS, AWS_RESOLVER
