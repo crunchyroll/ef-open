@@ -400,7 +400,7 @@ def conditionally_create_kms_key(role_name, service_type):
   }'''
 
   if not kms_key:
-    print("Create KMS key: {}".format(role_name))
+    print("Create KMS key: {}".format(key_alias))
     if CONTEXT.commit:
       # Create KMS Master Key. Due to AWS eventual consistency a newly created IAM role may not be 
       # immediately visible to KMS. Retrying up to 5 times (25 seconds) to account for this behavior.
