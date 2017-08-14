@@ -278,14 +278,17 @@ def kms_encrypt(kms_client, service, env, secret):
   Raises:
     SystemExit(1): If there is an error with the boto3 encryption call (ex. missing kms key)
   """
+  # Converting all periods to underscores because they are invalid in KMS alias names
+  key_alias = '{}-{}'.format(env, service.replace('.', '_'))
+
   try:
     response = kms_client.encrypt(
-      KeyId='alias/{}-{}'.format(env, service),
+      KeyId='alias/{}'.format(key_alias),
       Plaintext=secret.encode()
     )
   except ClientError as error:
     if error.response['Error']['Code'] == "NotFoundException":
-      fail("Key '{}-{}' not found. You may need to run ef-generate for this environment.".format(env, service), error)
+      fail("Key '{}' not found. You may need to run ef-generate for this environment.".format(key_alias), error)
     else:
       fail("boto3 exception occurred while performing kms encrypt operation.", error)
   encrypted_secret = base64.b64encode(response['CiphertextBlob'])

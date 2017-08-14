@@ -28,7 +28,7 @@ ef_password = __import__("ef-password")
 class TestEFPassword(unittest.TestCase):
   def setUp(self):
     self.service = "test-service"
-    self.env = "test"
+    self.env = "internal"
     self.secret = "secret"
     self.error_response = {'Error': {'Code': 'FakeError', 'Message': 'Testing catch of all ClientErrors'}}
     self.client_error = ClientError(self.error_response, "boto3")

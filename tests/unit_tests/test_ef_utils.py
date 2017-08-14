@@ -737,6 +737,16 @@ class TestEFUtilsKMS(unittest.TestCase):
       Plaintext=self.secret.encode()
     )
 
+  def test_kms_encrypt_call_subservice(self):
+    """Validate KMS encryption call on a subservice, where periods should be converted to underscores due to
+    alias name restrictions"""
+    subservice = self.service + ".subservice"
+    ef_utils.kms_encrypt(self.mock_kms, subservice, self.env, self.secret)
+    self.mock_kms.encrypt.assert_called_once_with(
+      KeyId='alias/{}-{}'.format(self.env, self.service + "_subservice"),
+      Plaintext=self.secret.encode()
+    )
+
   def test_kms_encrypt_returns_b64(self):
     """Validate that function returns a base64 encoded value"""
     encrypted_secret = ef_utils.kms_encrypt(self.mock_kms, self.service, self.env, self.secret)
