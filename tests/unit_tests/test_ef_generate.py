@@ -21,7 +21,6 @@ from mock import Mock, patch
 
 import context_paths
 from ef_context import EFContext
-
 ef_generate = __import__("ef-generate")
 
 
