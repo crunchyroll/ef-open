@@ -8,3 +8,5 @@
 dist
 .coverage
 
+# Ignore Python virtualenv folder
+venv/

@@ -16,7 +16,6 @@ limitations under the License.
 
 import unittest
 
-import boto3
 from mock import call, Mock, patch
 
 # For local application imports, context_paths must be first despite lexicon ordering
@@ -51,19 +50,6 @@ class TestEFAwsResolver(unittest.TestCase):
       "waf": mock_waf_client,
       "SESSION": mock_session
     }
-
-    # Uncomment this section and comment the above section if you want to test for real to check something.
-    # You'll also need to modify the test you want to check so that the mocking doesn't interfere.
-    # session = boto3.Session(profile_name="default", region_name="us-west-2")
-    # self._clients = {
-    #   "cloudformation": session.client("cloudformation"),
-    #   "cloudfront": session.client("cloudfront"),
-    #   "ec2": session.client("ec2"),
-    #   "iam": session.client("iam"),
-    #   "route53": session.client("route53"),
-    #   "waf": session.client("waf"),
-    #   "SESSION": session
-    # }
 
   def tearDown(self):
     """
