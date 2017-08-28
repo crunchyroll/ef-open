@@ -428,7 +428,7 @@ class EFTemplateResolver(object):
           if not resolved_symbol:
             resolved_symbol = self.search_parameters(symbol)
         # if symbol was resolved, replace it everywhere
-        if resolved_symbol:
+        if resolved_symbol is not None:
           self.resolved[symbol] = resolved_symbol
           if isinstance(resolved_symbol, list):
             self.template = self.template.replace("{{"+symbol+"}}", "\n".join(self.resolved[symbol]))
