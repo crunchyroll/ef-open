@@ -21,6 +21,8 @@ import re
 
 from botocore.exceptions import ClientError
 
+import ef_utils
+
 class EFAwsResolver(object):
   """
   For keys to look up, we use partial ARN syntax to identify system and information sought:
@@ -28,7 +30,7 @@ class EFAwsResolver(object):
   Not all possible lookups are supported
 
   Expects these clients to be pre-made and passed in:
-    cloudfront, cloudformation, ec2, iam, lambda, route53, waf
+    cloudfront, cloudformation, ec2, iam, kms, lambda, route53, waf
 
   Example:
     the ARN of a security group ID is:
@@ -458,6 +460,15 @@ class EFAwsResolver(object):
       else:
         return default
 
+  def kms_decrypt_value(self, lookup):
+    """
+    Args:
+      lookup: the encrypted value to be decrypted by KMS; base64 encoded
+    Returns:
+      The decrypted lookup value
+    """
+    decrypted_lookup = ef_utils.kms_decrypt(EFAwsResolver.__CLIENTS["kms"], lookup)
+    return decrypted_lookup
 
   def lookup(self, token):
     try:
@@ -478,6 +489,8 @@ class EFAwsResolver(object):
       return self.ec2_elasticip_elasticip_ipaddress(*kv[1:])
     elif kv[0] == "ec2:eni/eni-id":
       return self.ec2_eni_eni_id(*kv[1:])
+    elif kv[0] == "kms:decrypt":
+      return self.kms_decrypt_value(*kv[1:])
     elif kv[0] == "ec2:route-table/main-route-table-id":
       return self.ec2_route_table_main_route_table_id(*kv[1:])
     elif kv[0] == "ec2:security-group/security-group-id":

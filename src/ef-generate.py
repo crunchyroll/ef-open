@@ -32,8 +32,9 @@ import argparse
 from os import getenv
 from os.path import dirname, normpath
 import sys
+import time
 
-import botocore.exceptions
+from botocore.exceptions import ClientError
 
 from ef_aws_resolver import EFAwsResolver
 from ef_config import EFConfig
@@ -83,6 +84,12 @@ INSTANCE_PROFILE_SERVICE_TYPES = [
   "http_service"
 ]
 
+# these service types get KMS Keys
+KMS_SERVICE_TYPES = [
+  "aws_ec2",
+  "aws_lambda",
+  "http_service"
+]
 
 # Utilities
 def handle_args_and_set_context(args):
@@ -281,7 +288,7 @@ def conditionally_create_role(role_name, sr_entry):
         new_role = CLIENTS["iam"].create_role(
           RoleName=role_name, AssumeRolePolicyDocument=assume_role_policy_document
         )
-      except botocore.exceptions.ClientError as error:
+      except ClientError as error:
         fail("Exception creating new role named: {} {}".format(role_name, sys.exc_info(), error))
       print(new_role["Role"]["RoleId"])
   else:
@@ -303,7 +310,7 @@ def conditionally_create_profile(role_name, service_type):
     if CONTEXT.commit:
       try:
         instance_profile = CLIENTS["iam"].create_instance_profile(InstanceProfileName=role_name)
-      except botocore.exceptions.ClientError as error:
+      except ClientError as error:
         fail("Exception creating instance profile named: {} {}".format(role_name, sys.exc_info(), error))
   else:
     print_if_verbose("instance profile already exists: {}".format(role_name))
@@ -313,7 +320,7 @@ def conditionally_create_profile(role_name, service_type):
     if CONTEXT.commit:
       try:
         CLIENTS["iam"].add_role_to_instance_profile(InstanceProfileName=role_name, RoleName=role_name)
-      except botocore.exceptions.ClientError as error:
+      except ClientError as error:
         fail("Exception adding role to instance profile: {} {}".format(role_name, sys.exc_info(), error))
   else:
     print_if_verbose("instance profile already contains role: {}".format(role_name))
@@ -347,6 +354,85 @@ def conditionally_inline_policies(role_name, sr_entry):
         fail("Exception putting policy: {} onto role: {}".format(policy_name, role_name), sys.exc_info())
 
 
+def conditionally_create_kms_key(role_name, service_type):
+  """
+  Create KMS Master Key for encryption/decryption of sensitive values in cf templates and latebind configs
+  Args:
+      role_name: name of the role that kms key is being created for; it will be given decrypt privileges.
+      service_type: service registry service type: 'aws_ec2', 'aws_lambda', or 'http_service'
+  """
+  if service_type not in KMS_SERVICE_TYPES:
+    print_if_verbose("not eligible for kms; service_type: {} is not valid for kms".format(service_type))
+    return
+
+  # Converting all periods to underscores because they are invalid in KMS alias names
+  key_alias = role_name.replace('.', '_')
+
+  try:
+    kms_key = CLIENTS["kms"].describe_key(KeyId='alias/{}'.format(key_alias))
+  except ClientError as error:
+    if error.response['Error']['Code'] == 'NotFoundException':
+      kms_key = None
+    else:
+      fail("Exception describing KMS key: {} {}".format(role_name, error))
+
+  formatted_principal = '"AWS": "arn:aws:iam::{}:role/{}"'.format(CONTEXT.account_id, role_name)
+  kms_key_policy = '''{
+    "Version": "2012-10-17",
+    "Statement": [
+      {
+        "Sid": "Enable IAM User Permissions",
+        "Effect": "Allow",
+        "Principal": {
+          "AWS": "arn:aws:iam::''' + CONTEXT.account_id + ''':root"
+        },
+        "Action": "kms:*",
+        "Resource": "*"
+      },
+      {
+        "Sid": "Allow Service Role Decrypt Privileges",
+        "Effect": "Allow",
+        "Principal": { ''' + formatted_principal + ''' },
+        "Action": "kms:Decrypt",
+        "Resource": "*"
+      }
+    ]
+  }'''
+
+  if not kms_key:
+    print("Create KMS key: {}".format(key_alias))
+    if CONTEXT.commit:
+      # Create KMS Master Key. Due to AWS eventual consistency a newly created IAM role may not be 
+      # immediately visible to KMS. Retrying up to 5 times (25 seconds) to account for this behavior.
+      create_key_failures = 0
+      while create_key_failures <= 5:
+        try:
+          new_kms_key = CLIENTS["kms"].create_key(
+            Policy=kms_key_policy,
+            Description='Master Key for {}'.format(role_name)
+          )
+          break
+        except ClientError as error:
+          if error.response['Error']['Code'] == 'MalformedPolicyDocumentException':
+            if create_key_failures == 5:
+              fail("Exception creating kms key: {} {}".format(role_name, error))
+            else:
+              create_key_failures += 1
+              time.sleep(5)
+          else:
+            fail("Exception creating kms key: {} {}".format(role_name, error))
+
+      # Assign key an alias. This is used for all future references to it (rather than the key ARN)
+      try:
+        CLIENTS["kms"].create_alias(
+          AliasName='alias/{}'.format(key_alias),
+          TargetKeyId=new_kms_key['KeyMetadata']['KeyId']
+        )
+      except ClientError as error:
+        fail("Exception creating alias for kms key: {} {}".format(role_name, error))
+  else:
+    print_if_verbose("KMS key already exists: {}".format(key_alias))
+
 def main():
   global CONTEXT, CLIENTS, AWS_RESOLVER
 
@@ -363,15 +449,16 @@ def main():
   try:
     # If running in EC2, always use instance credentials. One day we'll have "lambda" in there too, so use "in" w/ list
     if CONTEXT.whereami in ["ec2"]:
-      CLIENTS = create_aws_clients(EFConfig.DEFAULT_REGION, None, "ec2", "iam")
+      CLIENTS = create_aws_clients(EFConfig.DEFAULT_REGION, None, "ec2", "iam", "kms")
     else:
       # Otherwise, we use local user creds based on the account alias
-      CLIENTS = create_aws_clients(EFConfig.DEFAULT_REGION, CONTEXT.account_alias, "ec2", "iam")
+      CLIENTS = create_aws_clients(EFConfig.DEFAULT_REGION, CONTEXT.account_alias, "ec2", "iam", "kms")
   except RuntimeError:
     fail("Exception creating AWS clients in region {} with profile {}".format(
       EFConfig.DEFAULT_REGION, CONTEXT.account_alias))
   # Instantiate and AWSResolver to lookup AWS resources
   AWS_RESOLVER = EFAwsResolver(CLIENTS)
+  CONTEXT.account_id = CLIENTS["SESSION"].resource('iam').CurrentUser().arn.split(':')[4]
 
   # Show where we're working
   if not CONTEXT.commit:
@@ -380,7 +467,7 @@ def main():
   print("env_full: {}".format(CONTEXT.env_full))
   print("env_short: {}".format(CONTEXT.env_short))
   print("aws account profile: {}".format(CONTEXT.account_alias))
-  print("aws account number: {}".format(CLIENTS["SESSION"].resource('iam').CurrentUser().arn.split(':')[4]))
+  print("aws account number: {}".format(CONTEXT.account_id))
 
   # Step through all services in the service registry
   for CONTEXT.service in CONTEXT.service_registry.iter_services():
@@ -407,7 +494,10 @@ def main():
     # 2. SECURITY GROUP(S) FOR THE SERVICE : only some types of services get security groups
     conditionally_create_security_groups(CONTEXT.env, service_name, service_type)
 
-    # 3. INLINE SERVICE'S POLICIES INTO ROLE
+    # 3. KMS KEY FOR THE SERVICE : only some types of services get kms keys
+    conditionally_create_kms_key(target_name, service_type)
+
+    # 4. INLINE SERVICE'S POLICIES INTO ROLE
     # only eligible service types with "policies" sections in the service registry get policies
     conditionally_inline_policies(target_name, sr_entry)
 

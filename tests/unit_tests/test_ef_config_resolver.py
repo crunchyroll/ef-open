@@ -16,7 +16,7 @@ limitations under the License.
 
 import unittest
 
-from ef_config_resolver import EFConfigResolver
+from src.ef_config_resolver import EFConfigResolver
 
 class TestEFConfigResolver(unittest.TestCase):
   """Tests for 'ef_config_resolver.py'"""

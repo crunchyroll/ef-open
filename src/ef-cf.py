@@ -97,6 +97,25 @@ def handle_args_and_set_context(args):
   context.service_registry = EFServiceRegistry(parsed_args["sr"])
   return context
 
+def resolve_template(template, profile, env, region, service, verbose):
+  # resolve {{SYMBOLS}} in the passed template file
+  isfile(template) or fail("Not a file: {}".format(template))
+  resolver = EFTemplateResolver(profile=profile, target_other=True, env=env,
+                                region=region, service=service, verbose=verbose)
+  with open(template) as template_file:
+    resolver.load(template_file)
+    resolver.render()
+
+  if verbose:
+    print(resolver.template)
+
+  dangling_left, dangling_right = resolver.count_braces()
+  if resolver.unresolved_symbols():
+    fail("Unable to resolve symbols: " + ",".join(["{{" + s + "}}" for s in resolver.unresolved_symbols()]))
+  elif dangling_left > 0 or dangling_right > 0:
+    fail("Some {{ or }} were not resolved. left{{: {}, right}}: {}".format(dangling_left, dangling_right))
+  else:
+    return resolver.template
 
 def main():
   context = handle_args_and_set_context(sys.argv[1:])
@@ -152,23 +171,14 @@ def main():
     print("whereami: {}".format(context.whereami))
     print("service type: {}".format(context.service_registry.service_record(service_name)["type"]))
 
-  # resolve {{SYMBOLS}} in the template file
-  isfile(context.template_file) or fail("Not a file: {}".format(context.template_file))
-  resolver = EFTemplateResolver(profile=profile, target_other=True, env=context.env, region=EFConfig.DEFAULT_REGION,
-                                service=service_name, verbose=context.verbose)
-  template_file_fh = open(context.template_file)
-  resolver.load(template_file_fh)
-  resolver.render()
-
-  if context.verbose:
-    print(resolver.template)
-
-  if resolver.unresolved_symbols():
-    fail("Unable to resolve symbols: " + ",".join(["{{"+s+"}}" for s in resolver.unresolved_symbols()]))
-
-  dangling_left, dangling_right = resolver.count_braces()
-  if dangling_left > 0 or dangling_right > 0:
-    fail("Some {{ or }} were not resolved. left{{: {}, right}}: {}".format(dangling_left, dangling_right))
+  template = resolve_template(
+    template=context.template_file,
+    profile=profile,
+    env=context.env,
+    region=EFConfig.DEFAULT_REGION,
+    service=service_name,
+    verbose=context.verbose
+  )
 
   # Create clients - if accessing by role, profile should be None
   try:
@@ -184,18 +194,18 @@ def main():
 
   # Load parameters from file
   if isfile(parameter_file):
+    parameters_template = resolve_template(
+      template=parameter_file,
+      profile=profile,
+      env=context.env,
+      region=EFConfig.DEFAULT_REGION,
+      service=service_name,
+      verbose=context.verbose
+    )
     try:
-      parameter_fh = open(parameter_file)
-    except (OSError, IOError) as error:
-      fail("Error opening and reading parameter file: {}".format(parameter_file), error)
-    try:
-      parameters = json.load(parameter_fh)
-      parameter_fh.close()
+      parameters = json.loads(parameters_template)
     except ValueError as error:
       fail("JSON error in parameter file: {}".format(parameter_file, error))
-
-    if context.verbose:
-      print("parameters: {}".format(repr(parameters)))
   else:
     parameters = []
 
@@ -203,7 +213,7 @@ def main():
   if context.verbose:
     print("Validating template")
   try:
-    clients["cloudformation"].validate_template(TemplateBody=resolver.template)
+    clients["cloudformation"].validate_template(TemplateBody=template)
   except botocore.exceptions.ClientError as error:
     fail("Template did not pass validation", error)
 
@@ -215,7 +225,7 @@ def main():
       print("Creating changeset: {}".format(stack_name))
       clients["cloudformation"].create_change_set(
         StackName=stack_name,
-        TemplateBody=resolver.template,
+        TemplateBody=template,
         Parameters=parameters,
         Capabilities=['CAPABILITY_IAM'],
         ChangeSetName=stack_name,
@@ -226,7 +236,7 @@ def main():
         print("Updating stack: {}".format(stack_name))
         clients["cloudformation"].update_stack(
           StackName=stack_name,
-          TemplateBody=resolver.template,
+          TemplateBody=template,
           Parameters=parameters,
           Capabilities=['CAPABILITY_IAM']
         )
@@ -234,7 +244,7 @@ def main():
         print("Creating stack: {}".format(stack_name))
         clients["cloudformation"].create_stack(
           StackName=stack_name,
-          TemplateBody=resolver.template,
+          TemplateBody=template,
           Parameters=parameters,
           Capabilities=['CAPABILITY_IAM']
         )

@@ -29,7 +29,7 @@ from ef_version_resolver import EFVersionResolver
 
 # CONSTANTS
 # pattern to find resolvable symbols - finds innermost nestings
-SYMBOL_PATTERN = r'{{([0-9A-Za-z/_,.:\-]+?)}}'
+SYMBOL_PATTERN = r'{{([0-9A-Za-z/_,.:\-\+=]+?)}}'
 # inverse of SYMBOL_PATTERN, and disallows ':' and ',' from param keys; this is checked in load()
 ILLEGAL_PARAMETER_CHARS = r'[^(0-9A-Za-z/_.\-)]'
 
@@ -234,7 +234,8 @@ class EFTemplateResolver(object):
       # Create clients - if accessing by role, profile should be None
       try:
         EFTemplateResolver.__CLIENTS = create_aws_clients(self.resolved["REGION"], profile,
-                                        "cloudformation", "cloudfront", "ec2", "iam", "lambda", "route53", "s3", "waf")
+                                        "cloudformation", "cloudfront", "ec2", "iam", "kms",
+                                                          "lambda", "route53", "s3", "waf")
       except RuntimeError as error:
         fail("Exception logging in with Session()", error)
 
