@@ -10,11 +10,11 @@ Expects these permissions (for the /current account/ only -- prod and non-prod a
   - PutObject (to update an object)
 
 Syntax:
-  ef-version <service> <key> <env> --get
-  ef-version <service> <key> <env> --set <value> --commit
-  ef-version <service> <key> <env> --set =prod --commit
-  ef-version <service> <key> <env> --set =staging --commit
-  ef-version <service> <key> <env> --set =latest --commit
+  ef-version <service> <env> --get
+  ef-version <service> <env> --set <value> --commit
+  ef-version <service> <env> --set =prod --commit
+  ef-version <service> <env> --set =staging --commit
+  ef-version <service> <env> --set =latest --commit
 
 Service registry must be reachable for --set; isn't needed for  --get*
 If doing --set, must run from within the repo so app can auto-locate the service registry file
@@ -30,6 +30,7 @@ import json
 from operator import itemgetter
 from os import getenv
 import sys
+import urllib2
 
 from ef_config import EFConfig
 from ef_context import EFContext
@@ -43,9 +44,12 @@ class EFVersionContext(EFContext):
   def __init__(self):
     super(EFVersionContext, self).__init__()
     # core stuff
+    self._build_number = None
+    self._commit_hash = None
     self._get = None
     self._history = None
     self._key = None
+    self._location = None
     self._limit = None
     self._noprecheck = None
     self._rollback = None
@@ -54,6 +58,16 @@ class EFVersionContext(EFContext):
     self._stable = None
     self._value = None
     self._versionresolver = None
+
+  @property
+  def build_number(self):
+    """Externally defined build number assoicated with version entity"""
+    return self._build_number
+
+  @property
+  def commit_hash(self):
+    """Commit hash associated with version entity"""
+    return self._commit_hash
 
   @property
   def get(self):
@@ -68,6 +82,11 @@ class EFVersionContext(EFContext):
   def key(self):
     """The key being manipulated"""
     return self._key
+
+  @property
+  def location(self):
+    """Location (URL) where version is deployed and can be lookup up"""
+    return self._location
 
   @property
   def limit(self):
@@ -127,7 +146,19 @@ class Version(object):
   Holds one 'object version' at a time, provides it in several formats
   """
   def __init__(self, object_version):
+    if object_version["Metadata"].has_key(EFConfig.S3_VERSION_BUILDNUMBER_KEY):
+      self._build_number = object_version["Metadata"][EFConfig.S3_VERSION_BUILDNUMBER_KEY]
+    else:
+      self._build_number = ""
+    if object_version["Metadata"].has_key(EFConfig.S3_VERSION_COMMITHASH_KEY):
+      self._commit_hash = object_version["Metadata"][EFConfig.S3_VERSION_COMMITHASH_KEY]
+    else:
+      self._commit_hash = ""
     self._last_modified = object_version["LastModified"].strftime("%Y-%m-%dT%H:%M:%S%Z")
+    if object_version["Metadata"].has_key(EFConfig.S3_VERSION_LOCATION_KEY):
+      self._location = object_version["Metadata"][EFConfig.S3_VERSION_LOCATION_KEY]
+    else:
+      self._location = ""
     if object_version["Metadata"].has_key(EFConfig.S3_VERSION_MODIFIEDBY_KEY):
       self._modified_by = object_version["Metadata"][EFConfig.S3_VERSION_MODIFIEDBY_KEY]
     else:
@@ -140,7 +171,7 @@ class Version(object):
     self._version_id = object_version["VersionId"]
 
   def __str__(self):
-    return "{} {} {} {} {}".format(self._value, self._last_modified, self._modified_by, self._version_id, self._status)
+    return "{} {} {} {} {} {} {} {}".format(self._value, self._build_number, self._commit_hash, self._last_modified, self._modified_by, self._version_id, self._location, self._status)
 
   def __repr__(self):
     return str(self.to_json())
@@ -151,7 +182,10 @@ class Version(object):
     the json materializes in reverse order from the order used here
     """
     return {
+      "build_version": self._build_number,
+      "commit_hash": self._commit_hash,
       "last_modified": self._last_modified,
+      "location": self._location,
       "modified_by": self._modified_by,
       "status": self._status,
       "value": self._value,
@@ -159,12 +193,24 @@ class Version(object):
     }
 
   @property
+  def build_number(self):
+    return self._build_number
+
+  @property
+  def commit_hash(self):
+    return self._commit_hash
+
+  @property
   def last_modified(self):
     return self._last_modified
 
   @property
+  def location(self):
+    return self._location
+
+  @property
   def modified_by(self):
-    return self._last_modified
+    return self._modified_by
 
   @property
   def status(self):
@@ -193,7 +239,6 @@ def handle_args_and_set_context(args):
   """
   parser = argparse.ArgumentParser()
   parser.add_argument("service_name", help="name of the service")
-  parser.add_argument("key", help="version key to look up for <service_name> such as 'ami-id' (list in EF_Config)")
   parser.add_argument("env", help=", ".join(EFConfig.ENV_LIST))
   group = parser.add_mutually_exclusive_group(required=True)
   group.add_argument("--get", help="get current version", action="store_true")
@@ -206,10 +251,13 @@ def handle_args_and_set_context(args):
   if EFConfig.ALLOW_EF_VERSION_SKIP_PRECHECK:
     parser.add_argument("--noprecheck", help="--set or --rollback without precheck", action="store_true", default=False)
   parser.add_argument("--stable", help="On --set, also mark the version 'stable'", action="store_true")
+  parser.add_argument("--build", help="On --set, also set the externally defined build number associated with the version entity", default="")
+  parser.add_argument("--commit_hash", help="On --set, also set the commit hash associated with the version entity", default="")
   parser.add_argument("--commit", help="Actually --set or --rollback (dry run if omitted)",
                       action="store_true", default=False)
   parser.add_argument("--limit", help="Limit 'history', 'rollback', 'show' to first N records (default 100, max 1000)",
                       type=int, default=100)
+  parser.add_argument("--location", help="On --set, also mark the url location of the static build's version file to support dist-hash precheck", default="")
   parser.add_argument("--sr", help="optional /path/to/service_registry_file.json", default=None)
   parser.add_argument("--devel", help="Allow running from branch; don't refresh from origin", action="store_true",
                       default=False)
@@ -218,6 +266,8 @@ def handle_args_and_set_context(args):
   parsed_args = vars(parser.parse_args(args))
   context = EFVersionContext()
   # marshall the inherited context values
+  context._build_number = parsed_args["build"]
+  context._commit_hash = parsed_args["commit_hash"]
   context.commit = parsed_args["commit"]
   context.devel = parsed_args["devel"]
   try:
@@ -227,12 +277,12 @@ def handle_args_and_set_context(args):
   # marshall this module's additional context values
   context._get = parsed_args["get"]
   context._history = parsed_args["history"]
-  context._key = parsed_args["key"]
   if EFConfig.ALLOW_EF_VERSION_SKIP_PRECHECK:
     context._noprecheck = parsed_args["noprecheck"]
   if not 1 <= parsed_args["limit"] <= 1000:
     fail("Error in --limit. Valid range: 1..1000")
   context._limit = parsed_args["limit"]
+  context._location = parsed_args["location"]
   context._rollback = parsed_args["rollback"]
   context._service_name = parsed_args["service_name"]
   context._show = parsed_args["show"]
@@ -240,6 +290,8 @@ def handle_args_and_set_context(args):
   context._value = parsed_args["set"]
   # Set up service registry and policy template path which depends on it
   context.service_registry = EFServiceRegistry(parsed_args["sr"])
+  # Lookup key type for service
+  context._key = lookup_key(context)
 
   # VERBOSE is global
   global VERBOSE
@@ -250,6 +302,24 @@ def handle_args_and_set_context(args):
 def print_if_verbose(message):
   if VERBOSE:
     print(message, file=sys.stderr)
+
+def lookup_key(context):
+  """
+    Set the key for the current context.
+    Args:
+      context: a populated EFVersionContext object
+  """
+  # Service must exist in service registry
+  if not context.service_registry.service_record(context.service_name):
+    fail("service: {} not found in service registry: {}".format(context.service_name, context.service_registry.filespec))
+  service_type = context.service_registry.service_record(context.service_name)["type"]
+
+  # Lookup allowed key for service type
+  if service_type not in EFConfig.ALLOWED_SERVICE_VERSION_KEY:
+    fail("service_type: {} is unknown; see whitelist in ALLOWED_SERVICE_VERSION_KEY in ef_config and update service registry entry".format(service_type))
+  service_key = EFConfig.ALLOWED_SERVICE_VERSION_KEY[service_type]
+
+  return service_key
 
 def precheck_ami_id(context):
   """
@@ -263,16 +333,15 @@ def precheck_ami_id(context):
     RuntimeError if not ok to proceed
   """
   # get the current AMI
-  key = "{}/{}".format(context.service_name, context.env)
+  key = "{}/{}".format(context.env, context.service_name)
   print_if_verbose("precheck_ami_id with key: {}".format(key))
   current_ami=context.versionresolver.lookup("ami-id,{}".format(key))
   print_if_verbose("ami found: {}".format(current_ami))
 
   # If bootstrapping (this will be the first entry in the version history)
-  # or version is a special token (=latest, =prod, =staging)
   # then we can't check it vs. running version
-  if current_ami is None or current_ami in EFConfig.SPECIAL_VERSIONS:
-    print_if_verbose("precheck passed without check because current AMI has special value: {}".format(str(current_ami)))
+  if current_ami is None:
+    print_if_verbose("precheck passed without check because current AMI is None")
     return True
 
   # Otherwise perform a consistency check
@@ -305,6 +374,46 @@ def precheck_ami_id(context):
   for instance_id in instances_running_as_env_service:
     if not instance_id in instances_running_ami:
       raise RuntimeError("Instance: {} not running expected ami: {}".format(instance_id, current_ami))
+
+  # Check passed - all is well
+  return True
+
+def precheck_dist_hash(context):
+  """
+  Is the dist in service the same as the dist marked current in the version records?
+  This tool won't update records unless the world state is coherent.
+  Args:
+    context: a populated EFVersionContext object
+  Returns:
+    True if ok to proceed
+  Raises:
+    RuntimeError if not ok to proceed
+  """
+  # get the current dist-hash
+  key = "{}/{}".format(context.env, context.service_name)
+  print_if_verbose("precheck_dist_hash with key: {}".format(key))
+  current_dist_hash = context.versionresolver.lookup("dist-hash,{}".format(key))
+  print_if_verbose("dist-hash found: {}".format(current_dist_hash))
+
+  # If bootstrapping (this will be the first entry in the version history)
+  # then we can't check it vs. current version
+  if current_dist_hash is None:
+    print_if_verbose("precheck passed without check because current dist-hash is None")
+    return True
+
+  # Otherwise perform a consistency check
+  # 1. get dist version in service for environment
+  try:
+    response = urllib2.urlopen(context.location, None, 5)
+    if response.getcode() != 200:
+      raise IOError("Non-200 response " + str(response.getcode()) + " reading " + context.location)
+    dist_hash_in_service = response.read().strip()
+  except urllib2.URLError as error:
+    raise IOError("URLError in http_get_dist_version: " + repr(error))
+
+  # 2. dist version in service should be the same as "current" dist version
+  if dist_hash_in_service != current_dist_hash:
+    raise RuntimeError("{} dist-hash in service: {} but expected dist-hash: {}".format(key, dist_hash_in_service, current_dist_hash))
 
   # Check passed - all is well
   return True
@@ -429,13 +538,6 @@ def cmd_set(context):
   Args:
     context: a populated EFVersionContext object
   """
-  # Service must exist in service registry
-  if not context.service_registry.service_record(context.service_name):
-    fail("service: {} not found in service registry: {}".format(context.service_name, context.service_registry.filespec))
-  # Key must be whitelisted
-  if context.key not in EFConfig.VERSION_KEYS:
-    fail("key: {} is unknown; see whitelist in VERSION_KEYS in ef_config".format(context.key))
-
   # If key value is a special symbol, see if this env allows it
   if context.value in EFConfig.SPECIAL_VERSIONS and not context.env_short in EFConfig.SPECIAL_VERSION_ENVS:
     fail("special version: {} not allowed in env: {}".format(context.value, context.env_short))
@@ -449,7 +551,7 @@ def cmd_set(context):
   elif context.value == "=staging":
     context.value = context.versionresolver.lookup("{},{}/{}".format(context.key, "staging", context.service_name))
   elif context.value == "=latest":
-    if not EFConfig.VERSION_KEYS[context.key]["allow_latest"]:
+    if not EFConfig.VERSION_KEY_ATTRIBUTES[context.key]["allow_latest"]:
       fail("=latest cannot be used with key: {}".format(context.key))
     func_name = "_getlatest_" + context.key.replace("-", "_")
     if globals().has_key(func_name) and isfunction(globals()[func_name]):
@@ -480,7 +582,7 @@ def cmd_set(context):
 
   if not context.commit:
     print("=== DRY RUN ===\nUse --commit to set value\n=== DRY RUN ===")
-    print("would set key: {} with value: {} {}".format(s3_key, context.value, s3_version_status))
+    print("would set key: {} with value: {} {} {} {} {}".format(s3_key, context.value, context.build_number, context.commit_hash, context.location, s3_version_status))
   else:
     context.aws_client("s3").put_object(
       ACL = 'bucket-owner-read',
@@ -489,12 +591,15 @@ def cmd_set(context):
       ContentEncoding = EFConfig.S3_VERSION_CONTENT_ENCODING,
       Key = s3_key,
       Metadata = {
+        EFConfig.S3_VERSION_BUILDNUMBER_KEY:context.build_number,
+        EFConfig.S3_VERSION_COMMITHASH_KEY:context.commit_hash,
+        EFConfig.S3_VERSION_LOCATION_KEY:context.location,
         EFConfig.S3_VERSION_MODIFIEDBY_KEY:context.aws_client("sts").get_caller_identity()["Arn"],
         EFConfig.S3_VERSION_STATUS_KEY:s3_version_status
       },
       StorageClass = 'STANDARD'
     )
-    print("set key: {} with value: {} {}".format(s3_key, context.value, s3_version_status))
+    print("set key: {} with value: {} {} {} {} {}".format(s3_key, context.value, context.build_number, context.commit_hash, context.location, s3_version_status))
 
 def cmd_show(context):
   print("cmd_show is not implemented")
