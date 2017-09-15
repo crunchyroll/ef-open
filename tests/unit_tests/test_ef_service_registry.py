@@ -16,7 +16,9 @@ limitations under the License.
 
 import unittest
 
-from src.ef_service_registry import EFServiceRegistry
+# For local application imports, context_paths must be first despite lexicon ordering
+import context_paths
+from ef_service_registry import EFServiceRegistry
 
 class TestEFUtils(unittest.TestCase):
   """Tests for 'ef_service_registry.py'"""
