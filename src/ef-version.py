@@ -25,7 +25,7 @@ Known issues:
 
 from __future__ import print_function
 import argparse
-from inspect import isfunction, getmembers
+from inspect import isfunction
 import json
 from operator import itemgetter
 from os import getenv
