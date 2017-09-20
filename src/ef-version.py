@@ -25,7 +25,7 @@ Known issues:
 
 from __future__ import print_function
 import argparse
-from inspect import isfunction
+from inspect import isfunction, getmembers
 import json
 from operator import itemgetter
 from os import getenv
@@ -390,30 +390,33 @@ def precheck_dist_hash(context):
     RuntimeError if not ok to proceed
   """
   # get the current dist-hash
-  key = "{}/{}".format(context.env, context.service_name)
+  key = "{}/{}/dist-hash".format(context.service_name, context.env)
   print_if_verbose("precheck_dist_hash with key: {}".format(key))
-  current_dist_hash = context.versionresolver.lookup("dist-hash,{}".format(key))
-  print_if_verbose("dist-hash found: {}".format(current_dist_hash))
+  current_dist_hash = Version(context.aws_client("s3").get_object(
+    Bucket = EFConfig.S3_VERSION_BUCKET,
+    Key = key
+  ))
+  print_if_verbose("dist-hash found: {}".format(current_dist_hash.value))
 
   # If bootstrapping (this will be the first entry in the version history)
   # then we can't check it vs. current version
-  if current_dist_hash is None:
+  if current_dist_hash.value is None:
     print_if_verbose("precheck passed without check because current dist-hash is None")
     return True
 
   # Otherwise perform a consistency check
   # 1. get dist version in service for environment
   try:
-    response = urllib2.urlopen(context.location, None, 5)
+    response = urllib2.urlopen(current_dist_hash.location, None, 5)
     if response.getcode() != 200:
-      raise IOError("Non-200 response " + str(response.getcode()) + " reading " + context.location)
+      raise IOError("Non-200 response " + str(response.getcode()) + " reading " + current_dist_hash.location)
     dist_hash_in_service = response.read().strip()
   except urllib2.URLError as error:
     raise IOError("URLError in http_get_dist_version: " + repr(error))
 
   # 2. dist version in service should be the same as "current" dist version
-  if dist_hash_in_service != current_dist_hash:
-    raise RuntimeError("{} dist-hash in service: {} but expected dist-hash: {}".format(key, dist_hash_in_service, current_dist_hash))
+  if dist_hash_in_service != current_dist_hash.value:
+    raise RuntimeError("{} dist-hash in service: {} but expected dist-hash: {}".format(key, dist_hash_in_service, current_dist_hash.value))
 
   # Check passed - all is well
   return True
