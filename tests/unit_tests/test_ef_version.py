@@ -54,26 +54,31 @@ class TestEFVersion(unittest.TestCase):
     self.version = Mock(name="mocked version object")
 
 
-  def test_lookup_key(self):
-    """Verify that a valid instance type returns """
-    key = ef_version.lookup_key(self)
-    self.assertEqual(key, self.key)
+  def test_validate_context(self):
+    """Verify that a valid instance type returns True"""
+    self.assertTrue(ef_version.validate_context(self))
 
-  def test_lookup_key_invalid_type(self):
-    """Verify that an invalid instance type raises an exception"""
+  def test_validate_context_invalid_key(self):
+    """Verify that a invalid key raises an exception"""
+    self.key = 'ami-i'
+    with self.assertRaises(SystemExit):
+      ef_version.validate_context(self)
+
+  def test_validate_context_invalid_service(self):
+    """Verify that an invalid instance service raises an exception"""
     self.service_registry.service_record.return_value = None
     with self.assertRaises(SystemExit):
-      ef_version.lookup_key(self)
+      ef_version.validate_context(self)
 
-  def test_lookup_key_invalid_service(self):
-    """Verify that an invalid service raises an exception"""
-    self.service_registry.service_record.return_value = None
+  def test_validate_context_invalid_type(self):
+    """Verify that an invalid type raises an exception"""
+    self.service_registry.service_record.return_value = {"type": "aws_ec"}
     with self.assertRaises(SystemExit):
-      ef_version.lookup_key(self)
+      ef_version.validate_context(self)
 
   def test_args_get(self):
     """Test parsing args with all valid values for get"""
-    args = [self.service, self.env, "--get", "--sr", "{}".format(self.service_registry_file)]
+    args = [self.service, self.key, self.env, "--get", "--sr", "{}".format(self.service_registry_file)]
     context = ef_version.handle_args_and_set_context(args)
     self.assertEqual(context.env, self.env)
     self.assertEqual(context.service_name, self.service_name)
@@ -81,7 +86,7 @@ class TestEFVersion(unittest.TestCase):
 
   def test_args_set(self):
     """Test parsing args with all valid values for set"""
-    args = [self.service, self.env, "--set", self.value, "--location", self.location, "--build", self.build_number, "--commit_hash", self.commit_hash, "--sr", "{}".format(self.service_registry_file)]
+    args = [self.service, self.key, self.env, "--set", self.value, "--location", self.location, "--build", self.build_number, "--commit_hash", self.commit_hash, "--sr", "{}".format(self.service_registry_file)]
     context = ef_version.handle_args_and_set_context(args)
     self.assertEqual(context.build_number, self.build_number)
     self.assertEqual(context.commit_hash, self.commit_hash)
@@ -93,7 +98,7 @@ class TestEFVersion(unittest.TestCase):
 
   def test_args_history(self):
     """Test parsing args with all valid values for history"""
-    args = [self.service, self.env, "--history", self.history, "--sr", "{}".format(self.service_registry_file)]
+    args = [self.service, self.key, self.env, "--history", self.history, "--sr", "{}".format(self.service_registry_file)]
     context = ef_version.handle_args_and_set_context(args)
     self.assertEqual(context.env, self.env)
     self.assertEqual(context.history, self.history)
@@ -102,7 +107,7 @@ class TestEFVersion(unittest.TestCase):
 
   def test_args_invalid_env(self):
     """Verify that an invalid environment arg raises an exception"""
-    args = [self.service, "invalid_env"]
+    args = [self.service, self.key, "invalid_env"]
     with self.assertRaises(SystemExit):
       ef_version.handle_args_and_set_context(args)
 
