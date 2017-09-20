@@ -10,11 +10,11 @@ Expects these permissions (for the /current account/ only -- prod and non-prod a
   - PutObject (to update an object)
 
 Syntax:
-  ef-version <service> <env> --get
-  ef-version <service> <env> --set <value> --commit
-  ef-version <service> <env> --set =prod --commit
-  ef-version <service> <env> --set =staging --commit
-  ef-version <service> <env> --set =latest --commit
+  ef-version <service> <key> <env> --get
+  ef-version <service> <key> <env> --set <value> --commit
+  ef-version <service> <key> <env> --set =prod --commit
+  ef-version <service> <key> <env> --set =staging --commit
+  ef-version <service> <key> <env> --set =latest --commit
 
 Service registry must be reachable for --set; isn't needed for  --get*
 If doing --set, must run from within the repo so app can auto-locate the service registry file
@@ -239,6 +239,7 @@ def handle_args_and_set_context(args):
   """
   parser = argparse.ArgumentParser()
   parser.add_argument("service_name", help="name of the service")
+  parser.add_argument("key", help="version key to look up for <service_name> such as 'ami-id' (list in EF_Config)")
   parser.add_argument("env", help=", ".join(EFConfig.ENV_LIST))
   group = parser.add_mutually_exclusive_group(required=True)
   group.add_argument("--get", help="get current version", action="store_true")
@@ -277,6 +278,7 @@ def handle_args_and_set_context(args):
   # marshall this module's additional context values
   context._get = parsed_args["get"]
   context._history = parsed_args["history"]
+  context._key = parsed_args["key"]
   if EFConfig.ALLOW_EF_VERSION_SKIP_PRECHECK:
     context._noprecheck = parsed_args["noprecheck"]
   if not 1 <= parsed_args["limit"] <= 1000:
@@ -290,20 +292,19 @@ def handle_args_and_set_context(args):
   context._value = parsed_args["set"]
   # Set up service registry and policy template path which depends on it
   context.service_registry = EFServiceRegistry(parsed_args["sr"])
-  # Lookup key type for service
-  context._key = lookup_key(context)
 
   # VERBOSE is global
   global VERBOSE
   VERBOSE = parsed_args["verbose"]
 
+  validate_context(context)
   return context
 
 def print_if_verbose(message):
   if VERBOSE:
     print(message, file=sys.stderr)
 
-def lookup_key(context):
+def validate_context(context):
   """
     Set the key for the current context.
     Args:
@@ -314,12 +315,15 @@ def lookup_key(context):
     fail("service: {} not found in service registry: {}".format(context.service_name, context.service_registry.filespec))
   service_type = context.service_registry.service_record(context.service_name)["type"]
 
-  # Lookup allowed key for service type
-  if service_type not in EFConfig.ALLOWED_SERVICE_VERSION_KEY:
-    fail("service_type: {} is unknown; see whitelist in ALLOWED_SERVICE_VERSION_KEY in ef_config and update service registry entry".format(service_type))
-  service_key = EFConfig.ALLOWED_SERVICE_VERSION_KEY[service_type]
+  # Key must be valid
+  if not EFConfig.VERSION_KEYS.has_key(context.key):
+    fail("invalid key: {}; see VERSION_KEYS in ef_config for supported keys".format(context.key))
 
-  return service_key
+  # Lookup allowed key for service type
+  if EFConfig.VERSION_KEYS[context.key].has_key("allowed_types") and service_type not in EFConfig.VERSION_KEYS[context.key]["allowed_types"]:
+    fail("service_type: {} is not allowed for key {}; see VERSION_KEYS[KEY]['allowed_types'] in ef_config and validate service registry entry".format(service_type, context.key))
+
+  return True
 
 def precheck_ami_id(context):
   """
@@ -554,7 +558,7 @@ def cmd_set(context):
   elif context.value == "=staging":
     context.value = context.versionresolver.lookup("{},{}/{}".format(context.key, "staging", context.service_name))
   elif context.value == "=latest":
-    if not EFConfig.VERSION_KEY_ATTRIBUTES[context.key]["allow_latest"]:
+    if not EFConfig.VERSION_KEYS[context.key]["allow_latest"]:
       fail("=latest cannot be used with key: {}".format(context.key))
     func_name = "_getlatest_" + context.key.replace("-", "_")
     if globals().has_key(func_name) and isfunction(globals()[func_name]):
