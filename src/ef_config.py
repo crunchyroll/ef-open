@@ -76,15 +76,15 @@ class EFConfig(EFSiteConfig):
   # Metadata version status values
   S3_VERSION_STATUS_STABLE = "stable"
   S3_VERSION_STATUS_UNDEFINED = "undefined"
-  ALLOWED_SERVICE_VERSION_KEY = {
-    "aws_ec2": "ami-id",
-    "http_service": "ami-id",
-    "dist_static": "dist-hash"
-  }
-  VERSION_KEY_ATTRIBUTES = {
+  VERSION_KEYS = {
     "ami-id": {
-      "allow_latest": True
-    }
+      "allow_latest": True,
+      "allowed_types": ["aws_ec2", "http_service"]
+    },
+    "dist-hash": {
+      "allowed_types": ["dist_static"]
+    },
+    "config": {}
   }
   # Some envs' version entries can be set via these special values, meaning 'use the value found there'
   SPECIAL_VERSIONS = ["=latest", "=prod", "=staging"]
