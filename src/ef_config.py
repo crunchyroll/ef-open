@@ -81,10 +81,10 @@ class EFConfig(EFSiteConfig):
       "allow_latest": True,
       "allowed_types": ["aws_ec2", "http_service"]
     },
+    "config": {},
     "dist-hash": {
       "allowed_types": ["dist_static"]
-    },
-    "config": {}
+    }
   }
   # Some envs' version entries can be set via these special values, meaning 'use the value found there'
   SPECIAL_VERSIONS = ["=latest", "=prod", "=staging"]
