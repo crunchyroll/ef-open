@@ -37,6 +37,15 @@ python_binary(
 )
 
 python_binary(
+  name = 'ef-password',
+  source = 'ef-password.py',
+  dependencies = [
+    ':boto3',
+    ':ef-open-lib'
+  ]
+)
+
+python_binary(
   name = 'ef-resolve-config',
   source = 'ef-resolve-config.py',
   dependencies = [

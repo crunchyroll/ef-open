@@ -18,9 +18,11 @@ import unittest
 
 import boto3
 
-from src.ef_version_resolver import EFVersionResolver
-from src.ef_config import EFConfig
-from src.ef_utils import fail, get_account_alias, http_get_metadata, whereami
+# For local application imports, context_paths must be first despite lexicon ordering
+import context_paths
+from ef_version_resolver import EFVersionResolver
+from ef_config import EFConfig
+from ef_utils import fail, get_account_alias, http_get_metadata, whereami
 
 class TestEFVersionResolver(unittest.TestCase):
   """Tests for 'ef_version_resolver.py'"""

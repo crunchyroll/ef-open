@@ -14,15 +14,18 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
+import base64
 from StringIO import StringIO
 import unittest
 
+from botocore.exceptions import ClientError
 from mock import Mock, patch
 
 # For local application imports, context_paths must be first despite lexicon ordering
 import context_paths
 from ef_site_config import EFSiteConfig
 import ef_utils
+
 
 class TestEFUtils(unittest.TestCase):
   """
@@ -711,5 +714,68 @@ class TestEFUtils(unittest.TestCase):
       ef_utils.global_env_valid(None)
     self.assertTrue("Invalid global env" in exception.exception.message)
 
+
+class TestEFUtilsKMS(unittest.TestCase):
+  """Test cases for functions using kms"""
+
+  def setUp(self):
+    self.service = "test-service"
+    self.env = "test"
+    self.secret = "secret"
+    self.error_response = {'Error': {'Code': 'FakeError', 'Message': 'Testing catch of all ClientErrors'}}
+    self.client_error = ClientError(self.error_response, "boto3")
+    self.mock_kms = Mock(name="mocked kms client")
+    self.bytes_return = "cipher_blob".encode()
+    self.mock_kms.encrypt.return_value = {"CiphertextBlob": self.bytes_return}
+    self.mock_kms.decrypt.return_value = {"Plaintext": self.bytes_return}
+
+  def test_kms_encrypt_call(self):
+    """Validates basic kms call parameters"""
+    ef_utils.kms_encrypt(self.mock_kms, self.service, self.env, self.secret)
+    self.mock_kms.encrypt.assert_called_once_with(
+      KeyId='alias/{}-{}'.format(self.env, self.service),
+      Plaintext=self.secret.encode()
+    )
+
+  def test_kms_encrypt_call_subservice(self):
+    """Validate KMS encryption call on a subservice, where periods should be converted to underscores due to
+    alias name restrictions"""
+    subservice = self.service + ".subservice"
+    ef_utils.kms_encrypt(self.mock_kms, subservice, self.env, self.secret)
+    self.mock_kms.encrypt.assert_called_once_with(
+      KeyId='alias/{}-{}'.format(self.env, self.service + "_subservice"),
+      Plaintext=self.secret.encode()
+    )
+
+  def test_kms_encrypt_returns_b64(self):
+    """Validate that function returns a base64 encoded value"""
+    encrypted_secret = ef_utils.kms_encrypt(self.mock_kms, self.service, self.env, self.secret)
+    b64_return = base64.b64encode(self.bytes_return)
+    self.assertEqual(b64_return, encrypted_secret)
+
+  def test_kms_encrypt_fails_client_error(self):
+    """Ensures that function fails a generic ClientError despite any special handling for specific error codes"""
+    self.mock_kms.encrypt.side_effect = self.client_error
+    with self.assertRaises(SystemExit):
+      ef_utils.kms_encrypt(self.mock_kms, self.service, self.env, self.secret)
+
+  def test_kms_decrypt_call(self):
+    """Validates basic kms call parameters"""
+    b64_secret = base64.b64encode(self.secret)
+    ef_utils.kms_decrypt(self.mock_kms, b64_secret)
+    self.mock_kms.decrypt.assert_called_once_with(CiphertextBlob=self.secret)
+
+  def test_kms_decrypt_fails_without_b64_secret(self):
+    """Ensures that function fails when passed a non-base64 encoded secret"""
+    with self.assertRaises(SystemExit):
+      ef_utils.kms_decrypt(self.mock_kms, self.secret)
+
+  def test_kms_decrypt_fails_client_error(self):
+    """Ensures that function fails a generic ClientError despite any special handling for specific error codes"""
+    self.mock_kms.decrypt.side_effect = self.client_error
+    with self.assertRaises(SystemExit):
+      ef_utils.kms_decrypt(self.mock_kms, self.secret)
+
+
 if __name__ == '__main__':
-   unittest.main()
+  unittest.main()

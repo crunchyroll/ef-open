@@ -1,0 +1,60 @@
+{
+  "fixtures": {
+  },
+  "platform_services": {
+    "test-instance": {
+      "type": "aws_ec2",
+      "description": "test ec2 instance",
+      "runbook_url": "https://www.google.com/",
+      "jira_project": "project",
+      "chef_role": "base",
+      "team_email": "email@example.com",
+      "environments": ["staging", "proto", "mgmt.ellationeng"],
+      "policies": ["policy_1", "policy_2"]
+    },
+    "test-instance-2": {
+      "type": "aws_ec2",
+      "description": "test ec2 instance",
+      "runbook_url": "https://www.google.com/",
+      "jira_project": "project",
+      "chef_role": "base",
+      "team_email": "email@example.com",
+      "environments": ["staging", "proto", "mgmt.ellationeng"],
+      "policies": ["policy_1", "policy_2"]
+    },
+    "test-instance-error": {
+      "type": "aws_ec",
+      "description": "test ec2 instance",
+      "runbook_url": "https://www.google.com/",
+      "jira_project": "project",
+      "chef_role": "base",
+      "team_email": "email@example.com",
+      "environments": ["stag"],
+      "policies": ["policy_1", "policy_2"]
+    }
+  },
+  "application_services": {
+    "test-instance-3": {
+      "type": "aws_ec2",
+      "description": "test ec2 instance",
+      "runbook_url": "https://www.google.com/",
+      "jira_project": "project",
+      "chef_role": "base",
+      "team_email": "email@example.com",
+      "environments": ["staging", "proto", "mgmt.ellationeng"],
+      "policies": ["policy_1", "policy_2"]
+    }
+  },
+  "internal_services": {
+    "test-instance-4": {
+      "type": "aws_ec2",
+      "description": "test ec2 instance",
+      "runbook_url": "https://www.google.com/",
+      "jira_project": "project",
+      "chef_role": "base",
+      "team_email": "email@example.com",
+      "environments": ["internal", "mgmt.ellationint"],
+      "policies": ["policy_1", "policy_2"]
+    }
+  }
+}

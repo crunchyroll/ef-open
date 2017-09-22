@@ -35,11 +35,13 @@ class EFContext(object):
     # Service registry object
     self._service_registry = None
     # tool context
+    self._account_id = None
     self._aws_clients = None
     self._commit = None
     self._devel = None
     self._verbose = None
     self._whereami = whereami()
+
 
   @property
   def account_alias(self):
@@ -112,6 +114,57 @@ class EFContext(object):
     self._service_registry = sr
 
   @property
+  def account_id(self):
+    """
+    Retrieves the current account id
+
+    Returns:
+      account id (string)
+    """
+    return self._account_id
+
+  @account_id.setter
+  def account_id(self, value):
+    """
+    Sets the current account id
+
+    Args:
+      value: current account id (string)
+
+    Returns:
+      None
+    """
+    if type(value) is not str:
+      raise TypeError("commit value must be string")
+    self._account_id = value
+
+  def aws_client(self, client_id=None):
+    """
+    Get AWS client if it exists (must have been formerly stored with set_aws_clients)
+    If client_id is not provided, returns the dictionary of all clients
+    Args:
+      client_id: label for the client, e.g. 'ec2'; omit to get a dictionary of all clients
+    Returns:
+      aws client if found, or None if not
+    """
+    if client_id is None:
+      return self._aws_clients
+    elif self._aws_clients is not None and self._aws_clients.has_key(client_id):
+      return self._aws_clients[client_id]
+    else:
+      return None
+
+  def set_aws_clients(self, clients):
+    """
+    Stash a dictionary of AWS clients in the context object
+    Args:
+      clients: dictionary of clients
+    """
+    if type(clients) is not dict:
+      raise TypeError("clients must be a dict")
+    self._aws_clients = clients
+
+  @property
   def commit(self):
     """True if the tool should actually execute changes"""
     return self._commit
@@ -148,29 +201,3 @@ class EFContext(object):
   def whereami(self):
     """Hosted ec2? lambda? local vm?"""
     return self._whereami
-
-  def aws_client(self, client_id=None):
-    """
-    Get AWS client if it exists (must have been formerly stored with set_aws_clients)
-    If client_id is not provided, returns the dictionary of all clients
-    Args:
-      client_id: label for the client, e.g. 'ec2'; omit to get a dictionary of all clients
-    Returns:
-      aws client if found, or None if not
-    """
-    if client_id is None:
-      return self._aws_clients
-    elif self._aws_clients is not None and self._aws_clients.has_key(client_id):
-      return self._aws_clients[client_id]
-    else:
-      return None
-
-  def set_aws_clients(self, clients):
-    """
-    Stash a dictionary of AWS clients in the context object
-    Args:
-      clients: dictionary of clients
-    """
-    if type(clients) is not dict:
-      raise TypeError("clients must be a dict")
-    self._aws_clients = clients

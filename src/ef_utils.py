@@ -17,7 +17,7 @@ limitations under the License.
 """
 
 from __future__ import print_function
-
+import base64
 import json
 from os import access, X_OK
 from os.path import isfile
@@ -28,7 +28,7 @@ import sys
 import urllib2
 
 import boto3
-import botocore.exceptions
+from botocore.exceptions import ClientError
 
 from ef_config import EFConfig
 
@@ -63,10 +63,10 @@ def http_get_metadata(metadata_path, timeout=__HTTP_DEFAULT_TIMEOUT_SEC):
   try:
     response = urllib2.urlopen(metadata_path, None, timeout)
     if response.getcode() != 200:
-      raise IOError("Non-200 response " + response.getcode() + " reading " + metadata_path)
+      raise IOError("Non-200 response " + str(response.getcode()) + " reading " + metadata_path)
     return response.read()
   except urllib2.URLError as error:
-    raise IOError("URLError in http_get_string: " + repr(error))
+    raise IOError("URLError in http_get_metadata: " + repr(error))
 
 def whereami():
   """
@@ -195,7 +195,7 @@ def create_aws_clients(region, profile, *clients):
     # append the session itself in case it's needed by the client code - can't get it from the clients themselves
     client_dict.update({"SESSION": session})
     return client_dict
-  except botocore.exceptions.BotoCoreError as error:
+  except ClientError as error:
     raise RuntimeError("Exception logging in with Session() and creating clients", error)
 
 def get_account_alias(env):
@@ -264,3 +264,57 @@ def global_env_valid(env):
   if env not in EFConfig.ACCOUNT_SCOPED_ENVS:
     raise ValueError("Invalid global env: {}; global envs are: {}".format(env, EFConfig.ACCOUNT_SCOPED_ENVS))
   return True
+
+def kms_encrypt(kms_client, service, env, secret):
+  """
+  Encrypt string for use by a given service/environment
+  Args:
+    kms_client (boto3 kms client object): Instantiated kms client object. Usually created through create_aws_clients.
+    service (string): name of the service that the secret is being encrypted for.
+    env (string): environment that the secret is being encrypted for.
+    secret (string): value to be encrypted
+  Returns:
+    a populated EFPWContext object
+  Raises:
+    SystemExit(1): If there is an error with the boto3 encryption call (ex. missing kms key)
+  """
+  # Converting all periods to underscores because they are invalid in KMS alias names
+  key_alias = '{}-{}'.format(env, service.replace('.', '_'))
+
+  try:
+    response = kms_client.encrypt(
+      KeyId='alias/{}'.format(key_alias),
+      Plaintext=secret.encode()
+    )
+  except ClientError as error:
+    if error.response['Error']['Code'] == "NotFoundException":
+      fail("Key '{}' not found. You may need to run ef-generate for this environment.".format(key_alias), error)
+    else:
+      fail("boto3 exception occurred while performing kms encrypt operation.", error)
+  encrypted_secret = base64.b64encode(response['CiphertextBlob'])
+  return encrypted_secret
+
+def kms_decrypt(kms_client, secret):
+  """
+  Decrypt kms-encrypted string
+  Args:
+    kms_client (boto3 kms client object): Instantiated kms client object. Usually created through create_aws_clients.
+    secret (string): base64 encoded value to be decrypted
+  Returns:
+    a populated EFPWContext object
+  Raises:
+    SystemExit(1): If there is an error with the boto3 decryption call (ex. malformed secret)
+  """
+  try:
+    decrypted_secret = kms_client.decrypt(CiphertextBlob=base64.b64decode(secret))['Plaintext']
+  except TypeError:
+    fail("Malformed base64 string data")
+  except ClientError as error:
+    if error.response["Error"]["Code"] == "InvalidCiphertextException":
+      fail("The decrypt request was rejected because the specified ciphertext \
+      has been corrupted or is otherwise invalid.", error)
+    elif error.response["Error"]["Code"] == "NotFoundException":
+      fail("The decrypt request was rejected because the specified entity or resource could not be found.", error)
+    else:
+      fail("boto3 exception occurred while performing kms decrypt operation.", error)
+  return decrypted_secret

@@ -21,6 +21,9 @@ from mock import call, Mock, patch
 # For local application imports, context_paths must be first despite lexicon ordering
 import context_paths
 from ef_aws_resolver import EFAwsResolver
+from ef_config import EFConfig
+from ef_context import EFContext
+from ef_utils import fail, http_get_metadata, whereami
 
 
 class TestEFAwsResolver(unittest.TestCase):
