@@ -64,6 +64,12 @@ class EFConfig(EFSiteConfig):
   # content-encoding for S3 version registry
   S3_VERSION_CONTENT_ENCODING = "utf-8"
   # Metdata key on a version object to indicate who modified it
+  S3_VERSION_BUILDNUMBER_KEY = "ef-buildnumber"
+  # Metdata key on a version object to indicate who modified it
+  S3_VERSION_COMMITHASH_KEY = "ef-commithash"
+  # Metdata key on a version object to indicate who modified it
+  S3_VERSION_LOCATION_KEY = "ef-location"
+  # Metdata key on a version object to indicate who modified it
   S3_VERSION_MODIFIEDBY_KEY = "ef-modifiedby"
   # Metadata key on a version object to indicate its status
   S3_VERSION_STATUS_KEY = "ef-version-status"
@@ -72,7 +78,12 @@ class EFConfig(EFSiteConfig):
   S3_VERSION_STATUS_UNDEFINED = "undefined"
   VERSION_KEYS = {
     "ami-id": {
-      "allow_latest": True
+      "allow_latest": True,
+      "allowed_types": ["aws_ec2", "http_service"]
+    },
+    "config": {},
+    "dist-hash": {
+      "allowed_types": ["dist_static"]
     }
   }
   # Some envs' version entries can be set via these special values, meaning 'use the value found there'

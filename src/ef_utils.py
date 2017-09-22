@@ -66,7 +66,7 @@ def http_get_metadata(metadata_path, timeout=__HTTP_DEFAULT_TIMEOUT_SEC):
       raise IOError("Non-200 response " + str(response.getcode()) + " reading " + metadata_path)
     return response.read()
   except urllib2.URLError as error:
-    raise IOError("URLError in http_get_string: " + repr(error))
+    raise IOError("URLError in http_get_metadata: " + repr(error))
 
 def whereami():
   """
