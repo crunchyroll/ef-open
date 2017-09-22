@@ -14,22 +14,24 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-import base64
 import os
-import sys
 import unittest
-from datetime import datetime
 
-from botocore.exceptions import ClientError
 from mock import Mock, patch
 
 import context_paths
-from ef_version_resolver import EFVersionResolver
 
 ef_version = __import__("ef-version")
 
 
 class TestEFVersion(unittest.TestCase):
+  """
+  TestEFVersion class for ef-version testing.
+
+  Setup initializes self in the same manner we initialize ef-context to ensure the appropriate
+  members are available when testing. This is necessary given the pattern of passing the context
+  object as a parameter to methods.
+  """
   def setUp(self):
     self.build_number = "000001"
     self.commit_hash = "sfasdf10984jhoksfgls89734hd8i4w98sf"
@@ -122,6 +124,7 @@ class TestEFVersion(unittest.TestCase):
   @patch('ef-version.isfunction')
   @patch('ef-version.globals')
   def test_precheck(self, mock_globals, mock_isfunction):
+    """Test precheck returns correct method"""
     mock_isfunction.return_value = True
     mock_precheck_method = Mock(name='mock precheck method')
     mock_precheck_method.return_value = True
@@ -163,8 +166,7 @@ class TestEFVersion(unittest.TestCase):
       ef_version.precheck_dist_hash(self)
 
   @patch('ef-version.Version')
-  @patch('urllib2.urlopen')
-  def test_precheck_dist_hash_version_none(self, mock_urlopen, mock_version_object):
+  def test_precheck_dist_hash_version_none(self, mock_version_object):
     """Test precheck_dist_hash when current version is none"""
     self.mock_version.value = None
     mock_version_object.return_value = self.mock_version
