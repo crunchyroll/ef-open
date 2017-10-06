@@ -23,7 +23,7 @@ class NewRelic:
     self.all_alerts = None
     self.all_channels = None
     self.refresh_all_alerts()
-    self.refresh_all_notification_channels()
+    self.refresh_all_channels()
 
   def refresh_all_alerts(self):
     get_alerts = requests.get(
@@ -33,7 +33,7 @@ class NewRelic:
     get_alerts.raise_for_status()
     self.all_alerts = get_alerts.json()['policies']
 
-  def refresh_all_notification_channels(self):
+  def refresh_all_channels(self):
     get_channels = requests.get(
       url='https://api.newrelic.com/v2/alerts_channels.json',
       headers=self.auth_header
@@ -70,7 +70,7 @@ class NewRelic:
     return
 
   def delete_policy_channel(self, policy_id, channel_id):
-    payload = {'policy_id': policy_id, 'channel_ids': channel_id}
+    payload = {'policy_id': policy_id, 'channel_id': channel_id}
     delete_channel = requests.delete(
       url='https://api.newrelic.com/v2/alerts_policy_channels.json',
       headers=self.auth_header,
@@ -114,7 +114,7 @@ def main():
           policy_id = next(policy['id'] for policy in newrelic.all_alerts if policy['name'] == policy_name)
 
           # Set alert level
-          if env == "prod" and not policy_name.find('-warn'):
+          if env == "prod" and not "-warn" in policy_name:
             alert_channels = newrelic.critical_channels
           else:
             alert_channels = newrelic.warning_channels
@@ -131,7 +131,7 @@ def main():
 
           if add_channel_ids:
             newrelic.add_policy_channels(policy_id, add_channel_ids)
-            logger.info("Added channel_ids {} to policy {}".format(policy_name, channel_ids))
+            logger.info("Added channel_ids {} to policy {}".format(policy_name, add_channel_ids))
           if delete_channel_ids:
             for channel_id in delete_channel_ids:
               newrelic.delete_policy_channel(policy_id, channel_id)
