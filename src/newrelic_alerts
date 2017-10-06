@@ -1,40 +1,56 @@
 import boto3
 import requests
-
+import json
 from ef_service_registry import EFServiceRegistry
 from ef_utils import kms_decrypt
 
-kms = boto3.client('kms')
-encrypted_token = ("AQICAHgnK9qmyWCnKC++2JqZC4P/zUXLQ2qPfIfa7a2gf7JRfgGoNQDWh1MGPNk/kobNo0OVAAAAjjCBiwYJKoZIhvcNAQcG"
-  "oH4wfAIBADB3BgkqhkiG9w0BBwEwHgYJYIZIAWUDBAEuMBEEDFJO3uNHzvK+dO4MpgIBEIBKRYcrbBhLGVqP/2gO7GSLpPik9k6wy2W3tppw2KKLgY"
-  "1UEqRY+JG+WU3PVXC5JSzbs9APq4kInrhKmrwURk1Sxf+x8zF/d2givpA=")
-decrypted_token = kms_decrypt(kms, encrypted_token)
 
-registry = EFServiceRegistry()
-auth_header =  {'X-Api-Key': decrypted_token}
+class EllationNewRelic:
 
-all_policies = requests.get(
-    url='https://api.newrelic.com/v2/alerts_policies.json',
-    headers=auth_header
-)
+  encrypted_token = (
+    "AQICAHgnK9qmyWCnKC++2JqZC4P/zUXLQ2qPfIfa7a2gf7JRfgEG0n1wv0B4tSXuA/NmZwjdAAAAfzB9BgkqhkiG9w0BBwagcD"
+    "BuAgEAMGkGCSqGSIb3DQEHATAeBglghkgBZQMEAS4wEQQMwxT5ZYwAXNz9pM81AgEQgDxm9dWQSbXoVflMwu86wcHKKb8OIcM8EwBDnN5NGYEhcHU+d"
+    "ZncH8psgQbb4Jc4K1IC0HgdVSOxwvvVERQ=")
 
-alert_environments = ["prod", "staging"]
+  def __init__(self, kms_client):
+    self.kms = kms_client
+    self.decrypted_token = kms_decrypt(self.kms, self.encrypted_token)
+    self.auth_header =  {'X-Api-Key': self.decrypted_token}
+    self.all_alerts = None
+    self.refresh_all_alerts()
 
-def alert_policy_exists(policy_name):
-  """Check to see if an alert policy exists in NewRelic. Return True if so, False if not"""
-  if next((policy for policy in all_policies.json()['policies'] if policy['name'] == policy_name), False):
-    return True
+  def refresh_all_alerts(self):
+    get_alerts = requests.get(
+      url='https://api.newrelic.com/v2/alerts_policies.json',
+      headers=self.auth_header
+    )
+    get_alerts.raise_for_status()
+    self.all_alerts = get_alerts
 
-def create_alert_policy(policy_name):
-  """Creates an alert policy in NewRelic"""
-  policy_data = { 'policy': { 'incident_preference': 'PER_POLICY', 'name': policy_name } }
-  headers = {'X-Api-Key': decrypted_token, 'Content-Type': 'application/json'}
-  create_policy = requests.post('https://api.newrelic.com/v2/alerts_policies.json', headers=headers, data=policy_data)
-  create_policy.raise_for_status()
-  policy_id = create_policy.json()['policy']['id']
-  return policy_id
+  def alert_policy_exists(self, policy_name):
+    """Check to see if an alert policy exists in NewRelic. Return True if so, False if not"""
+    if next((policy for policy in self.all_alerts.json()['policies'] if policy['name'] == policy_name), False):
+      return True
+
+  def create_alert_policy(self, policy_name):
+    """Creates an alert policy in NewRelic"""
+    policy_data = { 'policy': { 'incident_preference': 'PER_POLICY', 'name': policy_name } }
+    headers = {'X-Api-Key': self.decrypted_token, 'Content-Type': 'application/json'}
+    create_policy = requests.post(
+      'https://api.newrelic.com/v2/alerts_policies.json',
+      headers=headers,
+      data=json.dumps(policy_data))
+    create_policy.raise_for_status()
+    policy_id = create_policy.json()['policy']['id']
+    self.refresh_all_alerts()
+    return policy_id
 
 def main():
+  kms = boto3.client('kms')
+  registry = EFServiceRegistry()
+  alert_environments = ["stg", "prod"]
+  newrelic = EllationNewRelic(kms_client=kms)
+
   for service in registry.iter_services(service_group="application_services"):
     service_name = service[0]
     service_environments = service[1]['environments']
@@ -44,10 +60,19 @@ def main():
     memory_warn = int(service_alerts['memory_warn']) if "memory_warn" in service_alerts else 80
     memory_crit = int(service_alerts['memory_crit']) if "memory_crit" in service_alerts else 90
 
+    # Create service alert policies
     for env in alert_environments:
-      policy_name = "{}-{}".format(env, service_name)
-      if env in service_environments and not alert_policy_exists(policy_name):
-        create_alert_policy(policy_name)
+      if env in service_environments:
+        policy_name = "{}-{}".format(env, service_name)
+        if not newrelic.alert_policy_exists(policy_name):
+          newrelic.create_alert_policy(policy_name)
+        if env == "prod" and not newrelic.alert_policy_exists("{}-warn".format(policy_name)):
+          newrelic.create_alert_policy("{}-warn".format(policy_name))
+
+    # Create Notification Channels
+
+
+    # Create Alert Conditions for policies
 
 if __name__ == "__main__":
   main()
