@@ -1,23 +1,29 @@
 import boto3
 import requests
 import json
+import logging
+
 from ef_service_registry import EFServiceRegistry
 from ef_utils import kms_decrypt
 
 
-class EllationNewRelic:
+class NewRelic:
 
-  encrypted_token = (
-    "AQICAHgnK9qmyWCnKC++2JqZC4P/zUXLQ2qPfIfa7a2gf7JRfgEG0n1wv0B4tSXuA/NmZwjdAAAAfzB9BgkqhkiG9w0BBwagcD"
-    "BuAgEAMGkGCSqGSIb3DQEHATAeBglghkgBZQMEAS4wEQQMwxT5ZYwAXNz9pM81AgEQgDxm9dWQSbXoVflMwu86wcHKKb8OIcM8EwBDnN5NGYEhcHU+d"
-    "ZncH8psgQbb4Jc4K1IC0HgdVSOxwvvVERQ=")
+  encrypted_token = ("AQICAHgnK9qmyWCnKC++2JqZC4P/zUXLQ2qPfIfa7a2gf7JRfgG8SMLWBlNuxHkQeku62gNkAAAAfjB8BgkqhkiG9w0BBwagb"
+  "zBtAgEAMGgGCSqGSIb3DQEHATAeBglghkgBZQMEAS4wEQQMfxQ3LF3UcfhBxY6QAgEQgDt0Oil5pNQtcixGWz4QA9ZBPi/XmEjKkjf8XzGnXDtXnS+vV"
+  "4xk6Ffew6qGUQcE+e0Hx/ctx996b4eJPQ==")
+
+  warning_channels = ['slack-warn']
+  critical_channels = ['slack-critical']
 
   def __init__(self, kms_client):
     self.kms = kms_client
     self.decrypted_token = kms_decrypt(self.kms, self.encrypted_token)
-    self.auth_header =  {'X-Api-Key': self.decrypted_token}
+    self.auth_header =  {'X-Api-Key': self.decrypted_token, 'Content-Type': 'application/json'}
     self.all_alerts = None
+    self.all_channels = None
     self.refresh_all_alerts()
+    self.refresh_all_notification_channels()
 
   def refresh_all_alerts(self):
     get_alerts = requests.get(
@@ -25,11 +31,19 @@ class EllationNewRelic:
       headers=self.auth_header
     )
     get_alerts.raise_for_status()
-    self.all_alerts = get_alerts
+    self.all_alerts = get_alerts.json()['policies']
+
+  def refresh_all_notification_channels(self):
+    get_channels = requests.get(
+      url='https://api.newrelic.com/v2/alerts_channels.json',
+      headers=self.auth_header
+    )
+    get_channels.raise_for_status()
+    self.all_channels = get_channels.json()['channels']
 
   def alert_policy_exists(self, policy_name):
     """Check to see if an alert policy exists in NewRelic. Return True if so, False if not"""
-    if next((policy for policy in self.all_alerts.json()['policies'] if policy['name'] == policy_name), False):
+    if next((policy for policy in self.all_alerts if policy['name'] == policy_name), False):
       return True
 
   def create_alert_policy(self, policy_name):
@@ -45,32 +59,93 @@ class EllationNewRelic:
     self.refresh_all_alerts()
     return policy_id
 
+  def add_policy_channels(self, policy_id, channel_ids):
+    payload = { 'policy_id': policy_id, 'channel_ids': channel_ids}
+    put_channels = requests.put(
+      url='https://api.newrelic.com/v2/alerts_policy_channels.json',
+      headers=self.auth_header,
+      params=payload
+    )
+    put_channels.raise_for_status()
+    return
+
+  def delete_policy_channel(self, policy_id, channel_id):
+    payload = {'policy_id': policy_id, 'channel_ids': channel_id}
+    delete_channel = requests.delete(
+      url='https://api.newrelic.com/v2/alerts_policy_channels.json',
+      headers=self.auth_header,
+      params=payload
+    )
+    delete_channel.raise_for_status()
+    return
+
 def main():
   kms = boto3.client('kms')
   registry = EFServiceRegistry()
-  alert_environments = ["stg", "prod"]
-  newrelic = EllationNewRelic(kms_client=kms)
+  alert_environments = ["staging", "prod"]
+  newrelic = NewRelic(kms_client=kms)
+
+  logging.basicConfig(level=logging.INFO)
+  logger = logging.getLogger(__name__)
 
   for service in registry.iter_services(service_group="application_services"):
     service_name = service[0]
     service_environments = service[1]['environments']
     service_alerts = service[1]['alerts'] if "alerts" in service[1] else {}
 
-    # Set alert values
+    # Set Alert Values
     memory_warn = int(service_alerts['memory_warn']) if "memory_warn" in service_alerts else 80
     memory_crit = int(service_alerts['memory_crit']) if "memory_crit" in service_alerts else 90
 
-    # Create service alert policies
     for env in alert_environments:
       if env in service_environments:
-        policy_name = "{}-{}".format(env, service_name)
-        if not newrelic.alert_policy_exists(policy_name):
-          newrelic.create_alert_policy(policy_name)
-        if env == "prod" and not newrelic.alert_policy_exists("{}-warn".format(policy_name)):
-          newrelic.create_alert_policy("{}-warn".format(policy_name))
 
-    # Create Notification Channels
+        policy = "{}-{}".format(env, service_name)
+        policy_names = [policy, "{}-warn".format(policy)]
 
+        for policy_name in policy_names:
+          # Create service alert policies
+          if not newrelic.alert_policy_exists(policy_name):
+            newrelic.create_alert_policy(policy_name)
+            logger.info("Create alert policy {}".format(policy_name))
+          # if not newrelic.alert_policy_exists("{}-warn".format(policy_name)):
+          #   newrelic.create_alert_policy("{}-warn".format(policy_name))
+
+          policy_id = next(policy['id'] for policy in newrelic.all_alerts if policy['name'] == policy_name)
+
+          # Set alert level
+          if env == "prod" and not policy_name.find('-warn'):
+            alert_channels = newrelic.critical_channels
+          else:
+            alert_channels = newrelic.warning_channels
+
+          # Associate Notification Channels
+          add_channel_ids = []
+          delete_channel_ids = []
+          for channel in newrelic.all_channels:
+            if channel['name'] in alert_channels:
+              if policy_id not in channel['links']['policy_ids']:
+                add_channel_ids.append(channel['id'])
+            elif policy_id in channel['links']['policy_ids']:
+              delete_channel_ids.append(channel['id'])
+
+          if add_channel_ids:
+            newrelic.add_policy_channels(policy_id, add_channel_ids)
+            logger.info("Added channel_ids {} to policy {}".format(policy_name, channel_ids))
+          if delete_channel_ids:
+            for channel_id in delete_channel_ids:
+              newrelic.delete_policy_channel(policy_id, channel_id)
+              logger.info("Removed channel_id {} from policy {}".format(channel_id, policy_name))
+
+
+        # for channel in all_notification_channels:
+        #   if channel['name'] in alert_channels:
+        #     channel_policy_ids = channel['links']['policy_ids']
+        #     if policy_id not in channel_policy_ids:
+        #       updated_policy_channels = True
+        #       updated_policy_list = channel_policy_ids + [policy_id]
+        #       channel_id = channel['id']
+        #       newrelic.add_policy_channels(channel_id, updated_policy_list)
 
     # Create Alert Conditions for policies
 
