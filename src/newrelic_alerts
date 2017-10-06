@@ -2,7 +2,7 @@ import boto3
 import requests
 import json
 import logging
-
+import itertools
 from ef_service_registry import EFServiceRegistry
 from ef_utils import kms_decrypt
 
@@ -97,55 +97,42 @@ def main():
     memory_warn = int(service_alerts['memory_warn']) if "memory_warn" in service_alerts else 80
     memory_crit = int(service_alerts['memory_crit']) if "memory_crit" in service_alerts else 90
 
-    for env in alert_environments:
-      if env in service_environments:
+    # Iterate through all combinations of service/environment names
+    policy_names = [service_name, "{}-warn".format(service_name)]
+    environments = [env for env in alert_environments if env in service_environments]
+    for env, policy in itertools.product(environments, policy_names):
+      policy_name = "-".join((env, policy))
 
-        policy = "{}-{}".format(env, service_name)
-        policy_names = [policy, "{}-warn".format(policy)]
+      # Create service alert policies
+      if not newrelic.alert_policy_exists(policy_name):
+        newrelic.create_alert_policy(policy_name)
+        logger.info("Create alert policy {}".format(policy_name))
 
-        for policy_name in policy_names:
-          # Create service alert policies
-          if not newrelic.alert_policy_exists(policy_name):
-            newrelic.create_alert_policy(policy_name)
-            logger.info("Create alert policy {}".format(policy_name))
-          # if not newrelic.alert_policy_exists("{}-warn".format(policy_name)):
-          #   newrelic.create_alert_policy("{}-warn".format(policy_name))
+      policy_id = next(policy['id'] for policy in newrelic.all_alerts if policy['name'] == policy_name)
 
-          policy_id = next(policy['id'] for policy in newrelic.all_alerts if policy['name'] == policy_name)
+      # Set alert level
+      if env == "prod" and not "-warn" in policy_name:
+        alert_channels = newrelic.critical_channels
+      else:
+        alert_channels = newrelic.warning_channels
 
-          # Set alert level
-          if env == "prod" and not "-warn" in policy_name:
-            alert_channels = newrelic.critical_channels
-          else:
-            alert_channels = newrelic.warning_channels
+      # Add/Delete notification channels
+      add_channel_ids = []
+      delete_channel_ids = []
+      for channel in newrelic.all_channels:
+        if channel['name'] in alert_channels:
+          if policy_id not in channel['links']['policy_ids']:
+            add_channel_ids.append(channel['id'])
+        elif policy_id in channel['links']['policy_ids']:
+          delete_channel_ids.append(channel['id'])
 
-          # Associate Notification Channels
-          add_channel_ids = []
-          delete_channel_ids = []
-          for channel in newrelic.all_channels:
-            if channel['name'] in alert_channels:
-              if policy_id not in channel['links']['policy_ids']:
-                add_channel_ids.append(channel['id'])
-            elif policy_id in channel['links']['policy_ids']:
-              delete_channel_ids.append(channel['id'])
-
-          if add_channel_ids:
-            newrelic.add_policy_channels(policy_id, add_channel_ids)
-            logger.info("Added channel_ids {} to policy {}".format(policy_name, add_channel_ids))
-          if delete_channel_ids:
-            for channel_id in delete_channel_ids:
-              newrelic.delete_policy_channel(policy_id, channel_id)
-              logger.info("Removed channel_id {} from policy {}".format(channel_id, policy_name))
-
-
-        # for channel in all_notification_channels:
-        #   if channel['name'] in alert_channels:
-        #     channel_policy_ids = channel['links']['policy_ids']
-        #     if policy_id not in channel_policy_ids:
-        #       updated_policy_channels = True
-        #       updated_policy_list = channel_policy_ids + [policy_id]
-        #       channel_id = channel['id']
-        #       newrelic.add_policy_channels(channel_id, updated_policy_list)
+      if add_channel_ids:
+        newrelic.add_policy_channels(policy_id, add_channel_ids)
+        logger.info("Added channel_ids {} to policy {}".format(policy_name, add_channel_ids))
+      if delete_channel_ids:
+        for channel_id in delete_channel_ids:
+          newrelic.delete_policy_channel(policy_id, channel_id)
+          logger.info("Removed channel_id {} from policy {}".format(channel_id, policy_name))
 
     # Create Alert Conditions for policies
 
