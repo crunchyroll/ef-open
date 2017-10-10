@@ -189,17 +189,10 @@ def main():
           config_threshold = alert_conditions[condition['name']]['{}_threshold'.format(alert_level)]
         else:
           config_threshold = 0
-
         if condition['name'] in alert_conditions and current_threshold != config_threshold:
           newrelic.delete_policy_alert_condition(condition['id'])
           logger.info("deleted condition {} from policy {}. current value differs from config".format(condition['name'],
                                                                                                       policy_name))
-        elif condition['name'] not in alert_conditions:
-          newrelic.delete_policy_alert_condition(condition['id'])
-          logger.info("deleted unknown alert condition {} for policy {}".format(condition['name'], policy_name))
-        elif len([d for d in current_conditions if d['name'] == condition['name']]) > 1:
-          newrelic.delete_policy_alert_condition(condition['id'])
-          logger.info("deleted duplicate alert condition {} for policy {}".format(condition['name'], policy_name))
 
       # Create Alert Conditions for policies
       current_conditions = newrelic.get_policy_alert_conditions(policy_id)
