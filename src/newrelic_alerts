@@ -164,21 +164,14 @@ def main():
 
       # Add/Delete alert policy notification channels to match config
       add_channel_ids = []
-      delete_channel_ids = []
       for channel in newrelic.all_channels:
         if channel['name'] in alert_channels:
           if policy_id not in channel['links']['policy_ids']:
             add_channel_ids.append(channel['id'])
-        elif policy_id in channel['links']['policy_ids']:
-          delete_channel_ids.append(channel['id'])
 
       if add_channel_ids:
         newrelic.add_policy_channels(policy_id, add_channel_ids)
         logger.info("Added channel_ids {} to policy {}".format(policy_name, add_channel_ids))
-      if delete_channel_ids:
-        for channel_id in delete_channel_ids:
-          newrelic.delete_policy_channel(policy_id, channel_id)
-          logger.info("Removed channel_id {} from policy {}".format(channel_id, policy_name))
 
       # Remove unknown alert conditions or those with values that differ from what's in the service_registry/default
       # Also ensure there are no duplicated alert conditions
