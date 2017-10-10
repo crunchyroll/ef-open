@@ -107,6 +107,23 @@ class NewRelic:
     add_policy.raise_for_status()
     return add_policy.json()['data']['id']
 
+  def get_policy_alert_conditions(self, policy_id):
+    get_conditions = requests.get(
+      url="https://infra-api.newrelic.com/v2/alerts/conditions",
+      headers=self.auth_header,
+      params={ 'policy_id': policy_id }
+    )
+    get_conditions.raise_for_status()
+    return get_conditions.json()['data']
+
+  def delete_policy_alert_condition(self, condition_id):
+    delete_condition = requests.delete(
+      url='https://infra-api.newrelic.com/v2/alerts/conditions/{}'.format(condition_id),
+      headers=self.auth_header
+    )
+    delete_condition.raise_for_status()
+    return
+
 def main():
   kms = boto3.client('kms')
   registry = EFServiceRegistry()
@@ -121,10 +138,11 @@ def main():
     service_environments = service[1]['environments']
     service_alerts = service[1]['alerts'] if "alerts" in service[1] else {}
 
+    # TODO: Add disk space alert
     # Set Alert Values
     alerts = { "warning": {}, "critical": {}}
-    # alerts['warning']['memory'] = int(service_alerts['memory_warn']) if "memory_warn" in service_alerts else 80
-    # alerts['critical']['memory'] = int(service_alerts['memory_crit']) if "memory_crit" in service_alerts else 90
+    alerts['warning']['memoryUsedBytes/memoryTotalBytes*100'] = int(service_alerts['memory_warn']) if "memory_warn" in service_alerts else 80
+    alerts['critical']['memoryUsedBytes/memoryTotalBytes*100'] = int(service_alerts['memory_crit']) if "memory_crit" in service_alerts else 90
     alerts['warning']['cpuPercent'] = int(service_alerts['cpu_warn']) if "cpu_warn" in service_alerts else 80
     alerts['critical']['cpuPercent'] = int(service_alerts['cpu_crit']) if "cpu_crit" in service_alerts else 90
 
@@ -161,16 +179,34 @@ def main():
           newrelic.delete_policy_channel(policy_id, channel_id)
           logger.info("Removed channel_id {} from policy {}".format(channel_id, policy_name))
 
+      # Remove unknown alert conditions or those with values that differ from what's in the service_registry/default
+      # Also ensure there are no duplicated alert conditions
+      current_conditions = newrelic.get_policy_alert_conditions(policy_id)
+      for condition in current_conditions:
+        if condition['name'] in alerts[alert_level] and condition['critical_threshold']['value'] != alerts[alert_level][condition['name']]:
+          newrelic.delete_policy_alert_condition(condition['id'])
+          logger.info("deleted alert condition {} for policy {}. alert value differs from service_registry".format(condition['name'],
+                                                                                                           policy_name))
+        elif condition['name'] not in alerts[alert_level]:
+          newrelic.delete_policy_alert_condition(condition['id'])
+          logger.info("deleted alert condition {} for policy {}. condition not in service_registry".format(condition['name'], policy_name))
+        elif len([d for d in current_conditions if d['name'] == condition['name']]) > 1:
+          newrelic.delete_policy_alert_condition(condition['id'])
+          current_conditions = newrelic.get_policy_alert_conditions(policy_id)
+          logger.info("deleted duplicate alert condition {} for policy {}.".format(condition['name'], policy_name))
+
       # Create Alert Conditions for policies
+      current_conditions = newrelic.get_policy_alert_conditions(policy_id)
       for k,v in alerts[alert_level].items():
-        alert_cond = newrelic.create_alert_cond(
-          policy_id=policy_id,
-          condition_name=k,
-          alert_condition=k,
-          threshold=v,
-          ec2_tag=policy_name.replace("-warn", "")
-        )
-        logger.info("created alert condition {} for policy {}".format(alert_cond, policy_name))
+        if not any(d['name'] == k for d in current_conditions):
+          alert_cond = newrelic.create_alert_cond(
+            policy_id=policy_id,
+            condition_name=k,
+            alert_condition=k,
+            threshold=v,
+            ec2_tag=policy_name.replace("-warn", "")
+          )
+          logger.info("created alert condition {} for policy {}".format(alert_cond, policy_name))
 
 if __name__ == "__main__":
   main()
