@@ -1,11 +1,12 @@
 import boto3
+from copy import deepcopy
 import requests
 import json
 import logging
 import itertools
 from ef_service_registry import EFServiceRegistry
 from ef_utils import kms_decrypt
-
+import newrelic_config
 
 class NewRelic:
 
@@ -81,7 +82,7 @@ class NewRelic:
     delete_channel.raise_for_status()
     return
 
-  def create_alert_cond(self, policy_id, condition_name, alert_condition, threshold, ec2_tag):
+  def create_alert_cond(self, policy_id, condition_name, alert_condition, threshold, ec2_tag, event_type):
     payload = {
        "data":{
           "type":"infra_metric",
@@ -89,7 +90,7 @@ class NewRelic:
           "enabled":True,
           "filter": {"and":[{"is":{"ec2Tag_Name":ec2_tag}}]},
           "policy_id":policy_id,
-          "event_type":"SystemSample",
+          "event_type":event_type,
           "select_value":alert_condition,
           "comparison":"above",
           "critical_threshold":{
@@ -138,19 +139,21 @@ def main():
     service_environments = service[1]['environments']
     service_alerts = service[1]['alerts'] if "alerts" in service[1] else {}
 
-    # TODO: Add disk space alert
-    # Set Alert Values
-    alerts = { "warning": {}, "critical": {}}
-    alerts['warning']['memoryUsedBytes/memoryTotalBytes*100'] = int(service_alerts['memory_warn']) if "memory_warn" in service_alerts else 80
-    alerts['critical']['memoryUsedBytes/memoryTotalBytes*100'] = int(service_alerts['memory_crit']) if "memory_crit" in service_alerts else 90
-    alerts['warning']['cpuPercent'] = int(service_alerts['cpu_warn']) if "cpu_warn" in service_alerts else 80
-    alerts['critical']['cpuPercent'] = int(service_alerts['cpu_crit']) if "cpu_crit" in service_alerts else 90
+    # Set service alert values
+    alert_conditions = deepcopy(newrelic_config.conditions)
+    for key, value in alert_conditions.items():
+      for level in ["critical", "warning"]:
+        if "{}_{}".format(value['sr_name'], level) in service_alerts:
+          value["{}_threshold".format(level)] = service_alerts["{}_{}".format(value['sr_name'], level)]
 
     # Iterate through all permutations of environment/service
     policy_names = [service_name, "{}-warn".format(service_name)]
     environments = [env for env in alert_environments if env in service_environments]
     for env, policy in itertools.product(environments, policy_names):
+
       policy_name = "-".join((env, policy))
+      alert_level = "warning" if "-warn" in policy_name else "critical"
+      alert_channels = newrelic.critical_channels if alert_level == "critical" and env == "prod" else newrelic.warning_channels
 
       # Create service alert policy if it doesn't already exist
       if not newrelic.alert_policy_exists(policy_name):
@@ -158,10 +161,8 @@ def main():
         logger.info("Create alert policy {}".format(policy_name))
 
       policy_id = next(policy['id'] for policy in newrelic.all_alerts if policy['name'] == policy_name)
-      alert_level = "warning" if "-warn" in policy_name else "critical"
-      alert_channels = newrelic.critical_channels if alert_level == "critical" and env == "prod" else newrelic.warning_channels
 
-      # Add/Delete alert policy notification channels
+      # Add/Delete alert policy notification channels to match config
       add_channel_ids = []
       delete_channel_ids = []
       for channel in newrelic.all_channels:
@@ -183,30 +184,36 @@ def main():
       # Also ensure there are no duplicated alert conditions
       current_conditions = newrelic.get_policy_alert_conditions(policy_id)
       for condition in current_conditions:
-        if condition['name'] in alerts[alert_level] and condition['critical_threshold']['value'] != alerts[alert_level][condition['name']]:
+        current_threshold = condition['critical_threshold']['value']
+        if condition['name'] in alert_conditions:
+          config_threshold = alert_conditions[condition['name']]['{}_threshold'.format(alert_level)]
+        else:
+          config_threshold = 0
+
+        if condition['name'] in alert_conditions and current_threshold != config_threshold:
           newrelic.delete_policy_alert_condition(condition['id'])
-          logger.info("deleted alert condition {} for policy {}. alert value differs from service_registry".format(condition['name'],
-                                                                                                           policy_name))
-        elif condition['name'] not in alerts[alert_level]:
+          logger.info("deleted condition {} from policy {}. current value differs from config".format(condition['name'],
+                                                                                                      policy_name))
+        elif condition['name'] not in alert_conditions:
           newrelic.delete_policy_alert_condition(condition['id'])
-          logger.info("deleted alert condition {} for policy {}. condition not in service_registry".format(condition['name'], policy_name))
+          logger.info("deleted unknown alert condition {} for policy {}".format(condition['name'], policy_name))
         elif len([d for d in current_conditions if d['name'] == condition['name']]) > 1:
           newrelic.delete_policy_alert_condition(condition['id'])
-          current_conditions = newrelic.get_policy_alert_conditions(policy_id)
-          logger.info("deleted duplicate alert condition {} for policy {}.".format(condition['name'], policy_name))
+          logger.info("deleted duplicate alert condition {} for policy {}".format(condition['name'], policy_name))
 
       # Create Alert Conditions for policies
       current_conditions = newrelic.get_policy_alert_conditions(policy_id)
-      for k,v in alerts[alert_level].items():
-        if not any(d['name'] == k for d in current_conditions):
-          alert_cond = newrelic.create_alert_cond(
+      for key, value in alert_conditions.items():
+        if not any(d['name'] == key for d in current_conditions):
+          newrelic.create_alert_cond(
             policy_id=policy_id,
-            condition_name=k,
-            alert_condition=k,
-            threshold=v,
-            ec2_tag=policy_name.replace("-warn", "")
+            condition_name=key,
+            alert_condition=value['alert_condition'],
+            threshold=value['{}_threshold'.format(alert_level)],
+            ec2_tag=policy_name.replace("-warn", ""),
+            event_type=value['event_type']
           )
-          logger.info("created alert condition {} for policy {}".format(alert_cond, policy_name))
+          logger.info("created alert condition {} for policy {}".format(key, policy_name))
 
 if __name__ == "__main__":
   main()
