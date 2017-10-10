@@ -9,6 +9,8 @@ from ef_utils import kms_decrypt
 
 class NewRelic:
 
+  #TODO: Move account-specific settings outside class
+
   encrypted_token = ("AQICAHgnK9qmyWCnKC++2JqZC4P/zUXLQ2qPfIfa7a2gf7JRfgG8SMLWBlNuxHkQeku62gNkAAAAfjB8BgkqhkiG9w0BBwagb"
   "zBtAgEAMGgGCSqGSIb3DQEHATAeBglghkgBZQMEAS4wEQQMfxQ3LF3UcfhBxY6QAgEQgDt0Oil5pNQtcixGWz4QA9ZBPi/XmEjKkjf8XzGnXDtXnS+vV"
   "4xk6Ffew6qGUQcE+e0Hx/ctx996b4eJPQ==")
@@ -79,6 +81,32 @@ class NewRelic:
     delete_channel.raise_for_status()
     return
 
+  def create_alert_cond(self, policy_id, condition_name, alert_condition, threshold, ec2_tag):
+    payload = {
+       "data":{
+          "type":"infra_metric",
+          "name":condition_name,
+          "enabled":True,
+          "filter": {"and":[{"is":{"ec2Tag_Name":ec2_tag}}]},
+          "policy_id":policy_id,
+          "event_type":"SystemSample",
+          "select_value":alert_condition,
+          "comparison":"above",
+          "critical_threshold":{
+             "value":threshold,
+             "duration_minutes":5,
+             "time_function":"all"
+          }
+       }
+    }
+    add_policy = requests.post(
+      url='https://infra-api.newrelic.com/v2/alerts/conditions',
+      headers=self.auth_header,
+      data=json.dumps(payload)
+    )
+    add_policy.raise_for_status()
+    return add_policy.json()['data']['id']
+
 def main():
   kms = boto3.client('kms')
   registry = EFServiceRegistry()
@@ -94,29 +122,28 @@ def main():
     service_alerts = service[1]['alerts'] if "alerts" in service[1] else {}
 
     # Set Alert Values
-    memory_warn = int(service_alerts['memory_warn']) if "memory_warn" in service_alerts else 80
-    memory_crit = int(service_alerts['memory_crit']) if "memory_crit" in service_alerts else 90
+    alerts = { "warning": {}, "critical": {}}
+    # alerts['warning']['memory'] = int(service_alerts['memory_warn']) if "memory_warn" in service_alerts else 80
+    # alerts['critical']['memory'] = int(service_alerts['memory_crit']) if "memory_crit" in service_alerts else 90
+    alerts['warning']['cpuPercent'] = int(service_alerts['cpu_warn']) if "cpu_warn" in service_alerts else 80
+    alerts['critical']['cpuPercent'] = int(service_alerts['cpu_crit']) if "cpu_crit" in service_alerts else 90
 
-    # Iterate through all combinations of service/environment names
+    # Iterate through all permutations of environment/service
     policy_names = [service_name, "{}-warn".format(service_name)]
     environments = [env for env in alert_environments if env in service_environments]
     for env, policy in itertools.product(environments, policy_names):
       policy_name = "-".join((env, policy))
 
-      # Create service alert policies
+      # Create service alert policy if it doesn't already exist
       if not newrelic.alert_policy_exists(policy_name):
         newrelic.create_alert_policy(policy_name)
         logger.info("Create alert policy {}".format(policy_name))
 
       policy_id = next(policy['id'] for policy in newrelic.all_alerts if policy['name'] == policy_name)
+      alert_level = "warning" if "-warn" in policy_name else "critical"
+      alert_channels = newrelic.critical_channels if alert_level == "critical" and env == "prod" else newrelic.warning_channels
 
-      # Set alert level
-      if env == "prod" and not "-warn" in policy_name:
-        alert_channels = newrelic.critical_channels
-      else:
-        alert_channels = newrelic.warning_channels
-
-      # Add/Delete notification channels
+      # Add/Delete alert policy notification channels
       add_channel_ids = []
       delete_channel_ids = []
       for channel in newrelic.all_channels:
@@ -134,7 +161,16 @@ def main():
           newrelic.delete_policy_channel(policy_id, channel_id)
           logger.info("Removed channel_id {} from policy {}".format(channel_id, policy_name))
 
-    # Create Alert Conditions for policies
+      # Create Alert Conditions for policies
+      for k,v in alerts[alert_level].items():
+        alert_cond = newrelic.create_alert_cond(
+          policy_id=policy_id,
+          condition_name=k,
+          alert_condition=k,
+          threshold=v,
+          ec2_tag=policy_name.replace("-warn", "")
+        )
+        logger.info("created alert condition {} for policy {}".format(alert_cond, policy_name))
 
 if __name__ == "__main__":
   main()
