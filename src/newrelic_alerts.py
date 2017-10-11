@@ -133,7 +133,7 @@ def main():
     for key, value in alert_conditions.items():
       for level in ["critical", "warning"]:
         if "{}_{}".format(value['sr_name'], level) in service_alerts:
-          value["{}_threshold".format(level)] = service_alerts["{}_{}".format(value['sr_name'], level)]
+          value["{}_threshold".format(level)] = int(service_alerts["{}_{}".format(value['sr_name'], level)])
 
     # Iterate through all permutations of environment/service
     policy_names = [service_name, "{}-warn".format(service_name)]
