@@ -10,19 +10,9 @@ import newrelic_config
 
 class NewRelic:
 
-  #TODO: Move account-specific settings outside class
-
-  encrypted_token = ("AQICAHgnK9qmyWCnKC++2JqZC4P/zUXLQ2qPfIfa7a2gf7JRfgG8SMLWBlNuxHkQeku62gNkAAAAfjB8BgkqhkiG9w0BBwagb"
-  "zBtAgEAMGgGCSqGSIb3DQEHATAeBglghkgBZQMEAS4wEQQMfxQ3LF3UcfhBxY6QAgEQgDt0Oil5pNQtcixGWz4QA9ZBPi/XmEjKkjf8XzGnXDtXnS+vV"
-  "4xk6Ffew6qGUQcE+e0Hx/ctx996b4eJPQ==")
-
-  warning_channels = ['slack-warn']
-  critical_channels = ['slack-critical']
-
-  def __init__(self, kms_client):
-    self.kms = kms_client
-    self.decrypted_token = kms_decrypt(self.kms, self.encrypted_token)
-    self.auth_header =  {'X-Api-Key': self.decrypted_token, 'Content-Type': 'application/json'}
+  def __init__(self, admin_token):
+    self.admin_token = admin_token
+    self.auth_header =  {'X-Api-Key': self.admin_token, 'Content-Type': 'application/json'}
     self.all_alerts = None
     self.all_channels = None
     self.refresh_all_alerts()
@@ -52,10 +42,9 @@ class NewRelic:
   def create_alert_policy(self, policy_name):
     """Creates an alert policy in NewRelic"""
     policy_data = { 'policy': { 'incident_preference': 'PER_POLICY', 'name': policy_name } }
-    headers = {'X-Api-Key': self.decrypted_token, 'Content-Type': 'application/json'}
     create_policy = requests.post(
       'https://api.newrelic.com/v2/alerts_policies.json',
-      headers=headers,
+      headers=self.auth_header,
       data=json.dumps(policy_data))
     create_policy.raise_for_status()
     policy_id = create_policy.json()['policy']['id']
@@ -127,10 +116,10 @@ class NewRelic:
 
 def main():
   kms = boto3.client('kms')
+  api_token = kms_decrypt(kms, newrelic_config.encrypted_token)
   registry = EFServiceRegistry()
   alert_environments = ["staging", "prod"]
-  newrelic = NewRelic(kms_client=kms)
-
+  newrelic = NewRelic(admin_token=api_token)
   logging.basicConfig(level=logging.INFO)
   logger = logging.getLogger(__name__)
 
@@ -153,7 +142,8 @@ def main():
 
       policy_name = "-".join((env, policy))
       alert_level = "warning" if "-warn" in policy_name else "critical"
-      alert_channels = newrelic.critical_channels if alert_level == "critical" and env == "prod" else newrelic.warning_channels
+      alert_channels = newrelic_config.critical_channels if alert_level == "critical" and env == "prod" \
+                        else newrelic_config.warning_channels
 
       # Create service alert policy if it doesn't already exist
       if not newrelic.alert_policy_exists(policy_name):
