@@ -162,32 +162,24 @@ def main():
 
       policy_id = next(policy['id'] for policy in newrelic.all_alerts if policy['name'] == policy_name)
 
-      # Add/Delete alert policy notification channels to match config
-      add_channel_ids = []
+      # Add notification channels to alert policy
       for channel in newrelic.all_channels:
-        if channel['name'] in alert_channels:
-          if policy_id not in channel['links']['policy_ids']:
-            add_channel_ids.append(channel['id'])
+        if channel['name'] in alert_channels and policy_id not in channel['links']['policy_ids']:
+          newrelic.add_policy_channels(policy_id, [channel['id']])
+          logger.info("Added channel_ids {} to policy {}".format(policy_name, channel['id']))
 
-      if add_channel_ids:
-        newrelic.add_policy_channels(policy_id, add_channel_ids)
-        logger.info("Added channel_ids {} to policy {}".format(policy_name, add_channel_ids))
-
-      # Remove unknown alert conditions or those with values that differ from what's in the service_registry/default
-      # Also ensure there are no duplicated alert conditions
+      # Remove conditions with values that differ from what's in the service_registry/default
       current_conditions = newrelic.get_policy_alert_conditions(policy_id)
       for condition in current_conditions:
-        current_threshold = condition['critical_threshold']['value']
         if condition['name'] in alert_conditions:
-          config_threshold = alert_conditions[condition['name']]['{}_threshold'.format(alert_level)]
-        else:
-          config_threshold = 0
-        if condition['name'] in alert_conditions and current_threshold != config_threshold:
-          newrelic.delete_policy_alert_condition(condition['id'])
-          logger.info("deleted condition {} from policy {}. current value differs from config".format(condition['name'],
-                                                                                                      policy_name))
+            current_threshold = condition['critical_threshold']['value']
+            config_threshold = alert_conditions[condition['name']]['{}_threshold'.format(alert_level)]
+            if current_threshold != config_threshold:
+              newrelic.delete_policy_alert_condition(condition['id'])
+              logger.info("deleted condition {} from policy {}.".format(condition['name'], policy_name) + \
+                          "current value differs from config")
 
-      # Create Alert Conditions for policies
+      # Create alert conditions for policies
       current_conditions = newrelic.get_policy_alert_conditions(policy_id)
       for key, value in alert_conditions.items():
         if not any(d['name'] == key for d in current_conditions):
