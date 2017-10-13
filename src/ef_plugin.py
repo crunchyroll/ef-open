@@ -7,26 +7,40 @@ import os, sys
 logger = logging.getLogger(__name__)
 
 def ef_plugin(service_name):
+  """
+  Decorator for ef plugin classes. Any wrapped classes should contain a run() method which executes the plugin code.
+
+  Args:
+    service_name (str): The name of the service being extended.
+
+  Example:
+    @ef_plugin('ef-generate')
+    class NewRelicPlugin(object):
+
+      def run(self):
+        exec_code()
+  """
   def class_rebuilder(cls):
-    "The class decorator example"
-
     class EFPlugin(cls):
-      "This is the overwritten class"
-
+      """Base class of all ef plugins. Defines which service is extended and provides the EFContext object to the plugin"""
       def __init__(self, context):
         self.service = service_name
         self.context = context
 
       def __getattribute__(self, attr_name):
         obj = super(EFPlugin, self).__getattribute__(attr_name)
-        # if hasattr(obj, '__call__') and attr_name in method_names:
-        #     return method_decorator(obj)
         return obj
-
     return EFPlugin
   return class_rebuilder
 
-def exec_plugins(context_obj):
+
+def run_plugins(context_obj):
+  """
+  Execs all loaded plugins designated for the service calling the function.
+
+  Args:
+    context_obj (obj:EFContext): The EFContext object created by the service.
+  """
   plugins_loaded = False
   service_name = os.path.basename(sys.argv[0]).replace(".py", "")
   try:
@@ -47,4 +61,4 @@ def exec_plugins(context_obj):
                 try:
                   plugin.run()
                 except AttributeError:
-                  logger.error("Plugin '{}' is missing exec method".format(modname))
+                  logger.error("Plugin '{}' is missing run method".format(modname))
