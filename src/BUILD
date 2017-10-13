@@ -23,7 +23,8 @@ python_binary(
   source = 'ef-generate.py',
   dependencies = [
     ':boto3',
-    ':ef-open-lib'
+    ':ef-open-lib',
+    ':ef-plugins'
   ]
 )
 
@@ -59,7 +60,19 @@ python_binary(
   source = 'ef-version.py',
   dependencies = [
     ':boto3',
-    ':ef-open-lib'
+    ':ef-open-lib',
+    ':ef-plugins'
+  ]
+)
+
+python_binary(
+  name = 'ef-scratchpad',
+  source = 'ef-scratchpad.py',
+  dependencies = [
+    ':pike',
+    ':boto3',
+    ':ef-open-lib',
+    ':ef-plugins'
   ]
 )
 
@@ -70,10 +83,24 @@ python_requirement_library(
   ]
 )
 
+python_requirement_library(
+  name = 'pike',
+  requirements = [
+    python_requirement("pike")
+  ]
+)
+
 python_library(
   name = 'ef-open-lib',
   dependencies = [
     environ["EF_SITE_REPO"]+":efsiteconfig"
   ],
   sources = globs('ef_*.py', exclude=['ef_site_config.py'])
+)
+
+python_library(
+  name = 'ef-plugins',
+  dependencies = [
+    environ["EF_SITE_REPO"]+":plugins"
+  ]
 )
