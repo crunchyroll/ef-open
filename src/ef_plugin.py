@@ -1,8 +1,9 @@
-import logging
-import pkgutil
-import inspect
 import importlib
-import os, sys
+import inspect
+import logging
+import os
+import pkgutil
+import sys
 
 logger = logging.getLogger(__name__)
 
