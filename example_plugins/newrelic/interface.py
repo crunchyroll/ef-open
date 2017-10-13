@@ -8,6 +8,9 @@ from ef_service_registry import EFServiceRegistry
 from ef_utils import kms_decrypt
 import newrelic_config
 
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
 class NewRelic:
 
   def __init__(self, admin_token):
@@ -114,19 +117,9 @@ class NewRelic:
     delete_condition.raise_for_status()
     return
 
-def main():
-  kms = boto3.client('kms')
-  api_token = kms_decrypt(kms, newrelic_config.encrypted_token)
-  registry = EFServiceRegistry()
-  alert_environments = ["staging", "prod"]
-  newrelic = NewRelic(admin_token=api_token)
-  logging.basicConfig(level=logging.INFO)
-  logger = logging.getLogger(__name__)
-
-  for service in registry.iter_services(service_group="application_services"):
-    service_name = service[0]
-    service_environments = service[1]['environments']
-    service_alerts = service[1]['alerts'] if "alerts" in service[1] else {}
+def create_newrelic_alerts(service_name, sr_entry, newrelic):
+    service_environments = sr_entry[1]['environments']
+    service_alerts = sr_entry[1]['alerts'] if "alerts" in service[1] else {}
 
     # Set service alert values
     alert_conditions = deepcopy(newrelic_config.conditions)
@@ -137,7 +130,7 @@ def main():
 
     # Iterate through all permutations of environment/service
     policy_names = [service_name, "{}-warn".format(service_name)]
-    environments = [env for env in alert_environments if env in service_environments]
+    environments = [env for env in newrelic_config.alert_environments if env in service_environments]
     for env, policy in itertools.product(environments, policy_names):
 
       policy_name = "-".join((env, policy))
@@ -158,7 +151,7 @@ def main():
           newrelic.add_policy_channels(policy_id, [channel['id']])
           logger.info("Added channel_ids {} to policy {}".format(policy_name, channel['id']))
 
-      # Remove conditions with values that differ from what's in the service_registry/default
+      # Remove conditions with threshold values that differ from config
       current_conditions = newrelic.get_policy_alert_conditions(policy_id)
       for condition in current_conditions:
         if condition['name'] in alert_conditions:
@@ -166,7 +159,7 @@ def main():
             config_threshold = alert_conditions[condition['name']]['{}_threshold'.format(alert_level)]
             if current_threshold != config_threshold:
               newrelic.delete_policy_alert_condition(condition['id'])
-              logger.info("deleted condition {} from policy {}.".format(condition['name'], policy_name) + \
+              logger.info("deleted condition {} from policy {}. ".format(condition['name'], policy_name) + \
                           "current value differs from config")
 
       # Create alert conditions for policies
@@ -182,6 +175,3 @@ def main():
             event_type=value['event_type']
           )
           logger.info("created alert condition {} for policy {}".format(key, policy_name))
-
-if __name__ == "__main__":
-  main()

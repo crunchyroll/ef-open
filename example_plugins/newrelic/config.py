@@ -28,3 +28,4 @@ encrypted_token = ("AQICAHgnK9qmyWCnKC++2JqZC4P/zUXLQ2qPfIfa7a2gf7JRfgG8SMLWBlNu
 
 warning_channels = ['slack-warn']
 critical_channels = ['slack-critical']
+alert_environments = ["staging", "prod"]
