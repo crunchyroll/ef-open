@@ -66,6 +66,10 @@ def run_plugins(context_obj, boto3_clients):
   Args:
     context_obj (obj:EFContext): The EFContext object created by the service.
   """
+  if not context_obj.commit:
+    logger.debug("Dry Run: Skipping plugin execution.")
+    return
+
   service_name = os.path.basename(sys.argv[0]).replace(".py", "")
   try:
     import plugins
@@ -86,4 +90,4 @@ def run_plugins(context_obj, boto3_clients):
                 try:
                   plugin_instance.run()
                 except AttributeError:
-                  logger.error("Plugin '{}' is missing run method".format(modname))
+                  logger.error("Error executing plugin '{}'".format(modname))
