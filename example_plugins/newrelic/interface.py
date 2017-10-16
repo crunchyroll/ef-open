@@ -1,15 +1,9 @@
-import boto3
-from copy import deepcopy
-import requests
 import json
 import logging
-import itertools
-from ef_service_registry import EFServiceRegistry
-from ef_utils import kms_decrypt
-import newrelic_config
+import requests
 
-logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
 
 class NewRelic:
 
@@ -116,62 +110,3 @@ class NewRelic:
     )
     delete_condition.raise_for_status()
     return
-
-def create_newrelic_alerts(service_name, sr_entry, newrelic):
-    service_environments = sr_entry[1]['environments']
-    service_alerts = sr_entry[1]['alerts'] if "alerts" in service[1] else {}
-
-    # Set service alert values
-    alert_conditions = deepcopy(newrelic_config.conditions)
-    for key, value in alert_conditions.items():
-      for level in ["critical", "warning"]:
-        if "{}_{}".format(value['sr_name'], level) in service_alerts:
-          value["{}_threshold".format(level)] = int(service_alerts["{}_{}".format(value['sr_name'], level)])
-
-    # Iterate through all permutations of environment/service
-    policy_names = [service_name, "{}-warn".format(service_name)]
-    environments = [env for env in newrelic_config.alert_environments if env in service_environments]
-    for env, policy in itertools.product(environments, policy_names):
-
-      policy_name = "-".join((env, policy))
-      alert_level = "warning" if "-warn" in policy_name else "critical"
-      alert_channels = newrelic_config.critical_channels if alert_level == "critical" and env == "prod" \
-                        else newrelic_config.warning_channels
-
-      # Create service alert policy if it doesn't already exist
-      if not newrelic.alert_policy_exists(policy_name):
-        newrelic.create_alert_policy(policy_name)
-        logger.info("Create alert policy {}".format(policy_name))
-
-      policy_id = next(policy['id'] for policy in newrelic.all_alerts if policy['name'] == policy_name)
-
-      # Add notification channels to alert policy
-      for channel in newrelic.all_channels:
-        if channel['name'] in alert_channels and policy_id not in channel['links']['policy_ids']:
-          newrelic.add_policy_channels(policy_id, [channel['id']])
-          logger.info("Added channel_ids {} to policy {}".format(policy_name, channel['id']))
-
-      # Remove conditions with threshold values that differ from config
-      current_conditions = newrelic.get_policy_alert_conditions(policy_id)
-      for condition in current_conditions:
-        if condition['name'] in alert_conditions:
-            current_threshold = condition['critical_threshold']['value']
-            config_threshold = alert_conditions[condition['name']]['{}_threshold'.format(alert_level)]
-            if current_threshold != config_threshold:
-              newrelic.delete_policy_alert_condition(condition['id'])
-              logger.info("deleted condition {} from policy {}. ".format(condition['name'], policy_name) + \
-                          "current value differs from config")
-
-      # Create alert conditions for policies
-      current_conditions = newrelic.get_policy_alert_conditions(policy_id)
-      for key, value in alert_conditions.items():
-        if not any(d['name'] == key for d in current_conditions):
-          newrelic.create_alert_cond(
-            policy_id=policy_id,
-            condition_name=key,
-            alert_condition=value['alert_condition'],
-            threshold=value['{}_threshold'.format(alert_level)],
-            ec2_tag=policy_name.replace("-warn", ""),
-            event_type=value['event_type']
-          )
-          logger.info("created alert condition {} for policy {}".format(key, policy_name))
