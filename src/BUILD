@@ -69,7 +69,6 @@ python_binary(
   name = 'ef-scratchpad',
   source = 'ef-scratchpad.py',
   dependencies = [
-    ':pike',
     ':boto3',
     ':ef-open-lib',
     ':ef-plugins'
@@ -80,13 +79,6 @@ python_requirement_library(
   name = 'boto3',
   requirements = [
     python_requirement("boto3")
-  ]
-)
-
-python_requirement_library(
-  name = 'pike',
-  requirements = [
-    python_requirement("pike")
   ]
 )
 
@@ -101,6 +93,7 @@ python_library(
 python_library(
   name = 'ef-plugins',
   dependencies = [
-    environ["EF_SITE_REPO"]+":plugins"
+    environ["EF_SITE_REPO"]+":plugins",
+    environ["EF_SITE_REPO"]+":plugin_modules"
   ]
 )
