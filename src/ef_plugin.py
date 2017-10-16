@@ -7,6 +7,7 @@ import sys
 
 logger = logging.getLogger(__name__)
 
+
 def ef_plugin(service_name):
   """
   Decorator for ef plugin classes. Any wrapped classes should contain a run() method which executes the plugin code.
@@ -22,22 +23,40 @@ def ef_plugin(service_name):
         exec_code()
   """
   def class_rebuilder(cls):
+
     class EFPlugin(cls):
-      """Base class of all ef plugins. Defines which service is extended and provides the EFContext object to the plugin"""
+      """
+      Base class of ef-plugins. Defines which service is extended and provides access to the current instance of
+      EFContext to the plugin.
+      """
+
       def __init__(self, context):
         self.service = service_name
         self.context = context
+        self.oInstance = cls()
 
-      def __getattribute__(self, attr_name):
-        obj = super(EFPlugin, self).__getattribute__(attr_name)
-        return obj
+      def __getattribute__(self, s):
+        """
+        This is called whenever any attribute of a EFPlugin object is accessed. This function first tries to
+        get the attribute off EFPlugin. If it fails then it tries to fetch the attribute from self.oInstance
+        (an instance of the decorated class).
+        """
+        try:
+          x = super(EFPlugin, self).__getattribute__(s)
+        except AttributeError:
+          pass
+        else:
+          return x
+        return self.oInstance.__getattribute__(s)
+
     return EFPlugin
+
   return class_rebuilder
 
 
 def run_plugins(context_obj):
   """
-  Execs all loaded plugins designated for the service calling the function.
+  Executes all loaded plugins designated for the service calling the function.
 
   Args:
     context_obj (obj:EFContext): The EFContext object created by the service.
@@ -57,9 +76,10 @@ def run_plugins(context_obj):
           plugin_module = importlib.import_module("plugins.{}.{}".format(plugin_name, modname))
           for name, obj in inspect.getmembers(plugin_module):
             if inspect.isclass(obj) and obj.__name__ == "EFPlugin":
-              plugin = getattr(plugin_module, name)(context=context_obj)
-              if plugin.service == service_name:
+              plugin_class = getattr(plugin_module, name)
+              plugin_instance = plugin_class(context=context_obj)
+              if plugin_instance.service == service_name:
                 try:
-                  plugin.run()
+                  plugin_instance.run()
                 except AttributeError:
                   logger.error("Plugin '{}' is missing run method".format(modname))
