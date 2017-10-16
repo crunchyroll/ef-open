@@ -59,21 +59,20 @@ def ef_plugin(service_name):
   return class_rebuilder
 
 
-def run_plugins(context_obj):
+def run_plugins(context_obj, boto3_clients):
   """
   Executes all loaded plugins designated for the service calling the function.
 
   Args:
     context_obj (obj:EFContext): The EFContext object created by the service.
   """
-  plugins_loaded = False
   service_name = os.path.basename(sys.argv[0]).replace(".py", "")
   try:
     import plugins
-    plugins_loaded = True
   except ImportError:
     logger.debug("No plugins detected. Skipping")
-  if plugins_loaded:
+    return
+  else:
     for plugin_importer, plugin_name, plugin_ispkg in pkgutil.iter_modules(plugins.__path__):
       if plugin_ispkg:
         plugin_package = importlib.import_module("plugins.{}".format(plugin_name))
