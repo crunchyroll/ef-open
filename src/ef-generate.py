@@ -39,6 +39,7 @@ from botocore.exceptions import ClientError
 from ef_aws_resolver import EFAwsResolver
 from ef_config import EFConfig
 from ef_context import EFContext
+from ef_plugin import run_plugins
 from ef_service_registry import EFServiceRegistry
 from ef_template_resolver import EFTemplateResolver
 from ef_utils import create_aws_clients, fail, pull_repo
@@ -500,6 +501,9 @@ def main():
     # 4. INLINE SERVICE'S POLICIES INTO ROLE
     # only eligible service types with "policies" sections in the service registry get policies
     conditionally_inline_policies(target_name, sr_entry)
+
+  # 5. Execute plugins
+  run_plugins(context_obj=CONTEXT, boto3_clients=CLIENTS)
 
   print("Exit: success")
 
