@@ -22,6 +22,7 @@ infra-repo/
       __init__.py
       plugin_code.py
       config.py
+      requirements.txt
 ```
 
 ## Viewing installed plugins
