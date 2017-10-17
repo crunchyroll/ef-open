@@ -18,6 +18,7 @@ class NewRelicAlerts(object):
   def __init__(self):
     # load config settings
     self.alert_environments = config.alert_environments
+    self.critical_alert_environments = config.critical_alert_environments
     self.conditions = config.conditions
     self.encrypted_token = config.encrypted_token
     self.critical_channels = config.critical_channels
@@ -35,7 +36,7 @@ class NewRelicAlerts(object):
 
         if self.context.env in service_environments:
           # Set service-level alert condition values
-          alert_conditions = deepcopy(config.conditions)
+          alert_conditions = deepcopy(self.conditions)
           for key, value in alert_conditions.items():
             for level in ["critical", "warning"]:
               if "{}_{}".format(value['sr_name'], level) in service_alerts:
@@ -45,8 +46,10 @@ class NewRelicAlerts(object):
           base_policy_name = "{}-{}".format(self.context.env, service_name)
           for policy_name in [base_policy_name, "{}-warn".format(base_policy_name)]:
             alert_level = "warning" if "-warn" in policy_name else "critical"
-            alert_channels = config.critical_channels if alert_level == "critical" and self.context.env == "prod" \
-              else config.warning_channels
+            if alert_level == "critical" and self.context.env in self.critical_alert_environments:
+              alert_channels = self.critical_channels
+            else:
+              alert_channels = self.warning_channels
 
             # Create service alert policy if it doesn't already exist
             if not newrelic.alert_policy_exists(policy_name):
