@@ -5,7 +5,8 @@ python_binary(
   source = 'ef-cf.py',
   dependencies = [
     ':boto3',
-    ':ef-open-lib'
+    ':ef-open-lib',
+    ':ef-plugins'
   ]
  )
 
@@ -14,7 +15,8 @@ python_binary(
   source = 'ef-check-config.py',
   dependencies = [
     ':boto3',
-    ':ef-open-lib'
+    ':ef-open-lib',
+    ':ef-plugins'
   ]
 )
 
@@ -23,7 +25,8 @@ python_binary(
   source = 'ef-generate.py',
   dependencies = [
     ':boto3',
-    ':ef-open-lib'
+    ':ef-open-lib',
+    ':ef-plugins'
   ]
 )
 
@@ -32,7 +35,8 @@ python_binary(
   source = 'ef-instanceinit.py',
   dependencies = [
     ':boto3',
-    ':ef-open-lib'
+    ':ef-open-lib',
+    ':ef-plugins'
   ]
 )
 
@@ -41,7 +45,8 @@ python_binary(
   source = 'ef-password.py',
   dependencies = [
     ':boto3',
-    ':ef-open-lib'
+    ':ef-open-lib',
+    ':ef-plugins'
   ]
 )
 
@@ -50,7 +55,8 @@ python_binary(
   source = 'ef-resolve-config.py',
   dependencies = [
     ':boto3',
-    ':ef-open-lib'
+    ':ef-open-lib',
+    ':ef-plugins'
   ]
 )
 
@@ -59,7 +65,8 @@ python_binary(
   source = 'ef-version.py',
   dependencies = [
     ':boto3',
-    ':ef-open-lib'
+    ':ef-open-lib',
+    ':ef-plugins'
   ]
 )
 
@@ -76,4 +83,12 @@ python_library(
     environ["EF_SITE_REPO"]+":efsiteconfig"
   ],
   sources = globs('ef_*.py', exclude=['ef_site_config.py'])
+)
+
+python_library(
+  name = 'ef-plugins',
+  dependencies = [
+    environ["EF_SITE_REPO"]+":plugins",
+    environ["EF_SITE_REPO"]+":plugin_modules"
+  ]
 )

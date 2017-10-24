@@ -1,0 +1,11 @@
+python_library(
+  name = 'plugins',
+  sources = globs('plugins/**/*.py', 'plugins/*.py')
+)
+
+python_requirement_library(
+  name = 'plugin_modules',
+  requirements = [
+    python_requirement("requests")
+  ]
+)
