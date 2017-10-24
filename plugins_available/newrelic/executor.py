@@ -19,10 +19,35 @@ class NewRelicAlerts(object):
     # load config settings
     self.alert_environments = config.alert_environments
     self.critical_alert_environments = config.critical_alert_environments
-    self.conditions = config.conditions
+    self.conditions = config.alert_conditions
     self.encrypted_token = config.encrypted_token
     self.critical_channels = config.critical_channels
     self.warning_channels = config.warning_channels
+
+  def replace_symbols(self, condition_obj):
+    def convert_string(string):
+      for symbol in RESOLVED:
+        if symbol in string:
+          string = string.replace("{{" + symbol + "}}", str(RESOLVED[symbol]))
+      return string
+
+    if isinstance(condition_obj, dict):
+      for inner_key, inner_val in condition_obj.items():
+        condition_obj[inner_key] = self.replace_symbols(inner_val)
+    elif isinstance(condition_obj, list):
+      for i in range(len(condition_obj)):
+        condition_obj[i] = self.replace_symbols(condition_obj[i])
+    elif isinstance(condition_obj, str):
+      condition_obj = convert_string(condition_obj)
+    return condition_obj
+
+  def set_symbol_values(self, policy_id, service):
+    symbols = {
+      "ENV": self.context.env,
+      "POLICY_ID": policy_id,
+      "SERVICE": service
+    }
+    return symbols
 
   def run(self):
     if self.context.env in self.alert_environments:
@@ -39,8 +64,8 @@ class NewRelicAlerts(object):
           alert_conditions = deepcopy(self.conditions)
           for key, value in alert_conditions.items():
             for level in ["critical", "warning"]:
-              if "{}_{}".format(value['sr_name'], level) in service_alerts:
-                value["{}_threshold".format(level)] = int(service_alerts["{}_{}".format(value['sr_name'], level)])
+              if "{}_{}".format(value['name'], level) in service_alerts:
+                value["{}_threshold".format(level)] = int(service_alerts["{}_{}".format(value['name'], level)])
 
           # Configure the env-service and env-service-warn policies
           base_policy_name = "{}-{}".format(self.context.env, service_name)
@@ -76,15 +101,21 @@ class NewRelicAlerts(object):
                               "current value differs from config")
 
             # Create alert conditions for policies
+            symbols = self.set_symbol_values(policy_id=policy_id, service=service_name)
             current_conditions = newrelic.get_policy_alert_conditions(policy_id)
             for key, value in alert_conditions.items():
+              value = self.replace_symbols(value, symbols)
               if not any(d['name'] == key for d in current_conditions):
-                newrelic.create_alert_cond(
-                  policy_id=policy_id,
-                  condition_name=key,
-                  alert_condition=value['alert_condition'],
-                  threshold=value['{}_threshold'.format(alert_level)],
-                  ec2_tag=policy_name.replace("-warn", ""),
-                  event_type=value['event_type']
-                )
-                logger.info("create alert condition {} for policy {}".format(key, policy_name))
+
+                # newrelic.create_alert_cond(
+                #   policy_id=policy_id,
+                #   condition_name=key,
+                #   select_value=value['select_value'],
+                #   threshold=value['{}_threshold'.format(alert_level)],
+                #   ec2_tag=policy_name.replace("-warn", ""),
+                #   event_type=value['event_type']
+                # )
+                # logger.info("create alert condition {} for policy {}".format(key, policy_name))
+# TODO: Update create alert condition
+# TODO: Create alert policy class
+# TODO: Replace any value in sr override
