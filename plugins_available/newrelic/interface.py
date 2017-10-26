@@ -133,13 +133,11 @@ class NewRelic(object):
     return
 
   def create_alert_cond(self, condition):
-    print(json.dumps({ "data": condition }))
     add_condition = requests.post(
       url='https://infra-api.newrelic.com/v2/alerts/conditions',
       headers=self.auth_header,
       data=json.dumps({ "data": condition })
     )
-    print(add_condition.text)
     add_condition.raise_for_status()
     return add_condition.json()['data']['id']
 
