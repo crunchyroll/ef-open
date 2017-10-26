@@ -6,6 +6,71 @@ import requests
 logger = logging.getLogger(__name__)
 
 
+class AlertPolicy:
+
+  def __init__(self, env, service):
+    self._env = env
+    self._service = service
+    self._id = None
+    self.name = None
+    self.notification_channels = None
+    self.config_conditions = None
+    self.conditions = None
+    self.symbols = None
+    self.set_name()
+    self.set_symbols()
+
+  @property
+  def id(self):
+    return self._id
+
+  @id.setter
+  def id(self, value):
+    try:
+      value = int(value)
+    except ValueError:
+      logger.error("Invalid value '{}' for policy id.".format(value))
+
+    self._id = value
+    self.set_symbols()
+
+  @property
+  def env(self):
+    return self._env
+
+  @env.setter
+  def env(self, value):
+    if isinstance(value, str):
+      self._env = value
+      self.set_name()
+      self.set_symbols()
+    else:
+      logger.error("Invalid value '{}' for env.".format(value))
+
+  @property
+  def service(self):
+    return self._service
+
+  @service.setter
+  def service(self, value):
+    if isinstance(value, str):
+      self._env = value
+      self.set_name()
+      self.set_symbols()
+    else:
+      logger.error("Invalid value '{}' for service.".format(value))
+
+  def set_name(self):
+    self.name = "{}-{}".format(self.env, self.service)
+
+  def set_symbols(self):
+    self.symbols = {
+      "ENV": self.env,
+      "POLICY_ID": self.id,
+      "SERVICE": self.service
+    }
+
+
 class NewRelic:
 
   def __init__(self, admin_token):
@@ -69,31 +134,15 @@ class NewRelic:
     delete_channel.raise_for_status()
     return
 
-  def create_alert_cond(self, policy_id, condition_name, alert_condition, threshold, ec2_tag, event_type):
-    payload = {
-       "data":{
-          "type":"infra_metric",
-          "name":condition_name,
-          "enabled":True,
-          "filter": {"and":[{"is":{"ec2Tag_Name":ec2_tag}}]},
-          "policy_id":policy_id,
-          "event_type":event_type,
-          "select_value":alert_condition,
-          "comparison":"above",
-          "critical_threshold":{
-             "value":threshold,
-             "duration_minutes":5,
-             "time_function":"all"
-          }
-       }
-    }
-    add_policy = requests.post(
+  def create_alert_cond(self, condition):
+    print(json.dumps({ "data": condition }))
+    add_condition = requests.post(
       url='https://infra-api.newrelic.com/v2/alerts/conditions',
       headers=self.auth_header,
-      data=json.dumps(payload)
+      data=json.dumps({ "data": condition })
     )
-    add_policy.raise_for_status()
-    return add_policy.json()['data']['id']
+    add_condition.raise_for_status()
+    return add_condition.json()['data']['id']
 
   def get_policy_alert_conditions(self, policy_id):
     get_conditions = requests.get(
@@ -111,3 +160,10 @@ class NewRelic:
     )
     delete_condition.raise_for_status()
     return
+
+  def delete_policy(self, policy_id):
+    delete_policy = requests.delete(
+      url='https://api.newrelic.com/v2/alerts_policies/{}.json'.format(policy_id),
+      headers=self.auth_header
+    )
+    delete_policy.raise_for_status()
