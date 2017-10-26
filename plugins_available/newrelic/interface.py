@@ -6,7 +6,7 @@ import requests
 logger = logging.getLogger(__name__)
 
 
-class AlertPolicy:
+class AlertPolicy(object):
 
   def __init__(self, env, service):
     self._env = env
@@ -27,12 +27,10 @@ class AlertPolicy:
   @id.setter
   def id(self, value):
     try:
-      value = int(value)
+      self._id = int(value)
+      self.set_symbols()
     except ValueError:
       logger.error("Invalid value '{}' for policy id.".format(value))
-
-    self._id = value
-    self.set_symbols()
 
   @property
   def env(self):
@@ -71,7 +69,7 @@ class AlertPolicy:
     }
 
 
-class NewRelic:
+class NewRelic(object):
 
   def __init__(self, admin_token):
     self.admin_token = admin_token
@@ -141,6 +139,7 @@ class NewRelic:
       headers=self.auth_header,
       data=json.dumps({ "data": condition })
     )
+    print(add_condition.text)
     add_condition.raise_for_status()
     return add_condition.json()['data']['id']
 
