@@ -50,12 +50,6 @@ class NewRelicAlerts(object):
       admin_token = kms_decrypt(self.clients['kms'], self.encrypted_token)
       newrelic = NewRelic(admin_token)
 
-      # print(newrelic.all_alerts)
-      # for policy in newrelic.all_alerts:
-      #   if "-warn" in policy['name']:
-      #     newrelic.delete_policy(policy['id'])
-      #     print("deleted policy {}".format(policy['name']))
-
       for service in self.context.service_registry.iter_services(service_group="application_services"):
         service_name = service[0]
         service_environments = service[1]['environments']
@@ -81,16 +75,20 @@ class NewRelicAlerts(object):
               newrelic.add_policy_channels(policy.id, [channel['id']])
               logger.info("add channel_ids {} to policy {}".format(policy.name, channel['id']))
 
+          # Replace symbols in config alert conditions
           for key, value in policy.config_conditions.items():
             policy.config_conditions[key] = self.replace_symbols(value, policy.symbols)
 
           # Update policy.config_conditions with overrides from service_registry
-          # TODO: Add ability to override specific value in dict value obj rather than the entire obj
           for condition_name, override_obj in service_alert_overrides.items():
             if condition_name in policy.config_conditions.keys():
               for override_key, override_value in override_obj.items():
-                policy.config_conditions[condition_name][override_key] = override_value
-          logger.info("Policy {} alert condition values:\n{}".format(policy.name, policy.config_conditions))
+                if isinstance(override_value, dict):
+                  for inner_key, inner_val in override_value.items():
+                    policy.config_conditions[condition_name][override_key][inner_key] = inner_val
+                else:
+                  policy.config_conditions[condition_name][override_key] = override_value
+          logger.debug("Policy {} alert condition values:\n{}".format(policy.name, policy.config_conditions))
 
           # Remove conditions with threshold values that differ from config
           for condition in policy.conditions:
@@ -107,3 +105,4 @@ class NewRelicAlerts(object):
           for key, value in policy.config_conditions.items():
             if not any(d['name'] == key for d in policy.conditions):
               newrelic.create_alert_cond(policy.config_conditions[key])
+              logger.info("create condition {} for policy {}".format(key, policy.name))
