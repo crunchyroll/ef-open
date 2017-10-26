@@ -17,12 +17,8 @@ class NewRelicAlerts(object):
 
   def __init__(self):
     # load config settings
-    self.alert_environments = config.alert_environments
-    self.critical_alert_environments = config.critical_alert_environments
     self.conditions = config.alert_conditions
-    self.encrypted_token = config.encrypted_token
-    self.critical_channels = config.critical_channels
-    self.warning_channels = config.warning_channels
+    self.admin_token = config.admin_token
     self.all_notification_channels = config.env_notification_map
 
   @classmethod
@@ -47,8 +43,10 @@ class NewRelicAlerts(object):
 
   def run(self):
     if self.context.env in self.all_notification_channels.keys():
-      admin_token = kms_decrypt(self.clients['kms'], self.encrypted_token)
-      newrelic = NewRelic(admin_token)
+      if config.token_kms_encrypted:
+        self.admin_token = kms_decrypt(self.clients['kms'], self.admin_token)
+
+      newrelic = NewRelic(self.admin_token)
 
       for service in self.context.service_registry.iter_services(service_group="application_services"):
         service_name = service[0]
