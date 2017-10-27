@@ -1,45 +1,64 @@
-# NewRelic admin api token, encrypted by KMS. Any accounts tied to environments in alert_environments will need decrypt
-#  privileges to this key.
-encrypted_token = ""
+# NewRelic admin api token
+admin_token = ""
 
-# Notification channels in NewRelic to be used for warning and critical alert levels
-# ex. warning_channels = ["slack-warn"]
-warning_channels = []
-critical_channels = []
+# Indicates whether the admin_token has been encrypted by KMS.
+# If True, any accounts tied to environments in alert_environments will need decrypt privileges to this key.
+token_kms_encrypted = True
 
-# Environments for which alerts should be created. Should be in ef_site_config.ENV_ACCOUNT_MAP
-# ex. alert_environments = ["staging", "prod"]
-alert_environments = []
+# Map of environments that alert policies will be created for along with the notification channels that they will alert on.
+env_notification_map = {
+  "staging": [],
+  "prod": []
+}
 
-# Environments which will trigger critical alert channels when a critical condition threshold is passed. Otherwise,
-# warning channels will be used.
-# ex. critical_alert_environments = ["prod"]
-critical_alert_environments = []
-
-# Alert conditions to be used for each service along with default thresholds. This currently supports infrastructure
-# alerts filtering based on the ec2 name tags created by ef-cf. The key in the conditions dict is the condition name
-# that will appear in NewRelic. The sr_name value is what is used inside the service registry to set service-specific
-# condition thresholds that differ from the defaults. See the readme for examples.
-conditions = {
-  'memoryUsed': {
-    'event_type': 'SystemSample',
-    'alert_condition': 'memoryUsedBytes/memoryTotalBytes*100',
-    'sr_name': 'memory',
-    'warning_threshold': 80,
-    'critical_threshold': 90
+# Alert conditions to be used for each service along with default thresholds. The key is the condition name
+# that will appear in NewRelic and must match the "name" value in the condition object.
+# Default values can be overridden on a per-service basis. See the readme for examples.
+# Variables available are: ENV, SERVICE, and POLICY_ID
+alert_conditions = {
+  "cpu_percent": {
+     "type":"infra_metric",
+     "name":"cpu_percent",
+     "enabled": True,
+     "filter": {"and":[{"is": {"ec2Tag_Name":"{{ENV}}-{{SERVICE}}"}}]},
+     "policy_id": "{{POLICY_ID}}",
+     "event_type":"SystemSample",
+     "select_value":"cpuPercent",
+     "comparison":"above",
+     "critical_threshold": {
+        "value": 90,
+        "duration_minutes": 5,
+        "time_function":"all"
+     }
   },
-  'cpuPercent': {
-    'event_type': 'SystemSample',
-    'alert_condition': 'cpuPercent',
-    'sr_name': 'cpu',
-    'warning_threshold': 80,
-    'critical_threshold': 90
+  "memory_used": {
+    "type": "infra_metric",
+    "name": "memory_used",
+    "enabled": True,
+    "filter": {"and":[{"is": {"ec2Tag_Name":"{{ENV}}-{{SERVICE}}"}}]},
+    "policy_id": "{{POLICY_ID}}",
+    "event_type": "SystemSample",
+    "select_value": "memoryUsedBytes/memoryTotalBytes*100",
+    "comparison": "above",
+    "critical_threshold": {
+      "value": 90,
+      "duration_minutes": 5,
+      "time_function":"all"
+    }
   },
-  'diskUsed': {
-    'event_type': 'StorageSample',
-    'alert_condition': 'diskUsedPercent',
-    'sr_name': 'disk',
-    'warning_threshold': 80,
-    'critical_threshold': 90
+  "disk_used": {
+    "type": "infra_metric",
+    "name": "disk_used",
+    "enabled": True,
+    "filter": {"and": [{"is": {"ec2Tag_Name": "{{ENV}}-{{SERVICE}}"}}]},
+    "policy_id": "{{POLICY_ID}}",
+    "event_type": "StorageSample",
+    "select_value": "diskUsedPercent",
+    "comparison": "above",
+    "critical_threshold": {
+      "value": 90,
+      "duration_minutes": 5,
+      "time_function": "all"
+    }
   }
 }
