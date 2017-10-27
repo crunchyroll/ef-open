@@ -5,7 +5,7 @@
 **Ready**
 ## Synopsis
 > Include a brief description of the overall point of this PR and a link to the ticket.
-[CXOPS-XXXX](https://ellation.atlassian.net/browse/CXOPS-XXXX)
+[OPS-XXXX](https://ellation.atlassian.net/browse/OPS-XXXX)
 ## Changelog
 > Brief summary of changes which should be included in your commit messages.
 ## Dependencies
