@@ -88,16 +88,17 @@ class NewRelicAlerts(object):
                   policy.config_conditions[condition_name][override_key] = override_value
           logger.debug("Policy {} alert condition values:\n{}".format(policy.name, policy.config_conditions))
 
-          # Remove conditions with threshold values that differ from config
+          # Remove conditions with values that differ from config
           for condition in policy.conditions:
             if condition['name'] in policy.config_conditions:
-              current_threshold = condition['critical_threshold']['value']
-              config_threshold = policy.config_conditions[condition['name']]['critical_threshold']['value']
-              if current_threshold != config_threshold:
-                newrelic.delete_policy_alert_condition(condition['id'])
-                policy.conditions = newrelic.get_policy_alert_conditions(policy.id)
-                logger.info("delete condition {} from policy {}. ".format(condition['name'], policy.name) + \
-                            "current value differs from config")\
+              config_condition = policy.config_conditions[condition['name']]
+              for k, v in config_condition.items():
+                if condition[k] != v:
+                  newrelic.delete_policy_alert_condition(condition['id'])
+                  policy.conditions = newrelic.get_policy_alert_conditions(policy.id)
+                  logger.info("delete condition {} from policy {}. ".format(condition['name'], policy.name) + \
+                              "current value differs from config")
+                  break
 
           # Create alert conditions for policies
           for key, value in policy.config_conditions.items():
