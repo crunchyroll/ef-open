@@ -32,6 +32,8 @@ from os import getenv
 import sys
 import urllib2
 
+from botocore.exceptions import ClientError
+
 from ef_config import EFConfig
 from ef_context import EFContext
 from ef_service_registry import EFServiceRegistry
@@ -396,17 +398,20 @@ def precheck_dist_hash(context):
   # get the current dist-hash
   key = "{}/{}/dist-hash".format(context.service_name, context.env)
   print_if_verbose("precheck_dist_hash with key: {}".format(key))
-  current_dist_hash = Version(context.aws_client("s3").get_object(
-    Bucket = EFConfig.S3_VERSION_BUCKET,
-    Key = key
-  ))
-  print_if_verbose("dist-hash found: {}".format(current_dist_hash.value))
-
-  # If bootstrapping (this will be the first entry in the version history)
-  # then we can't check it vs. current version
-  if current_dist_hash.value is None:
-    print_if_verbose("precheck passed without check because current dist-hash is None")
-    return True
+  try:
+    current_dist_hash = Version(context.aws_client("s3").get_object(
+      Bucket = EFConfig.S3_VERSION_BUCKET,
+      Key = key
+    ))
+    print_if_verbose("dist-hash found: {}".format(current_dist_hash.value))
+  except ClientError as error:
+    if error.response["Error"]["Code"] == "NoSuchKey":
+      # If bootstrapping (this will be the first entry in the version history)
+      # then we can't check it vs. current version, thus we cannot get the key
+      print_if_verbose("precheck passed without check because current dist-hash is None")
+      return True
+    else:
+      fail("Exception while prechecking dist_hash for {} {}: {}".format(context.service_name, context.env, error))
 
   # Otherwise perform a consistency check
   # 1. get dist version in service for environment
