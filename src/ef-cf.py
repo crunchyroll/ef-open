@@ -21,7 +21,9 @@ import argparse
 import json
 from os import getenv
 from os.path import basename, dirname, isfile, splitext
+import re
 import sys
+import time
 
 import botocore.exceptions
 
@@ -36,6 +38,7 @@ class EFCFContext(EFContext):
   def __init__(self):
     super(EFCFContext, self).__init__()
     self._changeset = None
+    self._poll_status = None
     self._template_file = None
 
   @property
@@ -48,6 +51,17 @@ class EFCFContext(EFContext):
     if type(value) is not bool:
       raise TypeError("changeset value must be bool")
     self._changeset = value
+
+  @property
+  def poll_status(self):
+    """True if the tool should poll for stack status"""
+    return self._poll_status
+
+  @poll_status.setter
+  def poll_status(self, value):
+    if type(value) is not bool:
+      raise TypeError("poll_status value must be bool")
+    self._poll_status = value
 
   @property
   def template_file(self):
@@ -79,6 +93,8 @@ def handle_args_and_set_context(args):
                       action="store_true", default=False)
   parser.add_argument("--commit", help="Make changes in AWS (dry run if omitted); cannot be combined with --changeset",
                       action="store_true", default=False)
+  parser.add_argument("--poll", help="Poll Cloudformation to check status of stack creation/updates",
+                      action="store_true", default=False)
   parser.add_argument("--sr", help="optional /path/to/service_registry_file.json", default=None)
   parser.add_argument("--verbose", help="Print additional info + resolved template", action="store_true", default=False)
   parser.add_argument("--devel", help="Allow running from branch; don't refresh from origin", action="store_true",
@@ -93,6 +109,7 @@ def handle_args_and_set_context(args):
   context.changeset = parsed_args["changeset"]
   context.commit = parsed_args["commit"]
   context.devel = parsed_args["devel"]
+  context.poll_status = parsed_args["poll"]
   context.verbose = parsed_args["verbose"]
   # Set up service registry and policy template path which depends on it
   context.service_registry = EFServiceRegistry(parsed_args["sr"])
@@ -249,6 +266,17 @@ def main():
           Parameters=parameters,
           Capabilities=['CAPABILITY_IAM']
         )
+      if context.poll_status:
+        while True:
+          stack_status = clients["cloudformation"].describe_stacks(StackName=stack_name)["Stacks"][0]["StackStatus"]
+          if context.verbose:
+            print("{}".format(stack_status))
+          if re.match(r".*_COMPLETE(?!.)", stack_status) is not None:
+            break
+          elif re.match(r".*_FAILED(?!.)", stack_status) is not None:
+            break
+          elif re.match(r".*_IN_PROGRESS(?!.)", stack_status) is not None:
+            time.sleep(EFConfig.EF_CF_POLL_PERIOD)
     run_plugins(context, clients)
   except botocore.exceptions.ClientError as error:
     if error.response["Error"]["Message"] in "No updates are to be performed.":
