@@ -274,7 +274,8 @@ def main():
           if re.match(r".*_COMPLETE(?!.)", stack_status) is not None:
             break
           elif re.match(r".*_FAILED(?!.)", stack_status) is not None:
-            break
+            print("Stack failed with status: {}".format(stack_status))
+            sys.exit(1)
           elif re.match(r".*_IN_PROGRESS(?!.)", stack_status) is not None:
             time.sleep(EFConfig.EF_CF_POLL_PERIOD)
     run_plugins(context, clients)
