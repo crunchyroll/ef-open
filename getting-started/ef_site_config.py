@@ -74,6 +74,10 @@ class EFSiteConfig:
     "platform_services"
   }
 
+  ## ef-cf settings ##
+  #   polling period for cloudformation stack status
+  EF_CF_POLL_PERIOD = 10
+
   ## Version-management settings ##
   #   is --noprecheck allowed with ef-version --set and --rollback?
   ALLOW_EF_VERSION_SKIP_PRECHECK = True
