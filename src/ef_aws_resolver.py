@@ -354,7 +354,7 @@ class EFAwsResolver(object):
           return hosted_zone["Id"].split("/")[2]
       if hosted_zones["IsTruncated"]:
         hosted_zones = EFAwsResolver.__CLIENTS["route53"].list_hosted_zones_by_name(
-          MaxItems=list_limit, Marker=hosted_zones["NextMarker"])
+          DNSName=hosted_zones["NextDNSName"], HostedZoneId=hosted_zones["NextHostedZoneId"], MaxItems=list_limit)
       else:
         return default
 
@@ -380,7 +380,7 @@ class EFAwsResolver(object):
           return hosted_zone["Id"].split("/")[2]
       if hosted_zones["IsTruncated"]:
         hosted_zones = EFAwsResolver.__CLIENTS["route53"].list_hosted_zones_by_name(
-          MaxItems=list_limit, Marker=hosted_zones["NextMarker"])
+          DNSName=hosted_zones["NextDNSName"], HostedZoneId=hosted_zones["NextHostedZoneId"], MaxItems=list_limit)
       else:
         return default
 
@@ -506,8 +506,8 @@ class EFAwsResolver(object):
       return self.ec2_elasticip_elasticip_ipaddress(*kv[1:])
     elif kv[0] == "ec2:eni/eni-id":
       return self.ec2_eni_eni_id(*kv[1:])
-    elif kv[0] == "kms:decrypt":
-      return self.kms_decrypt_value(*kv[1:])
+    elif kv[0] == "ec2:network/network-acl-id":
+      return self.ec2_network_network_acl_id(*kv[1:])
     elif kv[0] == "ec2:route-table/main-route-table-id":
       return self.ec2_route_table_main_route_table_id(*kv[1:])
     elif kv[0] == "ec2:security-group/security-group-id":
