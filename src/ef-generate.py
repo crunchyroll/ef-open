@@ -111,6 +111,8 @@ def handle_args_and_set_context(args):
   parser.add_argument("--verbose", help="Print additional info", action="store_true", default=False)
   parser.add_argument("--devel", help="Allow running from branch; don't refresh from origin", action="store_true",
                       default=False)
+  parser.add_argument("--region", help="Region to generate fixtures for, default region is " + EFConfig.DEFAULT_REGION,
+                        default=EFConfig.DEFAULT_REGION)
   parsed_args = vars(parser.parse_args(args))
   context = EFContext()
   context.commit = parsed_args["commit"]
@@ -123,6 +125,7 @@ def handle_args_and_set_context(args):
   context.service_registry = EFServiceRegistry(parsed_args["sr"])
   context.policy_template_path = normpath(dirname(context.service_registry.filespec)) + EFConfig.POLICY_TEMPLATE_PATH_SUFFIX
   context.verbose = parsed_args["verbose"]
+  context.region = parsed_args["region"]
   return context
 
 def print_if_verbose(message):
@@ -179,7 +182,7 @@ def resolve_policy_document(policy_name):
   except:
     fail("error opening policy file: {}".format(policy_filename))
   print_if_verbose("pre-resolution policy template:\n{}".format(policy_template))
-  resolver = EFTemplateResolver(profile=CONTEXT.account_alias, env=CONTEXT.env, region=EFConfig.DEFAULT_REGION,
+  resolver = EFTemplateResolver(profile=CONTEXT.account_alias, env=CONTEXT.env, region=CONTEXT.region,
                                 service=CONTEXT.service, verbose=CONTEXT.verbose)
   resolver.load(policy_template)
   policy_document = resolver.render()
@@ -450,13 +453,13 @@ def main():
   try:
     # If running in EC2, always use instance credentials. One day we'll have "lambda" in there too, so use "in" w/ list
     if CONTEXT.whereami in ["ec2"]:
-      CLIENTS = create_aws_clients(EFConfig.DEFAULT_REGION, None, "ec2", "iam", "kms")
+      CLIENTS = create_aws_clients(CONTEXT.region, None, "ec2", "iam", "kms")
     else:
       # Otherwise, we use local user creds based on the account alias
-      CLIENTS = create_aws_clients(EFConfig.DEFAULT_REGION, CONTEXT.account_alias, "ec2", "iam", "kms")
+      CLIENTS = create_aws_clients(CONTEXT.region, CONTEXT.account_alias, "ec2", "iam", "kms")
   except RuntimeError:
     fail("Exception creating AWS clients in region {} with profile {}".format(
-      EFConfig.DEFAULT_REGION, CONTEXT.account_alias))
+      CONTEXT.region, CONTEXT.account_alias))
   # Instantiate and AWSResolver to lookup AWS resources
   AWS_RESOLVER = EFAwsResolver(CLIENTS)
   CONTEXT.account_id = CLIENTS["SESSION"].resource('iam').CurrentUser().arn.split(':')[4]

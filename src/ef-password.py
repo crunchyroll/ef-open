@@ -89,6 +89,8 @@ def handle_args_and_set_context(args):
   parser.add_argument("--length", help="length of generated password (default 32)", default=32)
   parser.add_argument("--decrypt", help="encrypted string to be decrypted", default="")
   parser.add_argument("--plaintext", help="secret to be encrypted rather than a randomly generated one", default="")
+  parser.add_argument("--region", help="region for the specified service, default is " + EFConfig.DEFAULT_REGION,
+                      default=EFConfig.DEFAULT_REGION)
   parsed_args = vars(parser.parse_args(args))
   context = EFPWContext()
   try:
@@ -99,6 +101,7 @@ def handle_args_and_set_context(args):
   context.decrypt = parsed_args["decrypt"]
   context.length = parsed_args["length"]
   context.plaintext = parsed_args["plaintext"]
+  context.region = parsed_args["region"]
   return context
 
 
@@ -107,10 +110,10 @@ def main():
   profile = None if context.whereami == "ec2" else context.account_alias
 
   try:
-    clients = ef_utils.create_aws_clients(EFConfig.DEFAULT_REGION, profile, "kms")
+    clients = ef_utils.create_aws_clients(context.region, profile, "kms")
   except RuntimeError as error:
     ef_utils.fail(
-      "Exception creating clients in region {} with profile {}".format(EFConfig.DEFAULT_REGION, profile),
+      "Exception creating clients in region {} with profile {}".format(context.region, profile),
       error
     )
 

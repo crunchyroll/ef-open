@@ -99,6 +99,8 @@ def handle_args_and_set_context(args):
   parser.add_argument("--verbose", help="Print additional info + resolved template", action="store_true", default=False)
   parser.add_argument("--devel", help="Allow running from branch; don't refresh from origin", action="store_true",
                       default=False)
+  parser.add_argument("--region", help="Region to create/update the stack, default region is " + EFConfig.DEFAULT_REGION,
+                      default=EFConfig.DEFAULT_REGION)
   parsed_args = vars(parser.parse_args(args))
   context = EFCFContext()
   try:
@@ -111,6 +113,7 @@ def handle_args_and_set_context(args):
   context.devel = parsed_args["devel"]
   context.poll_status = parsed_args["poll"]
   context.verbose = parsed_args["verbose"]
+  context.region = parsed_args["region"]
   # Set up service registry and policy template path which depends on it
   context.service_registry = EFServiceRegistry(parsed_args["sr"])
   return context
@@ -193,16 +196,16 @@ def main():
     template=context.template_file,
     profile=profile,
     env=context.env,
-    region=EFConfig.DEFAULT_REGION,
+    region=context.region,
     service=service_name,
     verbose=context.verbose
   )
 
   # Create clients - if accessing by role, profile should be None
   try:
-    clients = create_aws_clients(EFConfig.DEFAULT_REGION, profile, "cloudformation")
+    clients = create_aws_clients(context.region, profile, "cloudformation")
   except RuntimeError as error:
-    fail("Exception creating clients in region {} with profile {}".format(EFConfig.DEFAULT_REGION, profile), error)
+    fail("Exception creating clients in region {} with profile {}".format(context.region, profile), error)
 
   stack_name = context.env + "-" + service_name
   try:
@@ -216,7 +219,7 @@ def main():
       template=parameter_file,
       profile=profile,
       env=context.env,
-      region=EFConfig.DEFAULT_REGION,
+      region=context.region,
       service=service_name,
       verbose=context.verbose
     )
