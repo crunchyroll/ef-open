@@ -82,12 +82,12 @@ class EFAwsResolver(object):
     for cert_handle in response["CertificateSummaryList"]:
       if cert_handle["DomainName"] == domain_name:
         cert = acm_client.describe_certificate(CertificateArn=cert_handle["CertificateArn"])["Certificate"]
+        # Patch up cert if there is no IssuedAt (i.e. cert was not issued by Amazon)
+        if not cert.has_key("IssuedAt"):
+          cert[u"IssuedAt"] = datetime.datetime(1970, 1, 1, 0, 0)
         if best_match_cert is None:
           best_match_cert = cert
-          # Patch up cert if there is no IssuedAt (i.e. cert was not issued by Amazon)
-          if not best_match_cert.has_key("IssuedAt"):
-            best_match_cert[u"IssuedAt"] = datetime.datetime(1970, 1, 1, 0, 0)
-        elif cert.has_key("IssuedAt") and cert["IssuedAt"] > best_match_cert["IssuedAt"]:
+        elif cert["IssuedAt"] > best_match_cert["IssuedAt"]:
           best_match_cert = cert
     if best_match_cert is not None:
       return best_match_cert["CertificateArn"]
