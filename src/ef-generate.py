@@ -470,6 +470,7 @@ def main():
   print("env: {}".format(CONTEXT.env))
   print("env_full: {}".format(CONTEXT.env_full))
   print("env_short: {}".format(CONTEXT.env_short))
+  print("region: {}".format(CONTEXT.region))
   print("aws account profile: {}".format(CONTEXT.account_alias))
   print("aws account number: {}".format(CONTEXT.account_id))
 

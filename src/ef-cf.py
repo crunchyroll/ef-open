@@ -190,6 +190,7 @@ def main():
     if profile:
       print("profile: {}".format(profile))
     print("whereami: {}".format(context.whereami))
+    print("region: {}".format(context.region))
     print("service type: {}".format(context.service_registry.service_record(service_name)["type"]))
 
   template = resolve_template(
