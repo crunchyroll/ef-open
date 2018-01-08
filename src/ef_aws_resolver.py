@@ -490,7 +490,7 @@ class EFAwsResolver(object):
   def lookup(self, token):
     try:
       kv = token.split(",")
-    except ValueError:
+    except (ValueError, AttributeError):
       return None
     if kv[0] == "acm:certificate-arn":
       return self.acm_certificate_arn(*kv[1:])
@@ -522,6 +522,8 @@ class EFAwsResolver(object):
       return self.ec2_vpc_subnets(*kv[1:])
     elif kv[0] == "ec2:vpc/vpc-id":
       return self.ec2_vpc_vpc_id(*kv[1:])
+    elif kv[0] == "kms:decrypt":
+      return self.kms_decrypt_value(*kv[1:])
     elif kv[0] == "route53:private-hosted-zone-id":
       return self.route53_private_hosted_zone_id(*kv[1:])
     elif kv[0] == "route53:public-hosted-zone-id":
