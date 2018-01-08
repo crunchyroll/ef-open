@@ -161,6 +161,23 @@ class EFAwsResolver(object):
     else:
       return default
 
+  def ec2_network_network_acl_id(self, lookup, default=None):
+    """
+    Args:
+      lookup: the friendly name of the network ACL we are looking up
+      default: the optional value to return if lookup failed; returns None if not set
+    Returns:
+      the ID of the network ACL, or None if no match found
+    """
+    network_acl_id = EFAwsResolver.__CLIENTS["ec2"].describe_network_acls(Filters=[{
+      'Name': 'tag:Name',
+      'Values': [lookup]
+    }])
+    if len(network_acl_id["NetworkAcls"]) > 0:
+      return network_acl_id["NetworkAcls"][0]["NetworkAclId"]
+    else:
+      return default
+
   def ec2_security_group_security_group_id(self, lookup, default=None):
     """
     Args:
