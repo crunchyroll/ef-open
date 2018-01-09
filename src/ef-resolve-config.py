@@ -58,13 +58,15 @@ def handle_args_and_set_context(args):
   parser.add_argument("env", help="environment")
   parser.add_argument("path_to_template", help="path to the config template to process")
   parser.add_argument("--verbose", help="Output extra info", action="store_true", default=False)
+  parser.add_argument("--region", help="Region to resolve the config, default is " + EFConfig.DEFAULT_REGION,
+                      default=EFConfig.DEFAULT_REGION)
   parsed = vars(parser.parse_args(args))
   path_to_template = abspath(parsed["path_to_template"])
   service = path_to_template.split('/')[-3]
 
   return Context(
     get_account_alias(parsed["env"]),
-    EFConfig.DEFAULT_REGION, parsed["env"],
+    parsed["region"], parsed["env"],
     service, path_to_template,
     parsed["verbose"]
   )
