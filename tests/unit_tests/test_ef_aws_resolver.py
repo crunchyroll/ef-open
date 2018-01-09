@@ -15,6 +15,7 @@ limitations under the License.
 """
 
 import unittest
+import datetime
 
 from mock import call, Mock, patch
 
@@ -175,7 +176,7 @@ class TestEFAwsResolver(unittest.TestCase):
     mock_acm_client.list_certificates.return_value = certificate_summary_list
 
     # Generate target certificate description
-    target_certificate = self._generate_certificate_description(target_certificate_arn, target_domain_name, 1111)
+    target_certificate = self._generate_certificate_description(target_certificate_arn, target_domain_name, datetime.datetime(1971, 1, 1, 0, 0))
     mock_acm_client.describe_certificate.return_value = target_certificate
 
     # Test actual function and assert results
@@ -215,9 +216,9 @@ class TestEFAwsResolver(unittest.TestCase):
     mock_acm_client.list_certificates.return_value = certificate_summary_list
 
     # Generate old and target certificate descriptions
-    old_certificate_description = self._generate_certificate_description(old_certificate_arn, target_domain_name, 1111)
+    old_certificate_description = self._generate_certificate_description(old_certificate_arn, target_domain_name, datetime.datetime(1970, 1, 1, 0, 0))
     target_certificate_description = self._generate_certificate_description(target_certificate_arn, target_domain_name,
-                                                                            2222)
+                                                                            datetime.datetime(1971, 1, 1, 0, 0))
     mock_acm_client.describe_certificate.side_effect = [old_certificate_description, target_certificate_description]
 
     # Test actual function and assert results
@@ -315,7 +316,7 @@ class TestEFAwsResolver(unittest.TestCase):
 
     # Generate target certificate description
     target_certificate_description = self._generate_certificate_description(target_certificate_arn, target_domain_name,
-                                                                            2222)
+                                                                            datetime.datetime(1971, 1, 1, 0, 0))
     mock_acm_client.describe_certificate.side_effect = [old_certificate_description, target_certificate_description]
 
     # Test actual function and assert results
@@ -353,7 +354,7 @@ class TestEFAwsResolver(unittest.TestCase):
     mock_acm_client.list_certificates.return_value = certificate_summary_list
 
     # Generate old certificate description with an issued at date
-    old_certificate_description = self._generate_certificate_description(old_certificate_arn, target_domain_name, 1111)
+    old_certificate_description = self._generate_certificate_description(old_certificate_arn, target_domain_name, datetime.datetime(1969, 1, 1, 0, 0))
 
     # Generate target certificate description without issued at date
     target_certificate_description = self._generate_certificate_description(target_certificate_arn, target_domain_name)
@@ -487,6 +488,47 @@ class TestEFAwsResolver(unittest.TestCase):
     self._clients["ec2"].describe_network_interfaces.return_value = network_interfaces_response
     ef_aws_resolver = EFAwsResolver(self._clients)
     result = ef_aws_resolver.lookup("ec2:eni/eni-id,no_matching_description")
+    self.assertIsNone(result)
+
+  def test_ec2_network_network_acl_id(self):
+    """
+    Tests ec2_network_network_acl_id to see if it returns a network ACL ID based on matching network ACL name in tag
+
+    Returns:
+      None
+
+    Raises:
+      AssertionError if any of the assert checks fail
+    """
+    target_network_acl_id = "acl-00000001"
+    network_acl_response = {
+      "NetworkAcls": [
+        {
+          "NetworkAclId": target_network_acl_id
+        }
+      ]
+    }
+    self._clients["ec2"].describe_network_acls.return_value = network_acl_response
+    ef_aws_resolver = EFAwsResolver(self._clients)
+    result = ef_aws_resolver.lookup("ec2:network/network-acl-id,target_network_acl_name")
+    self.assertEquals(target_network_acl_id, result)
+
+  def test_ec2_network_network_acl_id_no_match(self):
+    """
+    Tests ec2_network_network_acl_id to see if it returns None when there is no match
+
+    Returns:
+      None
+
+    Raises:
+      AssertionError if any of the assert checks fail
+    """
+    network_acl_response = {
+      "NetworkAcls": []
+    }
+    self._clients["ec2"].describe_network_acls.return_value = network_acl_response
+    ef_aws_resolver = EFAwsResolver(self._clients)
+    result = ef_aws_resolver.lookup("ec2:network/network-acl-id,cant_possibly_match")
     self.assertIsNone(result)
 
   def test_ec2_security_group_security_group_id(self):

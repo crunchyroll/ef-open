@@ -78,7 +78,7 @@ Example:<br>
 ```{{aws:acm:certificate-arn,us-west-2/mydomain.com}}```<br>
 returns:<br>
 ```arn:aws:acm:us-west-2:0123456789012:certificate/abcdef01-0123-abcd-0123-01234567890a```
- 
+
 #### {{aws:cloudfront:domain-name,\<cname>}}
 Returns: Domain name of the CloudFront distribution that hosts a given CNAME<br>
 Needs: Any domain name that's a CNAME on the desired CLoudFront distribution<br>
@@ -140,6 +140,16 @@ Example - interface '1' in subnet 'a' in env 'proto3' for the 'myservice' servic
 ```{{aws:ec2:eni/eni-id,eni-proto3-myservice-1a}}```<br>
 returns:<br>
 ```eni-31ca3f1a```
+
+#### {{aws:ec2:network/network-acl-id,\<network_acl_friendly_name>}}
+Returns: Network ACL ID<br>
+Needs: Network ACL's friendly name<br>
+Example:<br>
+```{{aws:ec2:network/network-acl-id,acl-{{ENV}}-<subnet_name>}}```<br>
+which is looked up in 'proto3' as:<br>
+```{{aws:ec2:network/network-acl-id,acl-proto3-subnetA}}```<br>
+returns:<br>
+```acl-be2d211a```<br>
 
 #### {{aws:ec2:route-table/main-route-table-id,\<vpc_name>}}
 Returns: Route table ID<br>

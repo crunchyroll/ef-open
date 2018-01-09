@@ -82,12 +82,12 @@ class EFAwsResolver(object):
     for cert_handle in response["CertificateSummaryList"]:
       if cert_handle["DomainName"] == domain_name:
         cert = acm_client.describe_certificate(CertificateArn=cert_handle["CertificateArn"])["Certificate"]
+        # Patch up cert if there is no IssuedAt (i.e. cert was not issued by Amazon)
+        if not cert.has_key("IssuedAt"):
+          cert[u"IssuedAt"] = datetime.datetime(1970, 1, 1, 0, 0)
         if best_match_cert is None:
           best_match_cert = cert
-          # Patch up cert if there is no IssuedAt (i.e. cert was not issued by Amazon)
-          if not best_match_cert.has_key("IssuedAt"):
-            best_match_cert[u"IssuedAt"] = datetime.datetime(1970, 1, 1, 0, 0)
-        elif cert.has_key("IssuedAt") and cert["IssuedAt"] > best_match_cert["IssuedAt"]:
+        elif cert["IssuedAt"] > best_match_cert["IssuedAt"]:
           best_match_cert = cert
     if best_match_cert is not None:
       return best_match_cert["CertificateArn"]
@@ -158,6 +158,23 @@ class EFAwsResolver(object):
     }])
     if len(enis.get("NetworkInterfaces")) > 0:
       return enis["NetworkInterfaces"][0]["NetworkInterfaceId"]
+    else:
+      return default
+
+  def ec2_network_network_acl_id(self, lookup, default=None):
+    """
+    Args:
+      lookup: the friendly name of the network ACL we are looking up
+      default: the optional value to return if lookup failed; returns None if not set
+    Returns:
+      the ID of the network ACL, or None if no match found
+    """
+    network_acl_id = EFAwsResolver.__CLIENTS["ec2"].describe_network_acls(Filters=[{
+      'Name': 'tag:Name',
+      'Values': [lookup]
+    }])
+    if len(network_acl_id["NetworkAcls"]) > 0:
+      return network_acl_id["NetworkAcls"][0]["NetworkAclId"]
     else:
       return default
 
@@ -337,7 +354,7 @@ class EFAwsResolver(object):
           return hosted_zone["Id"].split("/")[2]
       if hosted_zones["IsTruncated"]:
         hosted_zones = EFAwsResolver.__CLIENTS["route53"].list_hosted_zones_by_name(
-          MaxItems=list_limit, Marker=hosted_zones["NextMarker"])
+          DNSName=hosted_zones["NextDNSName"], HostedZoneId=hosted_zones["NextHostedZoneId"], MaxItems=list_limit)
       else:
         return default
 
@@ -363,7 +380,7 @@ class EFAwsResolver(object):
           return hosted_zone["Id"].split("/")[2]
       if hosted_zones["IsTruncated"]:
         hosted_zones = EFAwsResolver.__CLIENTS["route53"].list_hosted_zones_by_name(
-          MaxItems=list_limit, Marker=hosted_zones["NextMarker"])
+          DNSName=hosted_zones["NextDNSName"], HostedZoneId=hosted_zones["NextHostedZoneId"], MaxItems=list_limit)
       else:
         return default
 
@@ -473,7 +490,7 @@ class EFAwsResolver(object):
   def lookup(self, token):
     try:
       kv = token.split(",")
-    except ValueError:
+    except (ValueError, AttributeError):
       return None
     if kv[0] == "acm:certificate-arn":
       return self.acm_certificate_arn(*kv[1:])
@@ -489,8 +506,8 @@ class EFAwsResolver(object):
       return self.ec2_elasticip_elasticip_ipaddress(*kv[1:])
     elif kv[0] == "ec2:eni/eni-id":
       return self.ec2_eni_eni_id(*kv[1:])
-    elif kv[0] == "kms:decrypt":
-      return self.kms_decrypt_value(*kv[1:])
+    elif kv[0] == "ec2:network/network-acl-id":
+      return self.ec2_network_network_acl_id(*kv[1:])
     elif kv[0] == "ec2:route-table/main-route-table-id":
       return self.ec2_route_table_main_route_table_id(*kv[1:])
     elif kv[0] == "ec2:security-group/security-group-id":
@@ -505,6 +522,8 @@ class EFAwsResolver(object):
       return self.ec2_vpc_subnets(*kv[1:])
     elif kv[0] == "ec2:vpc/vpc-id":
       return self.ec2_vpc_vpc_id(*kv[1:])
+    elif kv[0] == "kms:decrypt":
+      return self.kms_decrypt_value(*kv[1:])
     elif kv[0] == "route53:private-hosted-zone-id":
       return self.route53_private_hosted_zone_id(*kv[1:])
     elif kv[0] == "route53:public-hosted-zone-id":
