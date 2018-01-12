@@ -214,6 +214,23 @@ class EFAwsResolver(object):
     else:
       return default
 
+  def ec2_subnet_subnet_cidr(self, lookup, default=None):
+    """
+    Return:
+      the ID of a single subnet or default/None if no match
+    Args:
+      lookup: the friendly name of the subnet to look up (subnet-<env>-a or subnet-<env>-b)
+      default: the optional value to return if lookup failed; returns None if not set
+    """
+    subnets = EFAwsResolver.__CLIENTS["ec2"].describe_subnets(Filters=[{
+      'Name': 'tag:Name',
+      'Values': [lookup]
+    }])
+    if len(subnets["Subnets"]) > 0:
+      return subnets["Subnets"][0]["CidrBlock"]
+    else:
+      return default
+
   def ec2_vpc_availabilityzones(self, lookup, default=None):
     """
     Args:
@@ -512,6 +529,8 @@ class EFAwsResolver(object):
       return self.ec2_route_table_main_route_table_id(*kv[1:])
     elif kv[0] == "ec2:security-group/security-group-id":
       return self.ec2_security_group_security_group_id(*kv[1:])
+    elif kv[0] == "ec2:subnet/subnet-cidr":
+      return self.ec2_subnet_subnet_cidr(*kv[1:])
     elif kv[0] == "ec2:subnet/subnet-id":
       return self.ec2_subnet_subnet_id(*kv[1:])
     elif kv[0] == "ec2:vpc/availabilityzones":
