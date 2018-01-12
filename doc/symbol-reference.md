@@ -171,6 +171,16 @@ which is looked up in 'proto3' as:<br>
 returns:<br>
 ```sg-78fe34a6```<br>
 
+#### {{aws:ec2:subnet/subnet-cidr,\<subnet_friendly_name>}}
+Returns: subnet CIDR<br>
+Needs: Subnet's friendly name, which is always "subnet-\<env>-\<az>"<br>
+Example:<br>
+```{{aws:ec2:subnet/subnet-cidr,subnet-{{ENV}}-a}}```<br>
+which is looked up in 'proto3' as:<br>
+```{{aws:ec2:subnet/subnet-cidr,subnet-proto3-a}}```<br>
+returns:<br>
+```0.0.0.0/0```<br>
+
 #### {{aws:ec2:subnet/subnet-id,\<subnet_friendly_name>}}
 Returns: subnet ID<br>
 Needs: Subnet's friendly name, which is always "subnet-\<env>-\<az>"<br>

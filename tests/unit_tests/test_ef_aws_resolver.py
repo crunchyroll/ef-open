@@ -572,6 +572,47 @@ class TestEFAwsResolver(unittest.TestCase):
     result = ef_aws_resolver.lookup("ec2:security-group/security-group-id,cant_possibly_match")
     self.assertIsNone(result)
 
+  def test_ec2_subnet_subnet_cidr(self):
+    """
+    Tests ec2_subnet_subnet_cidr to see if it returns a subnet CDIR based on matching subnet name in tag
+
+    Returns:
+      None
+
+    Raises:
+      AssertionError if any of the assert checks fail
+    """
+    target_subnet_cidr = "0.0.0.0/0"
+    subnet_response = {
+      "Subnets": [
+        {
+          "CidrBlock": target_subnet_cidr
+        }
+      ]
+    }
+    self._clients["ec2"].describe_subnets.return_value = subnet_response
+    ef_aws_resolver = EFAwsResolver(self._clients)
+    result = ef_aws_resolver.lookup("ec2:subnet/subnet-cidr,target_subnet_name")
+    self.assertEquals(target_subnet_cidr, result)
+
+  def test_ec2_subnet_subnet_cidr_no_match(self):
+    """
+    Tests ec2_subnet_subnet_cidr to see if it returns None when there is no match
+
+    Returns:
+      None
+
+    Raises:
+      AssertionError if any of the assert checks fail
+    """
+    subnet_response = {
+      "Subnets": []
+    }
+    self._clients["ec2"].describe_subnets.return_value = subnet_response
+    ef_aws_resolver = EFAwsResolver(self._clients)
+    result = ef_aws_resolver.lookup("ec2:subnet/subnet-cidr,cant_possibly_match")
+    self.assertIsNone(result)
+
   def test_ec2_subnet_subnet_id(self):
     """
     Tests ec2_subnet_subnet_id to see if it returns a subnet ID based on matching subnet name in tag
