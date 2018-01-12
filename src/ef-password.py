@@ -125,7 +125,7 @@ def main():
     password = generate_secret(context.length)
     print("Generated Secret: {}".format(password))
   encrypted_password = ef_utils.kms_encrypt(clients['kms'], context.service, context.env, password)
-  print("Encrypted Secret: {}".format(encrypted_password))
+  print("{{aws:kms:decrypt,%s}}" % encrypted_password)
   return
 
 
