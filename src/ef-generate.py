@@ -181,7 +181,7 @@ def resolve_policy_document(policy_name):
     fail("error opening policy file: {}".format(policy_filename))
   print_if_verbose("pre-resolution policy template:\n{}".format(policy_template))
   # If running in EC2, do not set profile and set target_other=True
-  if CONTEXT.whereami in ["ec2"]:
+  if CONTEXT.whereami == "ec2":
     resolver = EFTemplateResolver(target_other=True, env=CONTEXT.env, region=EFConfig.DEFAULT_REGION,
                                   service=CONTEXT.service, verbose=CONTEXT.verbose)
   else:
@@ -455,7 +455,7 @@ def main():
   # sign on to AWS and create clients and get account ID
   try:
     # If running in EC2, always use instance credentials. One day we'll have "lambda" in there too, so use "in" w/ list
-    if CONTEXT.whereami in ["ec2"]:
+    if CONTEXT.whereami == "ec2":
       CLIENTS = create_aws_clients(EFConfig.DEFAULT_REGION, None, "ec2", "iam", "kms")
       CONTEXT.account_id = str(json.loads(http_get_metadata('iam/info'))["InstanceProfileArn"].split(":")[4])
     else:
