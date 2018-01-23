@@ -284,7 +284,10 @@ class EFTemplateResolver(object):
       # target is "other"
       else:
         try:
-          self.resolved["ACCOUNT"] = EFTemplateResolver.__CLIENTS["iam"].get_user()["User"]["Arn"].split(":")[4]
+          if whereami() == "ec2":
+            self.resolved["ACCOUNT"] = str(json.loads(http_get_metadata('iam/info'))["InstanceProfileArn"].split(":")[4])
+          else:
+            self.resolved["ACCOUNT"] = EFTemplateResolver.__CLIENTS["iam"].get_user()["User"]["Arn"].split(":")[4]
         except botocore.exceptions.ClientError as error:
           fail("Exception in get_user()", error)
         self.resolved["ENV"] = env

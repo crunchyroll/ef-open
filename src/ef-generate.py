@@ -29,6 +29,7 @@ limitations under the License.
 
 from __future__ import print_function
 import argparse
+import json
 from os import getenv
 from os.path import dirname, normpath
 import sys
@@ -42,7 +43,7 @@ from ef_context import EFContext
 from ef_plugin import run_plugins
 from ef_service_registry import EFServiceRegistry
 from ef_template_resolver import EFTemplateResolver
-from ef_utils import create_aws_clients, fail, pull_repo
+from ef_utils import create_aws_clients, fail, http_get_metadata, pull_repo
 
 # Globals
 CLIENTS = None
@@ -179,7 +180,12 @@ def resolve_policy_document(policy_name):
   except:
     fail("error opening policy file: {}".format(policy_filename))
   print_if_verbose("pre-resolution policy template:\n{}".format(policy_template))
-  resolver = EFTemplateResolver(profile=CONTEXT.account_alias, env=CONTEXT.env, region=EFConfig.DEFAULT_REGION,
+  # If running in EC2, do not set profile and set target_other=True
+  if CONTEXT.whereami == "ec2":
+    resolver = EFTemplateResolver(target_other=True, env=CONTEXT.env, region=EFConfig.DEFAULT_REGION,
+                                  service=CONTEXT.service, verbose=CONTEXT.verbose)
+  else:
+    resolver = EFTemplateResolver(profile=CONTEXT.account_alias, env=CONTEXT.env, region=EFConfig.DEFAULT_REGION,
                                 service=CONTEXT.service, verbose=CONTEXT.verbose)
   resolver.load(policy_template)
   policy_document = resolver.render()
@@ -403,7 +409,7 @@ def conditionally_create_kms_key(role_name, service_type):
   if not kms_key:
     print("Create KMS key: {}".format(key_alias))
     if CONTEXT.commit:
-      # Create KMS Master Key. Due to AWS eventual consistency a newly created IAM role may not be 
+      # Create KMS Master Key. Due to AWS eventual consistency a newly created IAM role may not be
       # immediately visible to KMS. Retrying up to 5 times (25 seconds) to account for this behavior.
       create_key_failures = 0
       while create_key_failures <= 5:
@@ -446,20 +452,21 @@ def main():
   else:
     print("Not refreshing repo because --devel was set or running on Jenkins")
 
-  # sign on to AWS and create clients
+  # sign on to AWS and create clients and get account ID
   try:
     # If running in EC2, always use instance credentials. One day we'll have "lambda" in there too, so use "in" w/ list
-    if CONTEXT.whereami in ["ec2"]:
+    if CONTEXT.whereami == "ec2":
       CLIENTS = create_aws_clients(EFConfig.DEFAULT_REGION, None, "ec2", "iam", "kms")
+      CONTEXT.account_id = str(json.loads(http_get_metadata('iam/info'))["InstanceProfileArn"].split(":")[4])
     else:
       # Otherwise, we use local user creds based on the account alias
       CLIENTS = create_aws_clients(EFConfig.DEFAULT_REGION, CONTEXT.account_alias, "ec2", "iam", "kms")
+      CONTEXT.account_id = CLIENTS["SESSION"].resource('iam').CurrentUser().arn.split(':')[4]
   except RuntimeError:
     fail("Exception creating AWS clients in region {} with profile {}".format(
       EFConfig.DEFAULT_REGION, CONTEXT.account_alias))
-  # Instantiate and AWSResolver to lookup AWS resources
+  # Instantiate an AWSResolver to lookup AWS resources
   AWS_RESOLVER = EFAwsResolver(CLIENTS)
-  CONTEXT.account_id = CLIENTS["SESSION"].resource('iam').CurrentUser().arn.split(':')[4]
 
   # Show where we're working
   if not CONTEXT.commit:
