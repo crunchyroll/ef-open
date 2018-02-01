@@ -79,21 +79,34 @@ class NewRelic(object):
     self.refresh_all_alerts()
     self.refresh_all_channels()
 
+  def iterative_get(self, endpoint_url, response_key, params=None):
+    params = params if params else {}
+    response = []
+    while True:
+      r = requests.get(
+        url=endpoint_url,
+        headers=self.auth_header,
+        params=params
+      )
+      r.raise_for_status()
+      response.extend(r.json()[response_key])
+      try:
+        endpoint_url = r.links['next']['url']
+      except KeyError:
+        break
+    return response
+
   def refresh_all_alerts(self):
-    get_alerts = requests.get(
-      url='https://api.newrelic.com/v2/alerts_policies.json',
-      headers=self.auth_header
+    self.all_alerts = self.iterative_get(
+      endpoint_url='https://api.newrelic.com/v2/alerts_policies.json',
+      response_key='policies'
     )
-    get_alerts.raise_for_status()
-    self.all_alerts = get_alerts.json()['policies']
 
   def refresh_all_channels(self):
-    get_channels = requests.get(
-      url='https://api.newrelic.com/v2/alerts_channels.json',
-      headers=self.auth_header
+    self.all_channels = self.iterative_get(
+      endpoint_url='https://api.newrelic.com/v2/alerts_channels.json',
+      response_key='channels'
     )
-    get_channels.raise_for_status()
-    self.all_channels = get_channels.json()['channels']
 
   def alert_policy_exists(self, policy_name):
     """Check to see if an alert policy exists in NewRelic. Return True if so, False if not"""
@@ -142,13 +155,11 @@ class NewRelic(object):
     return add_condition.json()['data']['id']
 
   def get_policy_alert_conditions(self, policy_id):
-    get_conditions = requests.get(
-      url="https://infra-api.newrelic.com/v2/alerts/conditions",
-      headers=self.auth_header,
-      params={ 'policy_id': policy_id }
+    return self.iterative_get(
+      endpoint_url='https://infra-api.newrelic.com/v2/alerts/conditions',
+      response_key='data',
+      params={'policy_id': policy_id}
     )
-    get_conditions.raise_for_status()
-    return get_conditions.json()['data']
 
   def delete_policy_alert_condition(self, condition_id):
     delete_condition = requests.delete(
