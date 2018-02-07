@@ -597,7 +597,7 @@ def cmd_set(context):
     print("would set key: {} with value: {} {} {} {} {}".format(s3_key, context.value, context.build_number, context.commit_hash, context.location, s3_version_status))
   else:
     context.aws_client("s3").put_object(
-      ACL = 'bucket-owner-read',
+      ACL = 'bucket-owner-full-control',
       Body = context.value,
       Bucket = EFConfig.S3_VERSION_BUCKET,
       ContentEncoding = EFConfig.S3_VERSION_CONTENT_ENCODING,
