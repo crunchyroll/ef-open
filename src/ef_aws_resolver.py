@@ -101,6 +101,7 @@ class EFAwsResolver(object):
     Returns:
       The ID of the first Elastic IP found with a description matching 'lookup' or default/None if no match found
     """
+
     public_ip = self.ec2_elasticip_elasticip_ipaddress(lookup)
     if public_ip is None:
       return default
@@ -130,12 +131,12 @@ class EFAwsResolver(object):
     env = m.group(2).lower()
     stackname = "{}-elasticip".format(env)
     # Look up the EIP resource in the stack to get the IP address assigned to the EIP
-    eip_stack = EFAwsResolver.__CLIENTS["cloudformation"].describe_stack_resources(
-      StackName=stackname,
-      LogicalResourceId=lookup
-    )
-    # stack does not exist
-    if len(eip_stack) < 1:
+    try:
+      eip_stack = EFAwsResolver.__CLIENTS["cloudformation"].describe_stack_resources(
+        StackName=stackname,
+        LogicalResourceId=lookup
+      )
+    except ClientError:
       return default
     stack_resources = eip_stack["StackResources"]
     # Resource does not exist in stack
