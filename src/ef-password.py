@@ -82,6 +82,18 @@ class EFPWContext(EFContext):
       raise TypeError("match value must be str")
     self._match = value
 
+def format_secret(secret):
+  """
+  Format secret to compatible decrypt string
+  Args:
+    secret (string): KMS secret hash
+  Returns:
+    formatted ef resolvable KMS decrypt string
+  Raises:
+    None
+  """
+  return "{{aws:kms:decrypt,%s}}" % secret
+
 def generate_secret(length=32):
   """
   Generate a random secret consisting of mixed-case letters and numbers
@@ -111,17 +123,23 @@ def generate_secret_file(file_path, pattern, service, environment, clients):
   Raises:
     IOError: If the file does not exist
   """
+  changed = False
   with open(file_path) as json_file:
     data = json.load(json_file, object_pairs_hook=OrderedDict)
-    for env in data["params"]:
-      if env == environment:
-        for key, value in data["params"][env].items():
-          if pattern in key:
-            print("Found match, encrypting value")
-            encrypted_password = ef_utils.kms_encrypt(clients['kms'], service, env, value)
-            data["params"][env][key] = "{{aws:kms:decrypt,%s}}" % encrypted_password
+    try:
+      for key, value in data["params"][environment].items():
+        if pattern in key:
+          if "aws:kms:decrypt" in value:
+            print("Found match, key {} but value is encrypted already; skipping...".format(key))
+          else:
+            print("Found match, encrypting key {}".format(key))
+            encrypted_password = ef_utils.kms_encrypt(clients['kms'], service, environment, value)
+            data["params"][environment][key] = format_secret(encrypted_password)
+            changed = True
+    except KeyError as e:
+      ef_utils.fail("Error env: {} does not exist in parameters file".format(environment))
 
-  if data:
+  if changed:
     with open(file_path, "w") as encrypted_file:
       json.dump(data, encrypted_file, indent=2)
 
@@ -189,7 +207,7 @@ def main():
     password = generate_secret(context.length)
     print("Generated Secret: {}".format(password))
   encrypted_password = ef_utils.kms_encrypt(clients['kms'], context.service, context.env, password)
-  print("{{aws:kms:decrypt,%s}}" % encrypted_password)
+  print(format_secret(encrypted_password))
   return
 
 if __name__ == "__main__":
