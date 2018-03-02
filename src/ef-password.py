@@ -136,7 +136,7 @@ def generate_secret_file(file_path, pattern, service, environment, clients):
             encrypted_password = ef_utils.kms_encrypt(clients['kms'], service, environment, value)
             data["params"][environment][key] = format_secret(encrypted_password)
             changed = True
-    except KeyError as e:
+    except KeyError:
       ef_utils.fail("Error env: {} does not exist in parameters file".format(environment))
 
   if changed:
