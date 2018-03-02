@@ -1,7 +1,9 @@
 #!/usr/bin/env python
 
 from __future__ import print_function
+from collections import OrderedDict
 import argparse
+import json
 import os
 import string
 import sys
@@ -17,6 +19,8 @@ class EFPWContext(EFContext):
     self._decrypt = None
     self._length = 32
     self._plaintext = None
+    self._secret_file = None
+    self._match = None
 
   @property
   def decrypt(self):
@@ -56,6 +60,27 @@ class EFPWContext(EFContext):
       raise ValueError("plaintext value may not be larger than 4kb")
     self._plaintext = value
 
+  @property
+  def secret_file(self):
+    """String value of the user-provided secret file to be encrypted"""
+    return self._secret_file
+
+  @secret_file.setter
+  def secret_file(self, value):
+    if type(value) is not str:
+      raise TypeError("secret_file value must be str")
+    self._secret_file = value
+
+  @property
+  def match(self):
+    """String value to match against in the secret file"""
+    return self._match
+
+  @match.setter
+  def match(self, value):
+    if type(value) is not str:
+      raise TypeError("match value must be str")
+    self._match = value
 
 def generate_secret(length=32):
   """
@@ -72,6 +97,33 @@ def generate_secret(length=32):
   indices = [int(len(alphabet) * (ord(byte) / 256.0)) for byte in random_bytes]
   return "".join([alphabet[index] for index in indices])
 
+def generate_secret_file(file_path, pattern, service, environment, clients):
+  """
+  Generate a parameter files with it's secrets encrypted in KMS
+  Args:
+      file_path (string): Path to the parameter file to be encrypted
+      pattern (string): Pattern to do fuzzy string matching
+      service (string): Service to use KMS key to encrypt file
+      environment (string): Environment to encrypt values
+      clients (dict): KMS AWS client that has been instantiated
+  Returns:
+      None
+  Raises:
+    IOError: If the file does not exist
+  """
+  with open(file_path) as json_file:
+    data = json.load(json_file, object_pairs_hook=OrderedDict)
+    for env in data["params"]:
+      if env == environment:
+        for key, value in data["params"][env].items():
+          if pattern in key:
+            print("Found match, encrypting value")
+            encrypted_password = ef_utils.kms_encrypt(clients['kms'], service, env, value)
+            data["params"][env][key] = "{{aws:kms:decrypt,%s}}" % encrypted_password
+
+  if data:
+    with open(file_path, "w") as encrypted_file:
+      json.dump(data, encrypted_file, indent=2)
 
 def handle_args_and_set_context(args):
   """
@@ -89,6 +141,8 @@ def handle_args_and_set_context(args):
   parser.add_argument("--length", help="length of generated password (default 32)", default=32)
   parser.add_argument("--decrypt", help="encrypted string to be decrypted", default="")
   parser.add_argument("--plaintext", help="secret to be encrypted rather than a randomly generated one", default="")
+  parser.add_argument("--secret_file", help="json file containing secrets to be encrypted", default="")
+  parser.add_argument("--match", help="used in conjunction with --secret_file to match against keys to be encrypted", default="")
   parsed_args = vars(parser.parse_args(args))
   context = EFPWContext()
   try:
@@ -99,6 +153,12 @@ def handle_args_and_set_context(args):
   context.decrypt = parsed_args["decrypt"]
   context.length = parsed_args["length"]
   context.plaintext = parsed_args["plaintext"]
+  context.secret_file = parsed_args["secret_file"]
+  context.match = parsed_args["match"]
+  if context.match or context.secret_file:
+    if not context.match or not context.secret_file:
+      raise ValueError("Must have both --match and --secret_file flag")
+
   return context
 
 
@@ -114,6 +174,10 @@ def main():
       error
     )
 
+  if context.secret_file:
+    generate_secret_file(context.secret_file, context.match, context.service, context.env, clients)
+    return
+
   if context.decrypt:
     decrypted_password = ef_utils.kms_decrypt(kms_client=clients['kms'], secret=context.decrypt)
     print("Decrypted Secret: {}".format(decrypted_password))
@@ -127,7 +191,6 @@ def main():
   encrypted_password = ef_utils.kms_encrypt(clients['kms'], context.service, context.env, password)
   print("{{aws:kms:decrypt,%s}}" % encrypted_password)
   return
-
 
 if __name__ == "__main__":
   main()

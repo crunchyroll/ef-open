@@ -28,7 +28,7 @@ ef_password = __import__("ef-password")
 class TestEFPassword(unittest.TestCase):
   def setUp(self):
     self.service = "test-service"
-    self.env = "internal"
+    self.env = "test"
     self.secret = "secret"
     self.error_response = {'Error': {'Code': 'FakeError', 'Message': 'Testing catch of all ClientErrors'}}
     self.client_error = ClientError(self.error_response, "boto3")
@@ -45,13 +45,15 @@ class TestEFPassword(unittest.TestCase):
 
   def test_args(self):
     """Test parsing args with all valid values"""
-    args = [self.service, self.env, "--length", "10", "--plaintext", "test", "--decrypt", "test"]
+    args = [self.service, self.env, "--length", "10", "--plaintext", "test", "--decrypt", "test", "--secret_file", "test_data/test.cnf.parameters.json", "--match", "test"]
     context = ef_password.handle_args_and_set_context(args)
     self.assertEqual(context.env, self.env)
     self.assertEqual(context.service, self.service)
     self.assertEqual(context.length, 10)
     self.assertEqual(context.plaintext, "test")
     self.assertEqual(context.decrypt, "test")
+    self.assertEqual(context.secret_file, "test_data/test.cnf.parameters.json")
+    self.assertEqual(context.match, "test")
 
   def test_args_invalid_env(self):
     """Verify that an invalid environment arg raises an exception"""
@@ -68,6 +70,18 @@ class TestEFPassword(unittest.TestCase):
   def test_args_length_too_small(self):
     """A length value less than 10 should raise an exception"""
     args = [self.service, self.env, "--length", "5"]
+    with self.assertRaises(ValueError):
+      ef_password.handle_args_and_set_context(args)
+
+  def test_args_without_secret_file(self):
+    """Without the --secret_file flag"""
+    args = [self.service, self.env, "--match", "test"]
+    with self.assertRaises(ValueError):
+      ef_password.handle_args_and_set_context(args)
+
+  def test_args_without_match(self):
+    """Without the --match flag"""
+    args = [self.service, self.env, "--secret_file", "test_data/test.cnf.parameters.json"]
     with self.assertRaises(ValueError):
       ef_password.handle_args_and_set_context(args)
 
@@ -121,3 +135,23 @@ class TestEFPassword(unittest.TestCase):
     mock_gen.assert_not_called()
     self.mock_kms.encrypt.assert_not_called()
     self.mock_kms.decrypt.assert_called_once_with(CiphertextBlob=self.secret)
+
+  @patch('ef-password.generate_secret_file')
+  @patch('ef_utils.create_aws_clients')
+  @patch('ef-password.handle_args_and_set_context')
+  def test_main_secret_file(self, mock_context, mock_create_aws, mock_gen):
+    """Test valid main() call with service, env, --secret_file, and --match.
+    Ensure generate_password and encrypt are called with the correct parameters"""
+    context = ef_password.EFPWContext()
+    context.env, context.service = self.env, self.service
+    context.secret_file = 'test_data/test.cnf.parameters.json'
+    context.match = 'password'
+    mock_context.return_value = context
+    mock_create_aws.return_value = {"kms": self.mock_kms}
+    ef_password.main()
+    mock_gen.assert_called_once_with(context.secret_file, context.match, context.service, context.env, mock_create_aws.return_value)
+    self.mock_kms.decrypt.assert_not_called()
+    self.mock_kms.encrypt.assert_called_once_with(
+      KeyId='alias/{}-{}'.format(self.env, self.service),
+      Plaintext="mock_secret1".encode()
+    )
