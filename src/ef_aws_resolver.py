@@ -124,11 +124,11 @@ class EFAwsResolver(object):
       The IP address of the first Elastic IP found with a description matching 'lookup' or default/None if no match
     """
     # Extract environment from resource ID to build stack name
-    m = re.search('(ElasticIp)([A-Z][a-z]+)([A-Z][a-z]+)([0-9])', lookup)
+    m = re.search('ElasticIp([A-Z]?[a-z]+)\w+', lookup)
     # The lookup string was not a valid ElasticIp resource label
     if m is None:
       return default
-    env = m.group(2).lower()
+    env = m.group(1).lower()
     stackname = "{}-elasticip".format(env)
     # Look up the EIP resource in the stack to get the IP address assigned to the EIP
     try:
