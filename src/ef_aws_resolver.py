@@ -128,8 +128,10 @@ class EFAwsResolver(object):
     # The lookup string was not a valid ElasticIp resource label
     if m is None:
       return default
-    env = m.group(1).lower()
-    stackname = "{}-elasticip".format(env)
+    env = m.group(1)
+    stackname = "{}-elasticip".format(env.lower())
+    # Convert env substring to title in case {{ENV}} substitution is being used
+    lookup = lookup.replace(env, env.title())
     # Look up the EIP resource in the stack to get the IP address assigned to the EIP
     try:
       eip_stack = EFAwsResolver.__CLIENTS["cloudformation"].describe_stack_resources(
