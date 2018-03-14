@@ -61,6 +61,14 @@ SUPPORTED_SERVICE_TYPES = [
   "http_service"
 ]
 
+# list of service_registry_file "service types" that are allowed in the global env
+GLOBAL_SERVICE_TYPES = [
+  "aws_cloudtrail",
+  "aws_fixture",
+  "aws_lambda",
+  "aws_role"
+]
+
 # these Service Registry types get Roles
 # If value is not None, the role can get a default AssumeRolePolicy document listing that AWS service as principal
 # If value is None, the service registry entry must include "assume_role_policy": with an AssumeRole policy doc
@@ -493,14 +501,20 @@ def main():
     if CONTEXT.env_full not in CONTEXT.service_registry.valid_envs(service_name):
       print_if_verbose("env: {} not valid for service {}".format(CONTEXT.env_full, service_name))
       continue
+    # Is the service_type allowed in 'global'?
+    if CONTEXT.env == "global" and service_type not in GLOBAL_SERVICE_TYPES:
+      print_if_verbose("env: {} not valid for service type {}".format(CONTEXT.env, service_type))
+      continue
 
     # 1. CONDITIONALLY MAKE ROLE AND/OR INSTANCE PROFILE FOR THE SERVICE
     # If service gets a role, create with either a custom or default AssumeRole policy document
     conditionally_create_role(target_name, sr_entry)
-    conditionally_create_profile(target_name, service_type)
+    # Instance profiles and security groups are not allowed in the global scope
+    if CONTEXT.env != "global":
+      conditionally_create_profile(target_name, service_type)
 
-    # 2. SECURITY GROUP(S) FOR THE SERVICE : only some types of services get security groups
-    conditionally_create_security_groups(CONTEXT.env, service_name, service_type)
+      # 2. SECURITY GROUP(S) FOR THE SERVICE : only some types of services get security groups
+      conditionally_create_security_groups(CONTEXT.env, service_name, service_type)
 
     # 3. KMS KEY FOR THE SERVICE : only some types of services get kms keys
     conditionally_create_kms_key(target_name, service_type)
