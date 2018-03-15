@@ -161,6 +161,14 @@ which is looked up in 'prod' as:<br>
 returns:<br>
 ```rtb-3f820be9a```<br>
 
+#### {{aws:ec2:route-table/tagged-route-table-id,\<route_table_name>}}
+Returns: Route table ID<br>
+Needs: the tagged route table name, should be unique<br>
+Example:<br>
+```{{aws:ec2:route-table/tagged-route-table-id,{{ENV}}-dmz}}```<br>
+returns:<br>
+```rtb-3f820be9a```<br>
+
 #### {{aws:ec2:security-group/security-group-id,\<sg_friendly_name>}}
 Returns: Security group ID<br>
 Needs: Security group's friendly name<br>
