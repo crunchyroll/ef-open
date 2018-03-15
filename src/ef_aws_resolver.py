@@ -410,7 +410,7 @@ class EFAwsResolver(object):
       lookup: the friendly name of the VPC whose main route table we are looking up
       default: the optional value to return if lookup failed; returns None if not set
     Returns:
-      the ID of the main route table of the named VPC, or None if no match found
+      the ID of the main route table of the named VPC, or default if no match/multiple matches found
     """
     vpc_id = self.ec2_vpc_vpc_id(lookup)
     if vpc_id is None:
@@ -418,6 +418,22 @@ class EFAwsResolver(object):
     route_table = EFAwsResolver.__CLIENTS["ec2"].describe_route_tables(Filters=[
       {'Name': 'vpc-id', 'Values': [vpc_id]},
       {'Name': 'association.main', 'Values': ['true']}
+    ])
+    if len(route_table["RouteTables"]) is not 1:
+      return default
+    return route_table["RouteTables"][0]["RouteTableId"]
+
+  def ec2_route_table_tagged_route_table_id(self, lookup, default=None):
+    """
+    Args:
+      lookup: the tagged route table name, should be unique
+      default: the optional value to return if lookup failed; returns None if not set
+    Returns:
+      the ID of the route table, or default if no match/multiple matches found
+    """
+    route_table = EFAwsResolver.__CLIENTS["ec2"].describe_route_tables(Filters=[
+      {'Name': 'tag-key', 'Values': ['Name']},
+      {'Name': 'tag-value', 'Values': [lookup]}
     ])
     if len(route_table["RouteTables"]) is not 1:
       return default
@@ -530,6 +546,8 @@ class EFAwsResolver(object):
       return self.ec2_network_network_acl_id(*kv[1:])
     elif kv[0] == "ec2:route-table/main-route-table-id":
       return self.ec2_route_table_main_route_table_id(*kv[1:])
+    elif kv[0] == "ec2:route-table/tagged-route-table-id":
+      return self.ec2_route_table_tagged_route_table_id(*kv[1:])
     elif kv[0] == "ec2:security-group/security-group-id":
       return self.ec2_security_group_security_group_id(*kv[1:])
     elif kv[0] == "ec2:subnet/subnet-cidr":
