@@ -271,7 +271,10 @@ def main():
           stack_status = clients["cloudformation"].describe_stacks(StackName=stack_name)["Stacks"][0]["StackStatus"]
           if context.verbose:
             print("{}".format(stack_status))
-          if re.match(r".*_COMPLETE(?!.)", stack_status) is not None:
+          if stack_status.endswith('ROLLBACK_COMPLETE'):
+            print("Stack went into rollback with status: {}".format(stack_status))
+            sys.exit(1)
+          elif re.match(r".*_COMPLETE(?!.)", stack_status) is not None:
             break
           elif re.match(r".*_FAILED(?!.)", stack_status) is not None:
             print("Stack failed with status: {}".format(stack_status))
