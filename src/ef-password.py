@@ -3,6 +3,7 @@
 from __future__ import print_function
 from collections import OrderedDict
 import argparse
+import copy
 import json
 import os
 import string
@@ -145,6 +146,31 @@ def generate_secret_file(file_path, pattern, service, environment, clients):
       # Writing new line here so it conforms to WG14 N1256 §5.1.1.1 (so github doesn't complain)
       encrypted_file.write("\n")
 
+def copy_environment_secret(file_path, service, source_env, dest_env, clients):
+  changed = False
+  with open(file_path) as json_file:
+    data = json.load(json_file, object_pairs_hook=OrderedDict)
+    try:
+      for key, value in data["params"][source_env].items():
+        if "aws:kms:decrypt" in value:
+          print("Found match, key {}".format(key))
+          print("Found match, value {}".format(value))
+          secret_hash = value.replace('{{', '').replace('}}', '').split(',')
+          decrypted_password = ef_utils.kms_decrypt(clients['kms'], secret=secret_hash[1])
+          dest_env_encrypted_password = ef_utils.kms_encrypt(clients['kms'], service, dest_env, decrypted_password)
+          data["params"][dest_env][key] = format_secret(dest_env_encrypted_password)
+          changed = True
+        else:
+          data["params"][dest_env][key] = value
+    except KeyError:
+      ef_utils.fail("Error env: {} does not exist in parameters file".format(environment))
+
+  if changed:
+    with open(file_path, "w") as encrypted_file:
+      json.dump(data, encrypted_file, indent=2, separators=(',', ': '))
+      # Writing new line here so it conforms to WG14 N1256 §5.1.1.1 (so github doesn't complain)
+      encrypted_file.write("\n")
+
 def handle_args_and_set_context(args):
   """
   Args:
@@ -163,6 +189,8 @@ def handle_args_and_set_context(args):
   parser.add_argument("--plaintext", help="secret to be encrypted rather than a randomly generated one", default="")
   parser.add_argument("--secret_file", help="json file containing secrets to be encrypted", default="")
   parser.add_argument("--match", help="used in conjunction with --secret_file to match against keys to be encrypted", default="")
+  parser.add_argument("--copy_environment_secret", help="json file containing secrets to be encrypted", default="")
+  parser.add_argument("--dest_env", help="json file containing secrets to be encrypted", default="")
   parsed_args = vars(parser.parse_args(args))
   context = EFPWContext()
   try:
@@ -173,6 +201,8 @@ def handle_args_and_set_context(args):
   context.decrypt = parsed_args["decrypt"]
   context.length = parsed_args["length"]
   context.plaintext = parsed_args["plaintext"]
+  context.copy_environment_secret = parsed_args["copy_environment_secret"]
+  context.dest_env = parsed_args["dest_env"]
   context.secret_file = parsed_args["secret_file"]
   context.match = parsed_args["match"]
   if context.match or context.secret_file:
@@ -193,6 +223,11 @@ def main():
       "Exception creating clients in region {} with profile {}".format(EFConfig.DEFAULT_REGION, profile),
       error
     )
+
+  if context.copy_environment_secret:
+    copy_environment_secret(context.copy_environment_secret, context.service, context.env, context.dest_env, clients)
+    return
+
 
   if context.secret_file:
     generate_secret_file(context.secret_file, context.match, context.service, context.env, clients)
