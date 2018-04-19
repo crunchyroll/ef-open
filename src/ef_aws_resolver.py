@@ -312,6 +312,23 @@ class EFAwsResolver(object):
     else:
       return default
 
+  def ec2_vpc_peering_connection_id(self, lookup, default=None):
+    """
+    Args:
+      lookup: the friendly name of the VPC Peering ID to look up
+      default: the optional value to return if lookup failed; returns None if not set
+    Returns:
+      The ID of the first VPC Peering Connection found with a label matching 'lookup' or default/None if no match found
+    """
+    peering_id = EFAwsResolver.__CLIENTS["ec2"].describe_vpc_peering_connections(Filters=[{
+      'Name': 'tag:Name',
+      'Values': [lookup]
+    }])
+    if len(peering_id.get("VpcPeeringConnections")) > 0:
+      return peering_id["VpcPeeringConnections"][0]["VpcPeeringConnectionId"]
+    else:
+      return default
+
   def waf_rule_id(self, lookup, default=None):
     """
     Args:
@@ -558,6 +575,8 @@ class EFAwsResolver(object):
       return self.ec2_vpc_availabilityzones(*kv[1:])
     elif kv[0] == "ec2:vpc/cidrblock":
       return self.ec2_vpc_cidrblock(*kv[1:])
+    elif kv[0] == "ec2:vpc/peering-connection-id":
+      return self.ec2_vpc_peering_connection_id(*kv[1:])
     elif kv[0] == "ec2:vpc/subnets":
       return self.ec2_vpc_subnets(*kv[1:])
     elif kv[0] == "ec2:vpc/vpc-id":
