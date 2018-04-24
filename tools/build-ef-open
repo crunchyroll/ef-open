@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
 
-declare -r SITE_CONFIG_FILE_NAME=ef_site_config.py
 declare -r PANTS=./pants
 
 fail() {
@@ -10,34 +9,12 @@ fail() {
 
 usage() {
   echo "$(basename $0) builds ef-open .pex files from source"
-  echo -e "USAGE:\n  cd ~/workspace\n  ef-open/tools/build-ef-open INFRA_REPO"
-  echo -e "EXAMPLE:\n  cd ~/workspace\n  ef-open/tools/build-ef-open my-repo\n"
-  echo "INFRA_REPO must be the top-level directory of a repo\n"
+  echo -e "USAGE:\n  cd ~/workspace\n  ef-open/tools/build-ef-open"
+  echo -e "EXAMPLE:\n  cd ~/workspace\n  ef-open/tools/build-ef-open\n"
 }
-
-[ -n "$1" ] || fail "$(usage)"
 
 [ -x "${PANTS}" ] || fail "No pants executable at ${PANTS}. Run this tool from the directory above all repos."
 
-# INFRA_REPO may have been spec'd w/ a trailing slash. Remove it.
-INFRA_REPO=${1%/}
-SITE_CONFIG_FILESPEC=${INFRA_REPO}/${SITE_CONFIG_FILE_NAME}
-
-# Test that INFRA_REPO is a directory containing a git repo, and that it's the top level of the repo
-[ -d "${INFRA_REPO}" ] || fail "$(usage)"
-pushd ${INFRA_REPO} >/dev/null
-current=$(pwd)
-toplevel=$(git rev-parse --show-toplevel 2>/dev/null)
-result=$?
-popd >/dev/null
-[ ${result} -eq 0 ] || fail "${INFRA_REPO} is not a git repo"
-[ "${current}" == "${toplevel}" ] || fail "INFRA_REPO '${current}' is not the top-level directory of a repo"
-
-# Test that the site config file exists at the top of the repo
-[ -r ${SITE_CONFIG_FILESPEC} ] || fail "can't read ${SITE_CONFIG_FILE_NAME} at ${INFRA_REPO}/"
-
-# build
-export EF_SITE_REPO=${INFRA_REPO}
 ${PANTS} binary ef-open/src:
 [ $? -eq 0 ] || fail "Build failed"
 
