@@ -20,6 +20,7 @@ import unittest
 from mock import Mock, patch
 
 import context_paths
+from botocore.exceptions import ClientError
 
 ef_version = __import__("ef-version")
 
@@ -32,10 +33,11 @@ class TestEFVersion(unittest.TestCase):
   members are available when testing. This is necessary given the pattern of passing the context
   object as a parameter to methods.
   """
+
   def setUp(self):
     self.build_number = "000001"
     self.commit_hash = "sfasdf10984jhoksfgls89734hd8i4w98sf"
-    self.env = "internal"
+    self.env = "test"
     self.history = "text"
     self.key = "ami-id"
     self.location = "https://s3-us-west-2.amazonaws.com/ellation-cx-proto3-static/foo/dist-hash"
@@ -54,7 +56,6 @@ class TestEFVersion(unittest.TestCase):
     self.service_registry.filespec = self.service_registry_file
     self.service_registry.service_record.return_value = {"type": "aws_ec2"}
     self.version = Mock(name="mocked version object")
-
 
   def test_validate_context(self):
     """Verify that a valid instance type returns True"""
@@ -168,6 +169,6 @@ class TestEFVersion(unittest.TestCase):
   @patch('ef-version.Version')
   def test_precheck_dist_hash_version_none(self, mock_version_object):
     """Test precheck_dist_hash when current version is none"""
-    self.mock_version.value = None
-    mock_version_object.return_value = self.mock_version
+    response = {"Error": {"Code": "NoSuchKey"}}
+    mock_version_object.side_effect = ClientError(response, "Get Object")
     self.assertTrue(ef_version.precheck_dist_hash(self))
