@@ -1,5 +1,3 @@
-# noinspection PyClassHasNoInit
-
 """
 Copyright 2016-2017 Ellation, Inc.
 
@@ -16,49 +14,26 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-class EFSiteConfig:
+from __future__ import print_function
+import os
+import sys
+import yaml
+
+
+class EFSiteConfig(object):
   """
-  Installation-specific and global settings shared by all EF tools
+  Parses ef_site_config.yml
   """
 
-  # Region to work in when no region is otherwise specified (tools only support 1 region at present - this one)
-  DEFAULT_REGION = "us-west-2"
+  def __init__(self):
+    self._ef_site_config = os.path.join(os.path.dirname(__file__), '../test_data/ef_site_config.yml')
 
-  # Repo where tools and all EF data are
-  EF_REPO = "github.com/company/fake_repo"
-  EF_REPO_BRANCH = "master"
-
-  # Map environment::account alias (aliases must profiles in .aws/credentials for local use)
-  ENV_ACCOUNT_MAP = {
-    "test": "amazon_test_account",
-    "dev": "amazon_dev_account",
-    "staging": "amazon_staging_account",
-    "prod": "amazon_prod_account",
-    "global": "amazon_global_account",
-    "mgmt": "amazon_mgmt_account"
-  }
-
-  # Map environment::number for environments that support multiple ephemeral replicas
-  # Resolves as proto<0..N> up to number - 1 (proto0, proto1, proto2, proto3 for N = 4)
-  # prod and account scoped envs are not allowed
-  EPHEMERAL_ENVS = {
-    "dev": 3,
-    "staging": 1
-  }
-
-  # Bucket where late-bound service configs are found
-  S3_CONFIG_BUCKET = "test_bucket"
-
-  # Services in the service registry are clustered into groups, and can be addressed collectively by some tools.
-  # The group "fixtures" is required and will be added to this list in later code; don't list it here.
-  # The usual other groups are "platform_services" and "application_services".
-  # Each group must be contained in an object in the service registry.
-  SERVICE_GROUPS = {
-    "application_services",
-    "internal_services",
-    "platform_services"
-  }
-
-  #### Version-management settings ####
-  # What envs are allowed to have special versions?
-  SPECIAL_VERSION_ENVS = ["staging"]
+  @property
+  def load(self):
+    """Loads the config"""
+    try:
+      with open(self._ef_site_config, 'r') as yml_file:
+        return yaml.safe_load(yml_file)
+    except (IOError, yaml.parser.ParserError) as error:
+      print("Error: {}".format(error), file=sys.stderr)
+      sys.exit(1)
