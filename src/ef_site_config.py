@@ -22,7 +22,7 @@ import yaml
 
 class EFSiteConfig(object):
   """
-  Parses ef_site_config.yml
+  Loads ef_site_config.yml
   """
 
   def __init__(self):
