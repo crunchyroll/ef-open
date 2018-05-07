@@ -1,6 +1,0 @@
-python_library(
-  name = 'efsiteconfig',
-  sources = [
-    'ef_site_config.py'
-  ]
-)

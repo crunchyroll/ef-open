@@ -26,7 +26,7 @@ class EFSiteConfig(object):
   """
 
   def __init__(self):
-    self._ef_site_config = os.path.join(os.path.dirname(__file__), '../test_data/ef_site_config.yml')
+    self._ef_site_config = os.path.join(os.getcwd(), "ef_site_config.yml")
 
   @property
   def load(self):

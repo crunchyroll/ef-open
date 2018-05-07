@@ -1,0 +1,62 @@
+# Copyright 2016-2017 Ellation, Inc.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+## Installation-specific and global settings shared by all EF tools
+
+# Region to work in when no region is otherwise specified (tools only support 1 region at present - this one)
+DEFAULT_REGION: "us-west-2"
+
+# Repo where tools and all EF data are
+EF_REPO: "github.com/crunchyroll/ellation_formation"
+EF_REPO_BRANCH: "master"
+
+# Map environment::account alias (aliases must profiles in .aws/credentials for local use)
+ENV_ACCOUNT_MAP:
+  test: "testaccount"
+  alpha: "alphaaccount"
+
+# Map environment::number for environments that support multiple ephemeral replicas
+# Resolves as proto<0..N> up to number - 1 (proto0, proto1, proto2, proto3 for N = 4)
+# prod and account scoped envs are not allowed
+EPHEMERAL_ENVS:
+  alpha: 4
+
+# Env name for local development with vagrant, used for rendering config templates.
+# Vagrantfile vm.hostname domain should match the rendered value.
+VAGRANT_ENV: "dev"
+
+# Bucket where late-bound service configs are found
+S3_CONFIG_BUCKET: "ellation-cx-global-configs"
+
+# Services in the service registry are clustered into groups, and can be addressed collectively by some tools.
+# The group "fixtures" is required and will be added to this list in later code; don't list it here.
+# The usual other groups are "platform_services" and "application_services".
+# Each group must be contained in an object in the service registry.
+SERVICE_GROUPS:
+  - "application_services"
+  - "internal_services"
+  - "platform_services"
+
+## ef-cf settings ##
+#   polling period for cloudformation stack status
+EF_CF_POLL_PERIOD: 10
+
+#### Version-management settings ####
+# is --noprecheck allowed with ef-version --set and --rollback?
+ALLOW_EF_VERSION_SKIP_PRECHECK: True
+# Bucket where versions are found
+S3_VERSION_BUCKET: "ellation-cx-global-versions"
+# What envs are allowed to have special versions?
+SPECIAL_VERSION_ENVS:
+  - "test"

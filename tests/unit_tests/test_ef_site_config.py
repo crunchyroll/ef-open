@@ -14,26 +14,20 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-from __future__ import print_function
-import os
-import sys
-import yaml
+import unittest
+
+from mock import Mock, patch
+
+import context_paths
+import ef_site_config
 
 
-class EFSiteConfig(object):
+class TestEFSiteConfig(unittest.TestCase):
   """
-  Loads ef_site_config.yml
+  TestEFSiteConfig class for ef_site_config testing.
   """
 
-  def __init__(self):
-    self._ef_site_config = os.path.join(os.path.dirname(__file__), '../test_data/ef_site_config.yml')
-
-  @property
-  def load(self):
-    """Loads the config"""
-    try:
-      with open(self._ef_site_config, 'r') as yml_file:
-        return yaml.safe_load(yml_file)
-    except (IOError, yaml.parser.ParserError) as error:
-      print("Error: {}".format(error), file=sys.stderr)
-      sys.exit(1)
+  def test_site_config_parse(self):
+    """Test parsing a site config"""
+    test_config = ef_site_config.EFSiteConfig().load
+    self.assertEqual(test_config["ENV_ACCOUNT_MAP"]["test"], "testaccount")
