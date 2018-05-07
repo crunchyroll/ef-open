@@ -27,7 +27,8 @@ python_binary(
   dependencies = [
     ':boto3',
     ':ef-open-lib',
-    ':ef-plugins'
+    ':ef-plugins',
+    ':yaml'
   ]
 )
 
@@ -37,7 +38,8 @@ python_binary(
   dependencies = [
     ':boto3',
     ':ef-open-lib',
-    ':ef-plugins'
+    ':ef-plugins',
+    ':yaml'
   ]
 )
 
@@ -47,7 +49,8 @@ python_binary(
   dependencies = [
     ':boto3',
     ':ef-open-lib',
-    ':ef-plugins'
+    ':ef-plugins',
+    ':yaml'
   ]
 )
 
@@ -57,7 +60,8 @@ python_binary(
   dependencies = [
     ':boto3',
     ':ef-open-lib',
-    ':ef-plugins'
+    ':ef-plugins',
+    ':yaml'
   ]
 )
 
@@ -67,7 +71,8 @@ python_binary(
   dependencies = [
     ':boto3',
     ':ef-open-lib',
-    ':ef-plugins'
+    ':ef-plugins',
+    ':yaml'
   ]
 )
 
