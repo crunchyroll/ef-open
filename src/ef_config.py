@@ -32,6 +32,7 @@ class EFConfig(object):
   ALLOW_EF_VERSION_SKIP_PRECHECK = _ef_site_config["ALLOW_EF_VERSION_SKIP_PRECHECK"]
   DEFAULT_REGION = _ef_site_config["DEFAULT_REGION"]
   EF_CF_POLL_PERIOD = _ef_site_config["EF_CF_POLL_PERIOD"]
+  EF_REPO = _ef_site_config["EF_REPO"]
   EF_REPO_BRANCH = _ef_site_config["EF_REPO_BRANCH"]
   ENV_ACCOUNT_MAP = _ef_site_config["ENV_ACCOUNT_MAP"]
   EPHEMERAL_ENVS = _ef_site_config["EPHEMERAL_ENVS"]
