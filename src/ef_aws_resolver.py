@@ -181,6 +181,26 @@ class EFAwsResolver(object):
     else:
       return default
 
+  def ec2_network_network_interface_private_ip_by_public_ip(self, lookup, default=None):
+    """
+    Args:
+      lookup: the public IP address of the network interface we are looking up
+      default: the optional value to return if lookup failed; returns None if not set
+    Returns:
+      the private IP address of the network interface, or None if no match found
+    """
+    try:
+      response = EFAwsResolver.__CLIENTS["ec2"].describe_network_interfaces(Filters=[{
+        'Name': 'association.public-ip',
+        'Values': [lookup]
+      }])
+    except:
+      return default
+    if len(response["NetworkInterfaces"]) > 0:
+      return response['NetworkInterfaces'][0]['PrivateIpAddresses'][0]['PrivateIpAddress']
+    else:
+      return default
+
   def ec2_security_group_security_group_id(self, lookup, default=None):
     """
     Args:
@@ -338,15 +358,34 @@ class EFAwsResolver(object):
       The ID of the first VPC Peering Connection found with the given accepter or default/None if no match found
     """
     vpc_id = self.ec2_vpc_vpc_id(lookup)
-    print("VPC ID IS: " + vpc_id)
     peering_id = EFAwsResolver.__CLIENTS["ec2"].describe_vpc_peering_connections(Filters=[
       {
           'Name': 'accepter-vpc-info.vpc-id',
           'Values': [vpc_id]
-      },
+      }
     ])
     if len(peering_id.get("VpcPeeringConnections")) > 0:
       return peering_id["VpcPeeringConnections"][0]["VpcPeeringConnectionId"]
+    else:
+      return default
+
+  def ec2_vpc_peer_cidr_by_accepter_vpc(self, lookup, default=None):
+    """
+    Args:
+      lookup: the friendly name of the VPC shown as the accepter in the peering connection
+      default: the optional value to return if lookup failed; returns None if not set
+    Returns:
+      The CIDR block of the peer VPC or default/None if no match found
+    """
+    vpc_id = self.ec2_vpc_vpc_id(lookup)
+    peer_info = EFAwsResolver.__CLIENTS["ec2"].describe_vpc_peering_connections(Filters=[
+      {
+          'Name': 'accepter-vpc-info.vpc-id',
+          'Values': [vpc_id]
+      }
+    ])
+    if len(peer_info.get("VpcPeeringConnections")) > 0:
+      return peer_info["VpcPeeringConnections"][0]["RequesterVpcInfo"]["CidrBlock"]
     else:
       return default
 
@@ -582,6 +621,8 @@ class EFAwsResolver(object):
       return self.ec2_eni_eni_id(*kv[1:])
     elif kv[0] == "ec2:network/network-acl-id":
       return self.ec2_network_network_acl_id(*kv[1:])
+    elif kv[0] == "ec2:network/network-interface-private-ip-by-public-ip":
+      return self.ec2_network_network_interface_private_ip_by_public_ip(*kv[1:])
     elif kv[0] == "ec2:route-table/main-route-table-id":
       return self.ec2_route_table_main_route_table_id(*kv[1:])
     elif kv[0] == "ec2:route-table/tagged-route-table-id":
@@ -600,6 +641,8 @@ class EFAwsResolver(object):
       return self.ec2_vpc_peering_connection_id(*kv[1:])
     elif kv[0] == "ec2:vpc/peering-connection-id-by-accepter-vpc":
       return self.ec2_vpc_peering_connection_id_by_accepter_vpc(*kv[1:])
+    elif kv[0] == "ec2:vpc/peer-cidr-by-accepter-vpc":
+      return self.ec2_vpc_peer_cidr_by_accepter_vpc(*kv[1:])
     elif kv[0] == "ec2:vpc/subnets":
       return self.ec2_vpc_subnets(*kv[1:])
     elif kv[0] == "ec2:vpc/vpc-id":
