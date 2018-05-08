@@ -92,7 +92,7 @@ python_requirement_library(
 
 python_library(
   name = 'ef-open-lib',
-  sources = globs('ef_*.py', exclude=['ef_site_config.py'])
+  sources = globs('ef_*.py')
 )
 
 python_library(
