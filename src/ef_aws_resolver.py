@@ -181,6 +181,26 @@ class EFAwsResolver(object):
     else:
       return default
 
+  def ec2_network_network_interface_private_ip_by_public_ip(self, lookup, default=None):
+    """
+    Args:
+      lookup: the public IP address of the network interface we are looking up
+      default: the optional value to return if lookup failed; returns None if not set
+    Returns:
+      the private IP address of the network interface, or None if no match found
+    """
+    try:
+      response = EFAwsResolver.__CLIENTS["ec2"].describe_network_interfaces(Filters=[{
+        'Name': 'association.public-ip',
+        'Values': [lookup]
+      }])
+    except:
+      return default
+    if len(response["NetworkInterfaces"]) > 0:
+      return response['NetworkInterfaces'][0]['PrivateIpAddresses'][0]['PrivateIpAddress']
+    else:
+      return default
+
   def ec2_security_group_security_group_id(self, lookup, default=None):
     """
     Args:
@@ -544,6 +564,8 @@ class EFAwsResolver(object):
       return self.ec2_eni_eni_id(*kv[1:])
     elif kv[0] == "ec2:network/network-acl-id":
       return self.ec2_network_network_acl_id(*kv[1:])
+    elif kv[0] == "ec2:network/network-interface-private-ip-by-public-ip":
+      return self.ec2_network_network_interface_private_ip_by_public_ip(*kv[1:])
     elif kv[0] == "ec2:route-table/main-route-table-id":
       return self.ec2_route_table_main_route_table_id(*kv[1:])
     elif kv[0] == "ec2:route-table/tagged-route-table-id":
