@@ -38,7 +38,7 @@ Call it whatever you like. This documentation refers to it as <code>&lt;REPO&gt;
 install pants there following the instructions below... or use chef or other configuration tool to install it on
 a build server.
 
-The maintainers of ef-open currently build ef-open with version 1.2.1 of pants. The BUILD files for ef-open are not complex,
+The maintainers of ef-open currently build ef-open with version 1.5.0 of pants. The BUILD files for ef-open are not complex,
 and will probably work with other versions of pants. You can also install pants elsewhere (such as to /usr/local/bin). In
 this document, it's installed into <code>~/workspace</code>.
 
@@ -56,14 +56,14 @@ $ ./pants
 Get the pants version number
 ```
 $ ./pants -V
-1.2.1
+1.5.0
 ```
 
 Edit <code>~/workspace/pants.ini</code> to add these lines to pin the pants version, using the version number from the previous step.<br>
 Note: When pants_version is changed in pants.ini, pants will self-update if necessary to the desired version and stay there.
 ```
 [GLOBAL]
-pants_version: 1.2.1
+pants_version: 1.5.0
 ```
 
 Pants is now installed.
