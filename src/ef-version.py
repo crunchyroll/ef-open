@@ -66,10 +66,20 @@ class EFVersionContext(EFContext):
     """Externally defined build number assoicated with version entity"""
     return self._build_number
 
+  @build_number.setter
+  def build_number(self, value):
+    """Setter provided because this is writeable from other than init() because --rollback alters it"""
+    self._build_number = value
+
   @property
   def commit_hash(self):
     """Commit hash associated with version entity"""
     return self._commit_hash
+
+  @commit_hash.setter
+  def commit_hash(self, value):
+    """Setter provided because this is writeable from other than init() because --rollback alters it"""
+    self._commit_hash = value
 
   @property
   def get(self):
@@ -89,6 +99,11 @@ class EFVersionContext(EFContext):
   def location(self):
     """Location (URL) where version is deployed and can be lookup up"""
     return self._location
+
+  @location.setter
+  def location(self, value):
+    """Setter provided because this is writeable from other than init() because --rollback alters it"""
+    self._location = value
 
   @property
   def limit(self):
@@ -184,7 +199,7 @@ class Version(object):
     the json materializes in reverse order from the order used here
     """
     return {
-      "build_version": self._build_number,
+      "build_number": self._build_number,
       "commit_hash": self._commit_hash,
       "last_modified": self._last_modified,
       "location": self._location,
@@ -518,6 +533,9 @@ def cmd_rollback(context):
     fail("Didn't find a version marked stable for key: {} in env/service: {}/{}".format(
       context.key, context.env, context.service_name))
   context.value = last_stable[0].value
+  context.commit_hash = last_stable[0].commit_hash
+  context.build_number = last_stable[0].build_number
+  context.location = last_stable[0].location
   context.stable = True
   cmd_set(context)
 
