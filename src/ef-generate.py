@@ -410,7 +410,34 @@ def conditionally_create_kms_key(role_name, service_type):
         "Principal": { ''' + formatted_principal + ''' },
         "Action": "kms:Decrypt",
         "Resource": "*"
-      }
+      },
+      {
+        "Sid": "Allow use of the key",
+        "Effect": "Allow",
+        "Principal": { AWS: arn:aws:iam::''' + CONTEXT.account_id + ''':role/aws-service-role/autoscaling.amazonaws.com/AWSServiceRoleForAutoScaling },
+        "Action": [
+          "kms:Encrypt",
+          "kms:Decrypt",
+          "kms:ReEncrypt*",
+          "kms:GenerateDataKey*",
+          "kms:DescribeKey"
+        ],
+        "Resource": "*"
+      },
+      {
+        "Sid": "Allow attachment of persistent resources",
+        "Effect": "Allow",
+        "Principal": { AWS: arn:aws:iam::''' + CONTEXT.account_id + ''':role/aws-service-role/autoscaling.amazonaws.com/AWSServiceRoleForAutoScaling },
+        "Action": [
+          "kms:CreateGrant"
+        ],
+        "Resource": "*",
+        "Condition": {
+          "Bool": {
+            "kms:GrantIsForAWSResource": true
+          }
+        }
+      }      
     ]
   }'''
 
