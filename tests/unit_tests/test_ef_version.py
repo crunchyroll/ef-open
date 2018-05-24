@@ -38,15 +38,18 @@ class TestEFVersion(unittest.TestCase):
     self.build_number = "000001"
     self.commit_hash = "sfasdf10984jhoksfgls89734hd8i4w98sf"
     self.env = "test"
+    self.env_full = "global.testaccount"
     self.history = "text"
     self.key = "ami-id"
     self.location = "https://s3-us-west-2.amazonaws.com/ellation-cx-proto3-static/foo/dist-hash"
     self.noprecheck = None
+    self.parsed_env_full = "global"
     self.service = "test-instance"
     self.service_name = "test-instance"
     self.value = "11111111"
     self.mock_version = Mock(name="mocked Version object")
-    self.service_registry_file = os.path.abspath(os.path.join(os.path.dirname(__file__), '../test_data/test_service_registry_1.json'))
+    self.service_registry_file = os.path.abspath(os.path.join(os.path.dirname(__file__),
+                                                              '../test_data/test_service_registry_1.json'))
 
     # Shared or context derived mocks
     self.aws_client = Mock(name="mocked aws client")
@@ -87,9 +90,26 @@ class TestEFVersion(unittest.TestCase):
     self.assertEqual(context.service_name, self.service_name)
     self.assertEqual(context.service_registry.filespec, self.service_registry_file)
 
+  def test_args_get_parse_env_full(self):
+    """Test parsing args with all valid values for get using account scoped env"""
+    args = [self.service, self.key, self.env_full, "--get", "--sr", "{}".format(self.service_registry_file)]
+    context = ef_version.handle_args_and_set_context(args)
+    self.assertEqual(context.env, self.parsed_env_full)
+    self.assertEqual(context.service_name, self.service_name)
+    self.assertEqual(context.service_registry.filespec, self.service_registry_file)
+
+  def test_args_get_force_env_full(self):
+    """Test parsing args with all valid values for get and add --env_full flag"""
+    args = [self.service, self.key, self.env_full, "--get", "--sr", "{}".format(self.service_registry_file),  "--force_env_full"]
+    context = ef_version.handle_args_and_set_context(args)
+    self.assertEqual(context.env, self.env_full)
+    self.assertEqual(context.service_name, self.service_name)
+    self.assertEqual(context.service_registry.filespec, self.service_registry_file)
+
   def test_args_set(self):
     """Test parsing args with all valid values for set"""
-    args = [self.service, self.key, self.env, "--set", self.value, "--location", self.location, "--build", self.build_number, "--commit_hash", self.commit_hash, "--sr", "{}".format(self.service_registry_file)]
+    args = [self.service, self.key, self.env, "--set", self.value, "--location", self.location, "--build",
+            self.build_number, "--commit_hash", self.commit_hash, "--sr", "{}".format(self.service_registry_file)]
     context = ef_version.handle_args_and_set_context(args)
     self.assertEqual(context.build_number, self.build_number)
     self.assertEqual(context.commit_hash, self.commit_hash)
