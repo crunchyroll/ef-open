@@ -90,6 +90,12 @@ class TestEFVersion(unittest.TestCase):
     self.assertEqual(context.service_name, self.service_name)
     self.assertEqual(context.service_registry.filespec, self.service_registry_file)
 
+  def test_args_invalid_env(self):
+    """Verify that an invalid environment arg raises an exception"""
+    args = [self.service, self.key, "invalid_env"]
+    with self.assertRaises(SystemExit):
+      ef_version.handle_args_and_set_context(args)
+
   def test_args_get_parse_env_full(self):
     """Test parsing args with all valid values for get using account scoped env"""
     args = [self.service, self.key, self.env_full, "--get", "--sr", "{}".format(self.service_registry_file)]
@@ -103,6 +109,14 @@ class TestEFVersion(unittest.TestCase):
     args = [self.service, self.key, self.env_full, "--get", "--sr", "{}".format(self.service_registry_file),  "--force_env_full"]
     context = ef_version.handle_args_and_set_context(args)
     self.assertEqual(context.env, self.env_full)
+    self.assertEqual(context.service_name, self.service_name)
+    self.assertEqual(context.service_registry.filespec, self.service_registry_file)
+
+  def test_args_get_force_env_full_env_not_account_scoped(self):
+    """Test parsing args with all valid values for get and add --env_full flag"""
+    args = [self.service, self.key, self.env, "--get", "--sr", "{}".format(self.service_registry_file),  "--force_env_full"]
+    context = ef_version.handle_args_and_set_context(args)
+    self.assertEqual(context.env, self.env)
     self.assertEqual(context.service_name, self.service_name)
     self.assertEqual(context.service_registry.filespec, self.service_registry_file)
 
@@ -127,12 +141,6 @@ class TestEFVersion(unittest.TestCase):
     self.assertEqual(context.history, self.history)
     self.assertEqual(context.service_name, self.service_name)
     self.assertEqual(context.service_registry.filespec, self.service_registry_file)
-
-  def test_args_invalid_env(self):
-    """Verify that an invalid environment arg raises an exception"""
-    args = [self.service, self.key, "invalid_env"]
-    with self.assertRaises(SystemExit):
-      ef_version.handle_args_and_set_context(args)
 
   @patch('ef-version.isfunction')
   def test_noprecheck(self, mock_isfunction):
