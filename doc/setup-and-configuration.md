@@ -1,11 +1,12 @@
-## Installing pants and building ef-open tools
-To build the ef-open tools, you will need to...
+## Setup and Configuration
+
+To build and setup the ef-open tools, you will need to...
 
 | What | Where | When |
 | --- | --- | --- |
 | INSTALL:<br>install pants<br>install java8+ | on every system that will use pants to build (your laptop, Jenkins, ...) | once per system |
-| CUSTOMIZE:<br>configure "ef_site_config.py"<br>copy in the provided BUILD.siteconfig | your infrastructure repo(s) | once per repo initially (and later to change a value in ef_site_config.py) |
-| BUILD:<br>export an environment variable to tell pants where ef_site_config.py is, then run pants<br>_or_<br>use the example script, <code>tools/build-ef-open</code> that checks setup and runs pants | any pants-capable system | every time you build ef-open<br>(whenever there's an update to /src or your revise your ef_site_config.py) |
+| BUILD:<br>run pants<br>_or_<br>use the example script, <code>tools/build-ef-open</code> that checks setup and runs pants | any pants-capable system | every time you build ef-open<br>(whenever there's an update to /src) |
+| CUSTOMIZE:<br>configure "ef_site_config.yml" | your infrastructure repo(s) | once per repo initially (and later to change a value in ef_site_config.yml) |
 
 ### Preliminaries
 
@@ -25,11 +26,10 @@ Call it whatever you like. This documentation refers to it as <code>&lt;REPO&gt;
 - Overall structure of stuff discussed here is:<br>
 <code>  ~/workspace</code> <--- Common top-level directory above all repos (Install pants here; cd to here to build)<br>
 <code>  ~/workspace/ef-open</code> <--- ef-open repo, sync'd with ef-open at github<br>
-<code>  ~/workspace/&lt;REPO&gt;</code> <--- your infrastructure repo where CloudFormation templatesa and other ef-open files go<br>
-<code>  ~/workspace/&lt;REPO&gt;/ef_site_config.py</code> <--- your project/company-specific ef-open configuration file<br>
+<code>  ~/workspace/&lt;REPO&gt;</code> <--- your infrastructure repo where CloudFormation templates and other ef-open files go<br>
+<code>  ~/workspace/&lt;REPO&gt;/ef_site_config.yml</code> <--- your project/company-specific ef-open configuration file<br>
 - To get you started, ef-open provides:<br>
-  <code>ef-open/getting-started/ef_site_config.py</code> <--- starter site config file to copy to <code>&lt;REPO&gt;/ef_site_config.py</code> and then customize<br>
-  <code>ef-open/getting-started/BUILD.ef_site_config</code> <--- ready-to-go build file to copy to <code>&lt;REPO&gt;/BUILD.ef_site_config</code>
+  <code>ef-open/getting-started/ef_site_config.yml</code> <--- starter site config file to copy to <code>&lt;REPO&gt;/ef_site_config.yml</code> and then customize<br>
 
 ### INSTALL: install pants
 *Do this on any system that will build the ef-open tools, such as tool maintainers' laptops, and Jenkins*
@@ -38,7 +38,7 @@ Call it whatever you like. This documentation refers to it as <code>&lt;REPO&gt;
 install pants there following the instructions below... or use chef or other configuration tool to install it on
 a build server.
 
-The maintainers of ef-open currently build ef-open with version 1.2.1 of pants. The BUILD files for ef-open are not complex,
+The maintainers of ef-open currently build ef-open with version 1.5.0 of pants. The BUILD files for ef-open are not complex,
 and will probably work with other versions of pants. You can also install pants elsewhere (such as to /usr/local/bin). In
 this document, it's installed into <code>~/workspace</code>.
 
@@ -56,49 +56,27 @@ $ ./pants
 Get the pants version number
 ```
 $ ./pants -V
-1.2.1
+1.5.0
 ```
 
 Edit <code>~/workspace/pants.ini</code> to add these lines to pin the pants version, using the version number from the previous step.<br>
 Note: When pants_version is changed in pants.ini, pants will self-update if necessary to the desired version and stay there.
 ```
 [GLOBAL]
-pants_version: 1.2.1
+pants_version: 1.5.0
 ```
 
 Pants is now installed.
-
-### CUSTOMIZE: configure ef-open for your AWS environment<BR>
-*Do this once for each infrastructure repo*
-
-Copy the ef_site_config.py template from ef-open/getting-started
-```bash
-$ cp ~/workspace/ef-open/getting-started/ef_site_config.py ~/workspace/<REPO>/ef_site_config.py
-```
-Define custom values for your AWS account and configuration
-- edit <code>~/workspace/&lt;REPO&gt;/ef_site_config.py</code>
-- localize all values for the company/project following the examples in comments in the file
-- save the updated <code>~/workspace/&lt;REPO&gt;/ef_site_config.py</code>
-
-Copy in the BUILD file so pants can use your <code>&lt;REPO&gt;/ef_site_config.py</code>
-```bash
-$ cp ~/workspace/ef-open/getting-started/BUILD.ef_site_config ~/workspace/<REPO>/BUILD.ef_site_config
-```
-
-Merge and commit <code>ef_site_config.py</code> and <code>BUILD.ef_site_config</code> to your infrastructure repo.
-
-You're customized and ready to build.
 
 
 ### BUILD: Build all the ef-open tools
 #### Run pants directly...
 ```
 $ cd ~/workspace
-$ export EF_SITE_REPO=<REPO>
 $ pants binary ef-open/src:
 ```
 
-Tools will be built in ef-open/dist:<br>
+Tools will be built in <code>workspace/dist/</code><br>
 ```
   ef-cf.pex
   ef-check-config.pex
@@ -115,13 +93,13 @@ After a successful build, the build-ef-open script also removes the '.pex' exten
 Syntax:
 ```
 cd <directory_above_repos>
-ef-open/tools/build-ef-open <REPO>
+ef-open/tools/build-ef-open
 ```
 
 Example:
 ```bash
 $ cd ~/workspace
-$ ef-open/tools/build-ef-open our_infra_repo
+$ ef-open/tools/build-ef-open
 ```
 (ignore the fatal message below)
 ```
@@ -185,3 +163,20 @@ fatal: Not a git repository (or any of the parent directories):
 ~/workspace:$ ls dist/
 ef-cf			ef-check-config		ef-generate		ef-resolve-config	ef-version
 ```
+
+
+### CUSTOMIZE: configure ef-open for your AWS environment<BR>
+*Do this once for each infrastructure repo*
+
+Copy the ef_site_config.yml template from ef-open/getting-started
+```bash
+$ cp ~/workspace/ef-open/getting-started/ef_site_config.yml ~/workspace/<REPO>/ef_site_config.yml
+```
+Define custom values for your AWS account and configuration
+- edit <code>~/workspace/&lt;REPO&gt;/ef_site_config.yml</code>
+- localize all values for the company/project following the examples in comments in the file
+- save the updated <code>~/workspace/&lt;REPO&gt;/ef_site_config.yml</code>
+
+Merge and commit <code>ef_site_config.yml</code> to your infrastructure repo.
+
+You're customized and ready to start using ef-open.

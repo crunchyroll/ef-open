@@ -6,7 +6,8 @@ python_binary(
   dependencies = [
     ':boto3',
     ':ef-open-lib',
-    ':ef-plugins'
+    ':ef-plugins',
+    ':yaml'
   ]
  )
 
@@ -26,7 +27,8 @@ python_binary(
   dependencies = [
     ':boto3',
     ':ef-open-lib',
-    ':ef-plugins'
+    ':ef-plugins',
+    ':yaml'
   ]
 )
 
@@ -36,7 +38,8 @@ python_binary(
   dependencies = [
     ':boto3',
     ':ef-open-lib',
-    ':ef-plugins'
+    ':ef-plugins',
+    ':yaml'
   ]
 )
 
@@ -46,7 +49,8 @@ python_binary(
   dependencies = [
     ':boto3',
     ':ef-open-lib',
-    ':ef-plugins'
+    ':ef-plugins',
+    ':yaml'
   ]
 )
 
@@ -56,7 +60,8 @@ python_binary(
   dependencies = [
     ':boto3',
     ':ef-open-lib',
-    ':ef-plugins'
+    ':ef-plugins',
+    ':yaml'
   ]
 )
 
@@ -66,7 +71,8 @@ python_binary(
   dependencies = [
     ':boto3',
     ':ef-open-lib',
-    ':ef-plugins'
+    ':ef-plugins',
+    ':yaml'
   ]
 )
 
@@ -77,12 +83,16 @@ python_requirement_library(
   ]
 )
 
+python_requirement_library(
+  name = 'yaml',
+  requirements = [
+    python_requirement("pyyaml")
+  ]
+)
+
 python_library(
   name = 'ef-open-lib',
-  dependencies = [
-    environ["EF_SITE_REPO"]+":efsiteconfig"
-  ],
-  sources = globs('ef_*.py', exclude=['ef_site_config.py'])
+  sources = globs('ef_*.py')
 )
 
 python_library(
