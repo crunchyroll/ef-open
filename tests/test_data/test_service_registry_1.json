@@ -1,5 +1,24 @@
 {
   "fixtures": {
+    "test-role": {
+      "type": "aws_role",
+      "description": "test role",
+      "runbook_url": "https://www.google.com/",
+      "team_email": "email@example.com",
+      "environments": ["global.ellationeng"],
+      "aws_managed_policies": ["AwsManagedPolicy"],
+      "policies": ["policy_1", "policy_2"],
+      "assume_role_policy": "assume_role_policy"
+    },
+    "test-role-2": {
+      "type": "aws_role",
+      "description": "test role",
+      "runbook_url": "https://www.google.com/",
+      "team_email": "email@example.com",
+      "environments": ["global.ellationeng"],
+      "policies": ["policy_1", "policy_2"],
+      "assume_role_policy": "assume_role_policy"
+    }
   },
   "platform_services": {
     "test-instance": {
