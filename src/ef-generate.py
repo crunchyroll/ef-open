@@ -434,7 +434,7 @@ def conditionally_create_kms_key(role_name, service_type):
         "Resource": "*"
       },
       {
-        "Sid": "Allow use of the key",
+        "Sid": "Allow use of the key for default autoscaling group service role",
         "Effect": "Allow",
         "Principal": { AWS: arn:aws:iam::''' + CONTEXT.account_id + ''':role/aws-service-role/autoscaling.amazonaws.com/AWSServiceRoleForAutoScaling },
         "Action": [
@@ -447,7 +447,7 @@ def conditionally_create_kms_key(role_name, service_type):
         "Resource": "*"
       },
       {
-        "Sid": "Allow attachment of persistent resources",
+        "Sid": "Allow attachment of persistent resourcesfor default autoscaling group service role",
         "Effect": "Allow",
         "Principal": { AWS: arn:aws:iam::''' + CONTEXT.account_id + ''':role/aws-service-role/autoscaling.amazonaws.com/AWSServiceRoleForAutoScaling },
         "Action": [
