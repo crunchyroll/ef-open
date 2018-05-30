@@ -340,6 +340,29 @@ def conditionally_create_profile(role_name, service_type):
   else:
     print_if_verbose("instance profile already contains role: {}".format(role_name))
 
+def conditionally_attach_managed_policies(role_name, sr_entry):
+  """
+  If 'aws_managed_policies' key lists the names of AWS managed policies to bind to the role,
+  attach them to the role
+  Args:
+    role_name: name of the role to attach the policies to
+    sr_entry: service registry entry
+  """
+  service_type = sr_entry['type']
+  if not (service_type in SERVICE_TYPE_ROLE and "aws_managed_policies" in sr_entry):
+    print_if_verbose("not eligible for policies; service_type: {} is not valid for policies "
+                     "or no 'aws_managed_policies' key in service registry for this role".format(service_type))
+    return
+
+  for policy_name in sr_entry['aws_managed_policies']:
+    print_if_verbose("loading policy: {} for role: {}".format(policy_name, role_name))
+
+    if CONTEXT.commit:
+      try:
+        CLIENTS["iam"].attach_role_policy(RoleName=role_name, PolicyArn='arn:aws:iam::aws:policy/' + policy_name)
+      except:
+        fail("Exception putting policy: {} onto role: {}".format(policy_name, role_name), sys.exc_info())
+
 def conditionally_inline_policies(role_name, sr_entry):
   """
   If 'policies' key lists the filename prefixes of policies to bind to the role,
@@ -349,7 +372,7 @@ def conditionally_inline_policies(role_name, sr_entry):
     sr_entry: service registry entry
   """
   service_type = sr_entry['type']
-  if not (service_type in SERVICE_TYPE_ROLE and sr_entry.has_key("policies")):
+  if not (service_type in SERVICE_TYPE_ROLE and "policies" in sr_entry):
     print_if_verbose("not eligible for policies; service_type: {} is not valid for policies "
                      "or no 'policies' key in service registry for this role".format(service_type))
     return
@@ -367,7 +390,6 @@ def conditionally_inline_policies(role_name, sr_entry):
         CLIENTS["iam"].put_role_policy(RoleName=role_name, PolicyName=policy_name, PolicyDocument=policy_document)
       except:
         fail("Exception putting policy: {} onto role: {}".format(policy_name, role_name), sys.exc_info())
-
 
 def conditionally_create_kms_key(role_name, service_type):
   """
@@ -546,7 +568,10 @@ def main():
     # 3. KMS KEY FOR THE SERVICE : only some types of services get kms keys
     conditionally_create_kms_key(target_name, service_type)
 
-    # 4. INLINE SERVICE'S POLICIES INTO ROLE
+    # 4 ATTACH AWS MANAGED POLICIES TO ROLE
+    conditionally_attach_managed_policies(target_name, sr_entry)
+
+    # 5. INLINE SERVICE'S POLICIES INTO ROLE
     # only eligible service types with "policies" sections in the service registry get policies
     conditionally_inline_policies(target_name, sr_entry)
 
