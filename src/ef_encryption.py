@@ -12,14 +12,23 @@ import botocore.exceptions
 from ef_utils import fail
 from ef_site_config import EFSiteConfig
 
+
 class LockConfig(object):
     configdir = './configs/cr-web'
     parameter_exten = '.parameters.json'
     encrypted_start_char = '_'
+
     lockfile_dir = '.ef-lock/locked'
 
     def __init__(self):
         self.db_file = os.path.join(os.getcwd(), '.ef-lock/objects.db')
+
+    def is_repo_unlocked(self):
+        try:
+            os.stat(self.db_file)
+            return True
+        except OSError:
+            return False
 
 
 class ObjectDb(object):
@@ -49,7 +58,7 @@ def kms_encrypt(kms_client, service, env, secret):
             KeyId='alias/{}'.format(key_alias),
             Plaintext=secret.encode()
         )
-    except ClientError as error:
+    except botocore.exceptions.ClientError as error:
         if error.response['Error']['Code'] == "NotFoundException":
             fail("Key '{}' not found. You may need to run ef-generate for this environment.".format(key_alias), error)
         else:
@@ -73,7 +82,7 @@ def kms_decrypt(kms_client, secret):
         decrypted_secret = kms_client.decrypt(CiphertextBlob=base64.b64decode(secret))['Plaintext']
     except TypeError:
         fail("Malformed base64 string data")
-    except ClientError as error:
+    except botocore.exceptions.ClientError as error:
         if error.response["Error"]["Code"] == "InvalidCiphertextException":
             fail("The decrypt request was rejected because the specified ciphertext \
       has been corrupted or is otherwise invalid.", error)
@@ -93,12 +102,13 @@ def find_param_files(configdir, parameter_exten):
 
         for name in names:
             if name.lower().endswith(ext):
-                files.append({
-                    "service": service.match(dirname).group(1),
-                    "params_dir": dirname,
-                    "filepath": os.path.join(dirname, name),
-                    "filename": name
-                })
+                # files.append({
+                #     "service": service.match(dirname).group(1),
+                #     "params_dir": dirname,
+                #     "filepath": os.path.join(dirname, name),
+                #     "filename": name
+                # })
+                files.append(os.path.join(dirname, name))
 
     os.path.walk(configdir, step, parameter_exten)
     return files
@@ -148,14 +158,6 @@ def decrypt_file(file_path, clients, encryption_char=LockConfig.encrypted_start_
             json.dump(data, encrypted_file, indent=2, separators=(',', ': '))
             # Writing new line here so it conforms to WG14 N1256 5.1.1.1 (so github doesn't complain)
             encrypted_file.write("\n")
-
-
-def is_repo_unlocked():
-    try:
-        os.stat(LockConfig.db_file)
-        return True
-    except OSError:
-        return False
 
 
 def create_kms_clients():

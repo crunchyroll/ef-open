@@ -31,20 +31,17 @@ def git_ignore_configs():
     pass
 
 
-def assert_locked():
-    if ef_encryption.is_repo_unlocked():
-        print("ef-unlock has already been executed on this repo. lock with ef-lock before trying again.")
-        sys.exit(1)
-
-
 def main():
     # TODO: Colorize these
 
     assert_root()
-    assert_locked()
 
     initialize_workspace()
     settings = ef_encryption.LockConfig()
+
+    if settings.is_repo_unlocked():
+        print("ef-unlock has already been executed on this repo. lock with ef-lock before trying again.")
+        sys.exit(1)
 
     # Create checksums db
     db = ef_encryption.ObjectDb(settings.db_file)
@@ -63,16 +60,16 @@ def main():
     for f in files:
 
         # Create locked copy, ef-lock will restore this file later if the content of the params file is unchanged
-        create_locked_copy(f['filepath'], settings.lockfile_dir)
+        create_locked_copy(f, settings.lockfile_dir)
 
         # Decrypt
-        ef_encryption.decrypt_file(f['filepath'], kms_clients)
+        ef_encryption.decrypt_file(f, kms_clients)
 
         # Get decrypted copy checksum. This will be used by ef-lock
-        checksum = ef_encryption.get_md5sum(f['filepath'])
+        checksum = ef_encryption.get_md5sum(f)
 
         # Save checksums to objects db
-        db.cursor.execute("INSERT INTO checksums VALUES (?, ?)", (f['filepath'], checksum))
+        db.cursor.execute("INSERT INTO checksums VALUES (?, ?)", (f, checksum))
         db.conn.commit()
 
     db.conn.close()
