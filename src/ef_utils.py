@@ -20,7 +20,7 @@ from __future__ import print_function
 import base64
 import json
 from os import access, X_OK
-from os.path import isfile
+import os.path
 import re
 from socket import gethostname
 import subprocess
@@ -85,7 +85,7 @@ def whereami():
   except:
     pass
   # Virtualbox?
-  if isfile(__VIRT_WHAT) and access(__VIRT_WHAT, X_OK):
+  if os.path.isfile(__VIRT_WHAT) and access(__VIRT_WHAT, X_OK):
     if subprocess.check_output(["sudo", __VIRT_WHAT]).split('\n')[0:2] == __VIRT_WHAT_VIRTUALBOX_WITH_KVM:
       return "virtualbox-kvm"
   # Outside virtualbox/vagrant but not in aws; hostname is "<name>.local"
@@ -318,3 +318,11 @@ def kms_decrypt(kms_client, secret):
     else:
       fail("boto3 exception occurred while performing kms decrypt operation.", error)
   return decrypted_secret
+
+
+def assert_root():
+  try:
+    os.stat('ef_site_config.yml')
+  except:
+    print("{} must be run at the root of the repo. exiting.".format(sys.argv[0]))
+    sys.exit(1)
