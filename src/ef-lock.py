@@ -1,48 +1,91 @@
 import os
 import shutil
+import json
+from collections import OrderedDict
 
 from ef_utils import assert_root
 import ef_encryption
 
 
-def is_changed(filepath, cursor):
-    current_md5 = ef_encryption.get_md5sum(filepath)
-    query = cursor.execute('SELECT MD5 FROM checksums WHERE FilePath=?', (filepath,))
-    stored_md5 = query.fetchone()[0]
-    if current_md5 == stored_md5:
-        return False
-    else:
-        return True
+class EfLock(ef_encryption.ConfigEncryption):
 
+    def restore_locked_copy(self, dest_filepath):
+        sourcefile = ef_encryption.hash_string(dest_filepath)
+        sourcefile_path = os.path.join(self.lockfile_dir, sourcefile)
+        shutil.copy2(sourcefile_path, dest_filepath)
 
-def restore_locked_copy(lockfile_dir, dest_filepath):
-    sourcefile = ef_encryption.hash_string(dest_filepath)
-    sourcefile_path = os.path.join(lockfile_dir, sourcefile)
-    shutil.copy2(sourcefile_path, dest_filepath)
+    def get_locked_copy_data(self, filepath):
+        sourcefile = ef_encryption.hash_string(filepath)
+        sourcefile_path = os.path.join(self.lockfile_dir, sourcefile)
+        with open(sourcefile_path) as json_file:
+            data = json.load(json_file, object_pairs_hook=OrderedDict)
+        return data
+
+    def get_locked_copy_data_decrypted(self, filepath):
+        sourcefile = ef_encryption.hash_string(filepath)
+        sourcefile_path = os.path.join(self.lockfile_dir, sourcefile)
+        file_data = self.decrypt_file(sourcefile_path, write_output=False)
+        return file_data
+
+    def file_changed(self, filepath, cursor):
+        current_md5 = self.get_md5sum(filepath)
+        query = cursor.execute('SELECT MD5 FROM checksums WHERE FilePath=?', (filepath,))
+        stored_md5 = query.fetchone()[0]
+        if current_md5 == stored_md5:
+            return False
+        else:
+            return True
 
 
 def main():
 
-    settings = ef_encryption.LockConfig()
+    kms_clients = ef_encryption.create_kms_clients()
 
-    assert_root()  # TODO: Broken
+    config_repo = EfLock(kms_clients)
 
-    db = ef_encryption.ObjectDb(settings.db_file)
+    assert_root()  # TODO: Not exiting properly
 
-    files = ef_encryption.find_param_files(settings.configdir, settings.parameter_exten)
+    if config_repo.unlocked:
+        db = ef_encryption.ObjectDb(config_repo.db_file)
 
-    repo_unlocked = settings.is_repo_unlocked()
+        for f in config_repo.param_files:
+            if config_repo.file_changed(f, db.cursor):
+                with open(f, 'r') as current:
+                    current_data = json.load(current, object_pairs_hook=OrderedDict)
+                    original_locked = config_repo.get_locked_copy_data(f)
+                    original_decrypted = config_repo.get_locked_copy_data_decrypted(f)
 
-    if repo_unlocked:
-        for f in files:
-            if is_changed(f, db.cursor):
-                print("File Changed: {}".format(f))
+                    # TODO: Error handling if original file doesnt exist
+                    for env, params in current_data['params'].items():
+                        for key, value in params.items():
+                            # If this is an encrypted key use the original encryption string if the value hasn't
+                            # changed (so there is no git diffs). Otherwise, encrypt the new value.
+                            if key.startswith('_'):
+                                if key in original_locked['params'][env]:
+                                    original_value = original_decrypted['params'][env][key]
+                                    if value == original_value:
+                                        current_data['params'][env][key] = original_locked['params'][env][key]
+                                    else:
+                                        current_data['params'][env][key] = config_repo.encrypt_secret(
+                                            env=env,
+                                            service=config_repo.get_service_from_filepath(f),
+                                            secret=value)
+                                else:
+                                    current_data['params'][env][key] = config_repo.encrypt_secret(
+                                        env=env,
+                                        service=config_repo.get_service_from_filepath(f),
+                                        secret=value)
+
+                with open(f, 'w') as current:
+                    json.dump(current_data, current, indent=2, separators=(',', ': '))
+                    current.write("\n")
             else:
-                restore_locked_copy(settings.lockfile_dir, f)
+                config_repo.restore_locked_copy(f)
                 print("restoring {}".format(f))
+
+        db.conn.close()
         shutil.rmtree('.ef-lock')
 
-    db.conn.close()
 
 if __name__ == "__main__":
     main()

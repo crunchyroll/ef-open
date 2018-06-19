@@ -13,15 +13,23 @@ from ef_utils import fail
 from ef_site_config import EFSiteConfig
 
 
-class LockConfig(object):
-    configdir = './configs/cr-web'
+class ObjectDb(object):
+    def __init__(self, db_file):
+        self.conn = sqlite3.connect(db_file)
+        self.cursor = self.conn.cursor()
+
+
+class ConfigEncryption(object):
+    configdir = './configs'
     parameter_exten = '.parameters.json'
     encrypted_start_char = '_'
-
     lockfile_dir = '.ef-lock/locked'
 
-    def __init__(self):
+    def __init__(self, kms_clients):
         self.db_file = os.path.join(os.getcwd(), '.ef-lock/objects.db')
+        self.kms_clients = kms_clients
+        self.unlocked = self.is_repo_unlocked()
+        self.param_files = self.list_param_files()
 
     def is_repo_unlocked(self):
         try:
@@ -30,11 +38,106 @@ class LockConfig(object):
         except OSError:
             return False
 
+    def list_param_files(self):
+        files = []
 
-class ObjectDb(object):
-    def __init__(self, db_file):
-        self.conn = sqlite3.connect(db_file)
-        self.cursor = self.conn.cursor()
+        def step(ext, dirname, names):
+            ext = ext.lower()
+
+            for name in names:
+                if name.lower().endswith(ext):
+                    files.append(os.path.join(dirname, name))
+
+        os.path.walk(self.configdir, step, self.parameter_exten)
+        return files
+
+    def encrypt_secret(self, service, env, secret):
+        encypted_secret = kms_encrypt(
+                            env=env,
+                            kms_client=self.kms_clients[env],
+                            service=service,
+                            secret=secret)
+        formatted_secret = "{{aws:kms:decrypt," + encypted_secret + "}}"
+        return formatted_secret
+
+    def decrypt_file(self, file_path, write_output=True):
+        """
+        Generate a parameter files with it's secrets encrypted in KMS
+        Args:
+            file_path (string): Path to the parameter file to be encrypted
+            clients (dict): KMS AWS client that has been instantiated
+            encryption_char (string): The symbol/text preceding encypted values
+        Returns:
+            None
+        Raises:
+          IOError: If the file does not exist
+        """
+        changed = False
+        with open(file_path) as json_file:
+            data = json.load(json_file, object_pairs_hook=OrderedDict)
+        for env, params in data["params"].items():
+            if env in self.kms_clients.keys():
+                for key, value in params.items():
+                    if key.startswith(self.encrypted_start_char) and value.startswith("{{aws:kms:decrypt"):
+                        encrypted_value = "".join(value.strip('{}').split(',')[1:])  # strip away ef-open lookup symbols
+                        decrypted_value = kms_decrypt(self.kms_clients[env], encrypted_value)
+                        data['params'][env][key] = decrypted_value
+                        try:
+                            decrypted_value = kms_decrypt(self.kms_clients[env], encrypted_value)
+                            data['params'][env][key] = decrypted_value
+                            changed = True
+                        except botocore.exceptions.ClientError:  # TODO: Find specific exception for missing permissions
+                            pass
+
+        if changed and write_output:
+            with open(file_path, "w") as encrypted_file:
+                json.dump(data, encrypted_file, indent=2, separators=(',', ': '))
+                # Writing new line here so it conforms to WG14 N1256 5.1.1.1 (so github doesn't complain)
+                encrypted_file.write("\n")
+
+        return data
+
+    @staticmethod
+    def get_md5sum(filepath):
+        with open(filepath) as f:
+            data = f.read()
+        return hashlib.md5(data).hexdigest()
+
+    @staticmethod
+    def get_service_from_filepath(filepath):
+        service_re = re.compile('\./configs/(.+)/parameters/.*\.json')
+        service = service_re.match(filepath).group(1)
+        return service
+
+
+def hash_string(string_input):
+    return hashlib.md5(string_input).hexdigest()
+
+def create_kms_clients():
+    """
+    Create KMS client for each account in the site_config with a matching profile in ~/.aws/config
+    :return: Dict containing map of environments to kms client. Key = env, Value = ref to relevant kms client
+    """
+    kms = {}
+    site_config = EFSiteConfig().load
+    account_map = site_config['ENV_ACCOUNT_MAP']
+    region = site_config['DEFAULT_REGION']  # TODO: create optional runtime param to override this
+    ephemeral_envs = site_config['EPHEMERAL_ENVS']
+    account_names = set(account_map.values())
+    for alias in account_names:
+        try:
+            session = boto3.session.Session(profile_name=alias, region_name=region)
+            client = session.client('kms')
+            for env, account in account_map.items():
+                if account == alias:
+                    if env in ephemeral_envs.keys():
+                        for i in range(ephemeral_envs[env]):
+                            kms[env + str(i)] = client
+                    else:
+                        kms[env] = client
+        except botocore.exceptions.ProfileNotFound:
+            pass
+    return kms
 
 
 def kms_encrypt(kms_client, service, env, secret):
@@ -78,6 +181,7 @@ def kms_decrypt(kms_client, secret):
     Raises:
       SystemExit(1): If there is an error with the boto3 decryption call (ex. malformed secret)
     """
+    decrypted_secret = None
     try:
         decrypted_secret = kms_client.decrypt(CiphertextBlob=base64.b64decode(secret))['Plaintext']
     except TypeError:
@@ -91,97 +195,3 @@ def kms_decrypt(kms_client, secret):
         else:
             fail("boto3 exception occurred while performing kms decrypt operation.", error)
     return decrypted_secret
-
-
-def find_param_files(configdir, parameter_exten):
-    service = re.compile('\./configs/(.+)/parameters')
-    files = []
-
-    def step(ext, dirname, names):
-        ext = ext.lower()
-
-        for name in names:
-            if name.lower().endswith(ext):
-                # files.append({
-                #     "service": service.match(dirname).group(1),
-                #     "params_dir": dirname,
-                #     "filepath": os.path.join(dirname, name),
-                #     "filename": name
-                # })
-                files.append(os.path.join(dirname, name))
-
-    os.path.walk(configdir, step, parameter_exten)
-    return files
-
-
-def get_md5sum(filepath):
-    with open(filepath) as f:
-        data = f.read()
-    return hashlib.md5(data).hexdigest()
-
-
-def hash_string(string_input):
-    return hashlib.md5(string_input).hexdigest()
-
-
-def decrypt_file(file_path, clients, encryption_char=LockConfig.encrypted_start_char):
-    """
-    Generate a parameter files with it's secrets encrypted in KMS
-    Args:
-        file_path (string): Path to the parameter file to be encrypted
-        clients (dict): KMS AWS client that has been instantiated
-        encryption_char (string): The symbol/text preceding encypted values
-    Returns:
-        None
-    Raises:
-      IOError: If the file does not exist
-    """
-    changed = False
-    with open(file_path) as json_file:
-        data = json.load(json_file, object_pairs_hook=OrderedDict)
-    for env, params in data["params"].items():
-        if env in clients.keys():
-            for key, value in params.items():
-                if key.startswith(encryption_char) and value.startswith("{{aws:kms:decrypt"):
-                    encrypted_value = "".join(value.strip('{}').split(',')[1:])  # strip away ef-open lookup symbols
-                    decrypted_value = kms_decrypt(clients[env], encrypted_value)
-                    data['params'][env][key] = decrypted_value
-                    changed = True
-                    # try:
-                    #     decrypted_value = kms_decrypt(clients[env], encrypted_value)
-                    #     data['params'][env][key] = decrypted_value
-                    #     changed = True
-                    # except: # TODO: Find botocore exception for missing permissions
-                    #     pass
-    if changed:
-        with open(file_path, "w") as encrypted_file:
-            json.dump(data, encrypted_file, indent=2, separators=(',', ': '))
-            # Writing new line here so it conforms to WG14 N1256 5.1.1.1 (so github doesn't complain)
-            encrypted_file.write("\n")
-
-
-def create_kms_clients():
-    """
-    Create KMS client for each account in the site_config with a matching profile in ~/.aws/config
-    :return: Dict containing map of environments to kms client. Key = env, Value = ref to relevant kms client
-    """
-    kms = {}
-    site_config = EFSiteConfig().load
-    account_map = site_config['ENV_ACCOUNT_MAP']
-    region = site_config['DEFAULT_REGION']  # TODO: create optional runtime param to override this
-    ephemeral_envs = site_config['EPHEMERAL_ENVS']
-    account_names = set(account_map.values())
-    for alias in account_names:
-        try:
-            session = boto3.session.Session(profile_name=alias, region_name=region)
-            client = session.client('kms')
-            for env, account in account_map.items():
-                if account == alias:
-                    if env in ephemeral_envs.keys():
-                        for i in range(ephemeral_envs[env]):
-                            kms[env + str(i)] = client
-                    else:
-                        kms[env] = client
-        except botocore.exceptions.ProfileNotFound:
-            pass
-    return kms
