@@ -29,7 +29,7 @@ class TestEFConfigResolver(unittest.TestCase):
   def test_account_alias_of_env(self):
     """Does accountaliasofenv,prod resolve to the prod account alias"""
     ef_config_resolver = EFConfigResolver()
-    result_config_data = ef_config_resolver.lookup("efconfig:accountaliasofenv,test")
+    result_config_data = ef_config_resolver.lookup("accountaliasofenv,test")
     if result_config_data is None:
       result_config_data = ''
     self.assertRegexpMatches(result_config_data, "^testaccount$")
@@ -39,19 +39,19 @@ class TestEFConfigResolver(unittest.TestCase):
     EFConfig.CUSTOM_DATA = {"mock_data": "custom_data"}
 
     ef_config_resolver = EFConfigResolver()
-    result_custom_data = ef_config_resolver.lookup("efconfig:customdata,mock_data")
+    result_custom_data = ef_config_resolver.lookup("customdata,mock_data")
     self.assertEquals(result_custom_data, target_custom_data)
 
   def test_config_custom_data_no_data(self):
     ef_config_resolver = EFConfigResolver()
-    result_custom_data = ef_config_resolver.lookup("efconfig:customdata,mock_data")
+    result_custom_data = ef_config_resolver.lookup("customdata,mock_data")
     self.assertEquals(result_custom_data, None)
 
   def test_config_custom_data_missing_lookup(self):
     EFConfig.CUSTOM_DATA = {}
 
     ef_config_resolver = EFConfigResolver()
-    result_custom_data = ef_config_resolver.lookup("efconfig:customdata,mock_data")
+    result_custom_data = ef_config_resolver.lookup("customdata,mock_data")
     self.assertEquals(result_custom_data, None)
 
 
