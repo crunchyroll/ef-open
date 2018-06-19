@@ -30,6 +30,8 @@ class EFConfig(object):
 
   # Initialize config constants
   ALLOW_EF_VERSION_SKIP_PRECHECK = _ef_site_config["ALLOW_EF_VERSION_SKIP_PRECHECK"]
+  if "CUSTOM_DATA" in _ef_site_config:
+    CUSTOM_DATA = _ef_site_config["CUSTOM_DATA"]
   DEFAULT_REGION = _ef_site_config["DEFAULT_REGION"]
   EF_CF_POLL_PERIOD = _ef_site_config["EF_CF_POLL_PERIOD"]
   EF_REPO = _ef_site_config["EF_REPO"]
