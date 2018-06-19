@@ -312,6 +312,25 @@ class EFAwsResolver(object):
     else:
       return default
 
+  def elasticache_cachenodes_cachenode_id(self, lookup, default=None):
+    """
+    Args:
+      lookup: the individual elasticache cachenode endpoint address
+      default: the optional value to return if lookup failed; returns None if not set
+    Returns:
+      The endpoint address for the corresponding cachenode id
+    """
+    cache_info = EFAwsResolver.__CLIENTS["elasticache"].describe_cache_clusters(
+      CacheClusterId = lookup.split(":")[0],
+      ShowCacheNodeInfo = True
+    )
+    if cache_info is None:
+      return default
+    for cache_node in cache_info["CacheClusters"]["CacheNodes"]:
+      if cache_node["CacheNodeId"] == lookup.split(":")[1]:
+        return cache_node["CacheNodeId"]["Endpoint"]["Address"]
+    return default
+
   def waf_rule_id(self, lookup, default=None):
     """
     Args:
@@ -562,6 +581,8 @@ class EFAwsResolver(object):
       return self.ec2_vpc_subnets(*kv[1:])
     elif kv[0] == "ec2:vpc/vpc-id":
       return self.ec2_vpc_vpc_id(*kv[1:])
+    elif kv[0] == "elasticache:cachenodes/cachenode-id":
+      return self.elasticache_cachenodes_cachenode_id(*kv[1:])
     elif kv[0] == "kms:decrypt":
       return self.kms_decrypt_value(*kv[1:])
     elif kv[0] == "route53:private-hosted-zone-id":

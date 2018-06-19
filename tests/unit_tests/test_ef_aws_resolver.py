@@ -42,6 +42,7 @@ class TestEFAwsResolver(unittest.TestCase):
     mock_cloud_formation_client = Mock(name="Mock CloudFormation Client")
     mock_cloud_front_client = Mock(name="Mock CloudFront Client")
     mock_ec2_client = Mock(name="Mock EC2 Client")
+    mock_elasticache_client = Mock(name="Mock Elasticache Client")
     mock_route_53_client = Mock(name="Mock Route 53 Client")
     mock_waf_client = Mock(name="Mock WAF Client")
     mock_session = Mock(name="Mock Client")
@@ -50,6 +51,7 @@ class TestEFAwsResolver(unittest.TestCase):
       "cloudformation": mock_cloud_formation_client,
       "cloudfront": mock_cloud_front_client,
       "ec2": mock_ec2_client,
+      "elasticache": mock_elasticache_client,
       "route53": mock_route_53_client,
       "waf": mock_waf_client,
       "SESSION": mock_session
@@ -395,6 +397,60 @@ class TestEFAwsResolver(unittest.TestCase):
     result = ef_aws_resolver.lookup("ec2:elasticip/elasticip-id,ElasticIpEnvironmentService1")
     self.assertEquals(allocation_id, result)
 
+  @patch('ef_aws_resolver.EFAwsResolver.elasticache_cachenodes_cachenode_id')
+  def test_elasticache_cachenodes_cachenode_id(self, mock_elasticache_cachenodes_cachenode_id):
+    """
+    Tests elasticache_cachenodes_cachenode_id to see if it returns an id given a valid input.
+    Example input: elasticache:cachenodes/cachenode-id,alpha0-test-instance:0001
+
+    Args:
+      mock_elasticache_cachenodes_cachenode_id: MagicMock, returns back an endpoint address
+
+    Returns:
+      None
+
+    Raises:
+      AssertionError if any of the assert checks fail
+    """
+    endpoint_address = "alpha0-test-instance.test.0001.usw2.cache.amazonaws.com"
+    mock_elasticache_cachenodes_cachenode_id.return_value = endpoint_address
+    self._clients["elasticache"].describe_cache_clusters.return_value = {
+    "CacheClusters": [
+        {
+          "CacheNodes": [
+            {
+              "CacheNodeId": "0001",
+              "Endpoint": {
+                  "Port": 11211,
+                  "Address": "alpha0-test-instance.test.0001.usw2.cache.amazonaws.com"
+              },
+              "CacheNodeStatus": "available",
+              "ParameterGroupStatus": "in-sync",
+              "CacheNodeCreateTime": "2018-01-05T03:16:51.585Z",
+              "CustomerAvailabilityZone": "us-west-2b"
+            }
+          ],
+        }
+      ]
+    }
+
+    ef_aws_resolver = EFAwsResolver(self._clients)
+    result = ef_aws_resolver.lookup("elasticache:cachenodes/cachenode-id,alpha0-test-instance:0001")
+    self.assertEquals(endpoint_address, result)
+
+  def test_elasticache_cachenodes_cachenode_id_bad_input(self):
+    """
+    Tests elasticache_cachenodes_cachenode_id to see if it returns None with bad input
+
+    Returns:
+      None
+
+    Raises:
+      AssertionError if any of the assert checks fail
+    """
+    ef_aws_resolver = EFAwsResolver(self._clients)
+    result = ef_aws_resolver.lookup("elasticache:cachenodes/cachenode-id,cant_possibly_match:0001")
+    self.assertIsNone(result)
 
   def test_ec2_elasticip_elasticip_id_bad_input(self):
     """
