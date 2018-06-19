@@ -41,7 +41,7 @@ class EFConfigResolver(object):
     else:
       return None
 
-  def custom_data(self, lookup, default=None):
+  def customdata(self, lookup, default=None):
     """
     Args:
       lookup: the custom data file
@@ -62,10 +62,10 @@ class EFConfigResolver(object):
       kv = token.split(",")
     except ValueError:
       return None
-    if kv[0] == "efconfig:accountaliasofenv":
+    if kv[0] == "accountaliasofenv":
       return self.accountaliasofenv(*kv[1:])
-    if kv[0] == "efconfig:customdata":
-      return self.custom_data(*kv[1:])
+    if kv[0] == "customdata":
+      return self.customdata(*kv[1:])
     else:
       return None
 
