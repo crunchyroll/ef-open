@@ -18,6 +18,7 @@ import unittest
 import datetime
 
 from mock import call, Mock, patch
+from botocore.exceptions import ClientError
 
 # For local application imports, context_paths must be first despite lexicon ordering
 import context_paths
@@ -45,6 +46,7 @@ class TestEFAwsResolver(unittest.TestCase):
     mock_route_53_client = Mock(name="Mock Route 53 Client")
     mock_waf_client = Mock(name="Mock WAF Client")
     mock_session = Mock(name="Mock Client")
+    mock_kms_client = Mock(name="Mock KMS Client")
 
     self._clients = {
       "cloudformation": mock_cloud_formation_client,
@@ -52,7 +54,8 @@ class TestEFAwsResolver(unittest.TestCase):
       "ec2": mock_ec2_client,
       "route53": mock_route_53_client,
       "waf": mock_waf_client,
-      "SESSION": mock_session
+      "SESSION": mock_session,
+      "kms": mock_kms_client
     }
 
   def tearDown(self):
@@ -1872,6 +1875,59 @@ class TestEFAwsResolver(unittest.TestCase):
 
     result = ef_aws_resolver.lookup("")
     self.assertIsNone(result)
+
+  def test_kms_key_arn(self):
+    """
+    Test lookup key arn, valid scenario with success
+
+    Returns:
+      None
+
+    Raises:
+      AssertionError if any of the assert checks fail
+    """
+    # Set mock value for describe_key
+    self._clients["kms"].describe_key.return_value = \
+      {
+        "KeyMetadata": {
+          "Origin": "AWS_KMS",
+          "KeyId": "88888888-8888",
+          "Description": "The master key",
+          "KeyManager": "CUSTOMER",
+          "Enabled": True,
+          "KeyUsage": "ENCRYPT_DECRYPT",
+          "KeyState": "Enabled",
+          "CreationDate": 1524599639.111,
+          "Arn": "arn:aws:kms:us-west-2:8888:key/88888888-8888",
+          "AWSAccountId": "4444"
+        }
+      }
+
+    ef_aws_resolver = EFAwsResolver(self._clients)
+    result = ef_aws_resolver.lookup("kms:key_arn,alias/proto0-master-key")
+    self.assertEquals(result, "arn:aws:kms:us-west-2:8888:key/88888888-8888")
+
+  def test_kms_key_arn_key_does_not_exist(self):
+    """
+    Tests for when key doesn't exist, and that the function raises an exception
+
+    Raises:
+      AssertionError if any of the assert checks fail
+    """
+    self._clients["kms"].describe_key.side_effect = ClientError(
+      {
+        'Error':
+          {
+            'Code': 000,
+            'Message': "Key doesn't exist.",
+            'Type': "KMS"
+          }
+      },
+      'describe_key'
+    )
+    ef_aws_resolver = EFAwsResolver(self._clients)
+    with self.assertRaises(RuntimeError):
+      ef_aws_resolver.lookup("kms:key_arn,alias/key_no_exist")
 
 if __name__ == '__main__':
   unittest.main()

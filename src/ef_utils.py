@@ -318,3 +318,21 @@ def kms_decrypt(kms_client, secret):
     else:
       fail("boto3 exception occurred while performing kms decrypt operation.", error)
   return decrypted_secret
+
+def kms_key_arn(kms_client, alias):
+  """
+  Obtain the full key arn based on the key alias provided
+  Args:
+    kms_client (boto3 kms client object): Instantiated kms client object. Usually created through create_aws_clients.
+    alias (string): alias of key, example alias/proto0-evs-drm.
+
+  Returns:
+    string of the full key arn
+  """
+  try:
+    response = kms_client.describe_key(KeyId=alias)
+    key_arn = response["KeyMetadata"]["Arn"]
+  except ClientError as error:
+    raise RuntimeError("Failed to obtain key arn for alias {}, error: {}".format(alias, error.response["Error"]["Message"]))
+
+  return key_arn
