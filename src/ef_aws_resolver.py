@@ -523,6 +523,16 @@ class EFAwsResolver(object):
     decrypted_lookup = ef_utils.kms_decrypt(EFAwsResolver.__CLIENTS["kms"], lookup)
     return decrypted_lookup
 
+  def kms_key_arn(self, lookup):
+    """
+    Args:
+      lookup: The key alias, EX: alias/proto0-evs-drm
+    Returns:
+      The full key arn
+    """
+    key_arn = ef_utils.kms_key_arn(EFAwsResolver.__CLIENTS["kms"], lookup)
+    return key_arn
+
   def lookup(self, token):
     try:
       kv = token.split(",")
@@ -564,6 +574,8 @@ class EFAwsResolver(object):
       return self.ec2_vpc_vpc_id(*kv[1:])
     elif kv[0] == "kms:decrypt":
       return self.kms_decrypt_value(*kv[1:])
+    elif kv[0] == "kms:key_arn":
+      return self.kms_key_arn(*kv[1:])
     elif kv[0] == "route53:private-hosted-zone-id":
       return self.route53_private_hosted_zone_id(*kv[1:])
     elif kv[0] == "route53:public-hosted-zone-id":
