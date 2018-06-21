@@ -15,6 +15,7 @@ limitations under the License.
 """
 
 import base64
+import os
 from StringIO import StringIO
 import unittest
 
@@ -23,7 +24,8 @@ from mock import Mock, patch
 
 # For local application imports, context_paths must be first despite lexicon ordering
 import context_paths
-from ef_site_config import EFSiteConfig
+
+from ef_config import EFConfig
 import ef_utils
 
 
@@ -32,6 +34,25 @@ class TestEFUtils(unittest.TestCase):
   Tests for 'ef_utils.py' Relies on the ef_site_config.py for testing. Look inside that file for where
   some of the test values are coming from.
   """
+
+  def setUp(self):
+    """
+    Setup function that is run before every test
+
+    Returns:
+      None
+    """
+    os.chdir(os.path.join(os.path.dirname(os.path.abspath(__file__)), "../.."))
+
+  def tearDown(self):
+    """
+    Teardown function that is run after every test.
+
+    Returns:
+      None
+    """
+    pass
+
   @patch('sys.stderr', new_callable=StringIO)
   def test_fail_with_message(self, mock_stderr):
     """
@@ -196,7 +217,7 @@ class TestEFUtils(unittest.TestCase):
   @patch('ef_utils.http_get_metadata')
   def test_http_get_instance_env(self, mock_http_get_metadata):
     """
-    Tests http_get_instance_env to see if it returns 'dev' by mocking the metadata with a valid IAM instance profile
+    Tests http_get_instance_env to see if it returns 'alpha' by mocking the metadata with a valid IAM instance profile
 
     Args:
       mock_http_get_metadata: MagicMock, returns a valid JSON InstanceProfileArn
@@ -207,9 +228,9 @@ class TestEFUtils(unittest.TestCase):
     Raises:
       AssertionError if any of the assert checks fail
     """
-    mock_http_get_metadata.return_value = "{\"InstanceProfileArn\": \"arn:aws:iam::1234:role/dev-server\"}"
+    mock_http_get_metadata.return_value = "{\"InstanceProfileArn\": \"arn:aws:iam::1234:role/alpha-server\"}"
     env = ef_utils.http_get_instance_env()
-    self.assertEquals(env, "dev")
+    self.assertEquals(env, "alpha")
 
   @patch('ef_utils.http_get_metadata')
   def test_http_get_instance_env_exception(self, mock_http_get_metadata):
@@ -244,7 +265,7 @@ class TestEFUtils(unittest.TestCase):
     Raises:
       AssertionError if any of the assert checks fail
     """
-    mock_http_get_metadata.return_value = "{\"InstanceProfileArn\": \"arn:aws:iam::1234:role/dev-server\"}"
+    mock_http_get_metadata.return_value = "{\"InstanceProfileArn\": \"arn:aws:iam::1234:role/alpha-server\"}"
     role = ef_utils.http_get_instance_role()
     self.assertEquals(role, "server")
 
@@ -292,7 +313,7 @@ class TestEFUtils(unittest.TestCase):
             "Instances": [
               {
                 "IamInstanceProfile": {
-                  "Arn": "arn:aws:iam::1234:instance-profile/dev0-server-ftp"
+                  "Arn": "arn:aws:iam::1234:instance-profile/alpha0-server-ftp"
                 }
               }
             ]
@@ -301,11 +322,11 @@ class TestEFUtils(unittest.TestCase):
       }
     result = ef_utils.get_instance_aws_context(mock_ec2_client)
     self.assertEquals(result["account"], "4444")
-    self.assertEquals(result["env"], "dev0")
-    self.assertEquals(result["env_short"], "dev")
+    self.assertEquals(result["env"], "alpha0")
+    self.assertEquals(result["env_short"], "alpha")
     self.assertEquals(result["instance_id"], "i-00001111f")
     self.assertEquals(result["region"], "us-west-2")
-    self.assertEquals(result["role"], "dev0-server-ftp")
+    self.assertEquals(result["role"], "alpha0-server-ftp")
     self.assertEquals(result["service"], "server-ftp")
 
   @patch('ef_utils.http_get_metadata')
@@ -380,8 +401,8 @@ class TestEFUtils(unittest.TestCase):
       AssertionError if any of the assert checks fail
     """
     mock_check_output.side_effect = [
-      "user@" + EFSiteConfig.EF_REPO.replace("/", ":", 1) + ".git",
-      EFSiteConfig.EF_REPO_BRANCH
+      "user@" + EFConfig.EF_REPO.replace("/", ":", 1) + ".git",
+      EFConfig.EF_REPO_BRANCH
     ]
     try:
       ef_utils.pull_repo()
@@ -404,8 +425,8 @@ class TestEFUtils(unittest.TestCase):
       AssertionError if any of the assert checks fail
     """
     mock_check_output.side_effect = [
-      "origin\thttps://user@" + EFSiteConfig.EF_REPO + ".git",
-      EFSiteConfig.EF_REPO_BRANCH
+      "origin\thttps://" + EFConfig.EF_REPO + ".git",
+      EFConfig.EF_REPO_BRANCH
     ]
     try:
       ef_utils.pull_repo()
@@ -452,7 +473,7 @@ class TestEFUtils(unittest.TestCase):
       AssertionError if any of the assert checks fail
     """
     mock_check_output.side_effect = [
-      "user@" + EFSiteConfig.EF_REPO.replace("/", ":", 1) + ".git",
+      "user@" + EFConfig.EF_REPO.replace("/", ":", 1) + ".git",
       "wrong_branch"
     ]
     with self.assertRaises(RuntimeError) as exception:
@@ -521,18 +542,18 @@ class TestEFUtils(unittest.TestCase):
     Raises:
       AssertionError if any of the assert checks fail
     """
-    for env, account_alias in EFSiteConfig.ENV_ACCOUNT_MAP.items():
+    for env, account_alias in EFConfig.ENV_ACCOUNT_MAP.items():
       # Attach a numeric value to environments that are ephemeral
-      if env in EFSiteConfig.EPHEMERAL_ENVS:
+      if env in EFConfig.EPHEMERAL_ENVS:
         env += '0'
       self.assertEquals(ef_utils.get_account_alias(env), account_alias)
 
     # Do tests for global and mgmt envs, which have a special mapping, Example: global.account_alias
-    if "global" in EFSiteConfig.ENV_ACCOUNT_MAP:
-      for account_alias in EFSiteConfig.ENV_ACCOUNT_MAP.values():
+    if "global" in EFConfig.ENV_ACCOUNT_MAP:
+      for account_alias in EFConfig.ENV_ACCOUNT_MAP.values():
         self.assertEquals(ef_utils.get_account_alias("global." + account_alias), account_alias)
-    if "mgmt" in EFSiteConfig.ENV_ACCOUNT_MAP:
-      for account_alias in EFSiteConfig.ENV_ACCOUNT_MAP.values():
+    if "mgmt" in EFConfig.ENV_ACCOUNT_MAP:
+      for account_alias in EFConfig.ENV_ACCOUNT_MAP.values():
         self.assertEquals(ef_utils.get_account_alias("mgmt." + account_alias), account_alias)
 
   def test_get_account_alias_invalid_env(self):
@@ -547,8 +568,8 @@ class TestEFUtils(unittest.TestCase):
     """
     # Create junk environment values by attaching numbers to non-ephemeral environments and not attaching numbers
     # to ephemeral environments
-    for env, account_alias in EFSiteConfig.ENV_ACCOUNT_MAP.items():
-      if env not in EFSiteConfig.EPHEMERAL_ENVS:
+    for env, account_alias in EFConfig.ENV_ACCOUNT_MAP.items():
+      if env not in EFConfig.EPHEMERAL_ENVS:
         env += '0'
       with self.assertRaises(ValueError) as exception:
         ef_utils.get_account_alias(env)
@@ -580,10 +601,10 @@ class TestEFUtils(unittest.TestCase):
     Raises:
       AssertionError if any of the assert checks fail
     """
-    for env in EFSiteConfig.ENV_ACCOUNT_MAP:
+    for env in EFConfig.ENV_ACCOUNT_MAP:
       expected_env_value = env
       # Attach a numeric value to environments that are ephemeral
-      if env in EFSiteConfig.EPHEMERAL_ENVS:
+      if env in EFConfig.EPHEMERAL_ENVS:
          env += '0'
       self.assertEquals(ef_utils.get_env_short(env), expected_env_value)
 
@@ -599,8 +620,8 @@ class TestEFUtils(unittest.TestCase):
     """
     # Create junk environment values by attaching numbers to non-ephemeral environments and not attaching numbers
     # to ephemeral environments
-    for env in EFSiteConfig.ENV_ACCOUNT_MAP:
-      if env not in EFSiteConfig.EPHEMERAL_ENVS:
+    for env in EFConfig.ENV_ACCOUNT_MAP:
+      if env not in EFConfig.EPHEMERAL_ENVS:
         env += '0'
       with self.assertRaises(ValueError) as exception:
         ef_utils.get_env_short(env)
@@ -627,18 +648,18 @@ class TestEFUtils(unittest.TestCase):
     Raises:
       AssertionError if any of the assert checks fail
     """
-    for env in EFSiteConfig.ENV_ACCOUNT_MAP:
+    for env in EFConfig.ENV_ACCOUNT_MAP:
       # Attach a numeric value to environments that are ephemeral
-      if env in EFSiteConfig.EPHEMERAL_ENVS:
+      if env in EFConfig.EPHEMERAL_ENVS:
          env += '0'
       self.assertTrue(ef_utils.env_valid(env))
 
     # Do tests for global and mgmt envs, which have a special mapping, Example: global.account_alias
-    if "global" in EFSiteConfig.ENV_ACCOUNT_MAP:
-      for account_alias in EFSiteConfig.ENV_ACCOUNT_MAP.values():
+    if "global" in EFConfig.ENV_ACCOUNT_MAP:
+      for account_alias in EFConfig.ENV_ACCOUNT_MAP.values():
         self.assertTrue(ef_utils.env_valid("global." + account_alias))
-    if "mgmt" in EFSiteConfig.ENV_ACCOUNT_MAP:
-      for account_alias in EFSiteConfig.ENV_ACCOUNT_MAP.values():
+    if "mgmt" in EFConfig.ENV_ACCOUNT_MAP:
+      for account_alias in EFConfig.ENV_ACCOUNT_MAP.values():
         self.assertTrue(ef_utils.env_valid("mgmt." + account_alias))
 
   def test_env_valid_invalid_envs(self):
@@ -653,8 +674,8 @@ class TestEFUtils(unittest.TestCase):
     """
     # Create junk environment values by attaching numbers to non-ephemeral environments and not attaching numbers
     # to ephemeral environments
-    for env in EFSiteConfig.ENV_ACCOUNT_MAP:
-      if env not in EFSiteConfig.EPHEMERAL_ENVS:
+    for env in EFConfig.ENV_ACCOUNT_MAP:
+      if env not in EFConfig.EPHEMERAL_ENVS:
         env += '0'
       with self.assertRaises(ValueError):
         ef_utils.env_valid(env)
@@ -677,9 +698,9 @@ class TestEFUtils(unittest.TestCase):
     Raises:
       AssertionError if any of the assert checks fail
     """
-    if "global" in EFSiteConfig.ENV_ACCOUNT_MAP:
+    if "global" in EFConfig.ENV_ACCOUNT_MAP:
       self.assertTrue(ef_utils.global_env_valid("global"))
-    if "mgmt" in EFSiteConfig.ENV_ACCOUNT_MAP:
+    if "mgmt" in EFConfig.ENV_ACCOUNT_MAP:
       self.assertTrue(ef_utils.global_env_valid("mgmt"))
 
   def test_global_env_valid_non_scoped_envs(self):
@@ -693,7 +714,7 @@ class TestEFUtils(unittest.TestCase):
       AssertionError if any of the assert checks fail
     """
     # Loop through all environments that are not mgmt or global
-    for env in EFSiteConfig.ENV_ACCOUNT_MAP:
+    for env in EFConfig.ENV_ACCOUNT_MAP:
       if env == "mgmt" or env == "global":
         continue
       with self.assertRaises(ValueError) as exception:
@@ -775,7 +796,3 @@ class TestEFUtilsKMS(unittest.TestCase):
     self.mock_kms.decrypt.side_effect = self.client_error
     with self.assertRaises(SystemExit):
       ef_utils.kms_decrypt(self.mock_kms, self.secret)
-
-
-if __name__ == '__main__':
-  unittest.main()
