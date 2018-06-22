@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
+import os
 import unittest
 
 from mock import call, Mock, patch
@@ -25,9 +26,9 @@ from ef_config import EFConfig
 from ef_template_resolver import EFTemplateResolver
 from ef_utils import get_account_alias
 
-TEST_PROFILE = get_account_alias("alpha0")
+TEST_PROFILE = get_account_alias("test")
 TEST_REGION = EFConfig.DEFAULT_REGION
-TEST_ENV = "alpha0"
+TEST_ENV = "test"
 TEST_SERVICE = "none"
 
 PARAMS = """{
@@ -67,6 +68,7 @@ ILLEGAL_COMMA_PARAMS = """{
 }
 """
 
+
 class TestEFTemplateResolver(unittest.TestCase):
   """Tests for `ef_template_resolver.py`."""
 
@@ -87,14 +89,16 @@ class TestEFTemplateResolver(unittest.TestCase):
     mock_waf_client = Mock(name="Mock WAF Client")
     mock_session = Mock(name="Mock Client")
 
+    self.test_params_json = os.path.join(os.path.dirname(__file__), '../test_data/test_params.json')
+    self.test_params_yaml = os.path.join(os.path.dirname(__file__), '../test_data/test_params.yml')
     self._clients = {
-      "cloudformation": mock_cloud_formation_client,
-      "cloudfront": mock_cloud_front_client,
-      "ec2": mock_ec2_client,
-      "iam": mock_iam_client,
-      "route53": mock_route_53_client,
-      "waf": mock_waf_client,
-      "SESSION": mock_session
+        "cloudformation": mock_cloud_formation_client,
+        "cloudfront": mock_cloud_front_client,
+        "ec2": mock_ec2_client,
+        "iam": mock_iam_client,
+        "route53": mock_route_53_client,
+        "waf": mock_waf_client,
+        "SESSION": mock_session
     }
 
   def tearDown(self):
@@ -113,7 +117,7 @@ class TestEFTemplateResolver(unittest.TestCase):
     test_string = "{{one}}|{{two}}|{{/_-.}}|{{ENV}}"
     resolver = EFTemplateResolver(profile=TEST_PROFILE, env=TEST_ENV, region=TEST_REGION, service=TEST_SERVICE)
     resolver.load(test_string, PARAMS)
-    self.assertEqual(resolver.render(), "testenv one|testenv two|slashunderscoredashdot|alpha0")
+    self.assertEqual(resolver.render(), "testenv one|testenv two|slashunderscoredashdot|test")
 
   @patch('ef_template_resolver.create_aws_clients')
   def test_embedded_symbols(self, mock_create_aws):
@@ -157,15 +161,39 @@ class TestEFTemplateResolver(unittest.TestCase):
     mock_create_aws.return_value = self._clients
     # alpha0
     test_string = "{{ENV_FULL}}"
-    resolver = EFTemplateResolver(profile=get_account_alias("alpha0"), env="alpha0", region=TEST_REGION, service=TEST_SERVICE)
+    resolver = EFTemplateResolver(profile=get_account_alias("alpha0"),
+                                  env="alpha0", region=TEST_REGION, service=TEST_SERVICE)
     resolver.load(test_string, PARAMS)
     self.assertEqual(resolver.render(), "alpha0")
     # prod
-    resolver = EFTemplateResolver(profile=get_account_alias("test"), env="test", region=TEST_REGION, service=TEST_SERVICE)
+    resolver = EFTemplateResolver(profile=get_account_alias("test"),
+                                  env="test", region=TEST_REGION, service=TEST_SERVICE)
     resolver.load(test_string, PARAMS)
     self.assertEqual(resolver.render(), "test")
     # mgmt.testaccount
-    resolver = EFTemplateResolver(profile=get_account_alias("mgmt.testaccount"), env="mgmt.testaccount", region=TEST_REGION,
-                                  service=TEST_SERVICE)
+    resolver = EFTemplateResolver(profile=get_account_alias("mgmt.testaccount"),
+                                  env="mgmt.testaccount", region=TEST_REGION, service=TEST_SERVICE)
     resolver.load(test_string, PARAMS)
     self.assertEqual(resolver.render(), "mgmt.testaccount")
+
+  @patch('ef_template_resolver.create_aws_clients')
+  def test_load_json_file(self, mock_create_aws):
+    """Does {{one}} resolve correctly from json parameters file"""
+    mock_create_aws.return_value = self._clients
+    test_string = "{{one}}"
+    resolver = EFTemplateResolver(profile=get_account_alias("alpha0"),
+                                  env="alpha0", region=TEST_REGION, service=TEST_SERVICE)
+    with open(self.test_params_json) as json_file:
+      resolver.load(test_string, json_file)
+    self.assertEqual(resolver.render(), "alpha one")
+
+  @patch('ef_template_resolver.create_aws_clients')
+  def test_load_yaml_file(self, mock_create_aws):
+    """Does {{one}} resolve correctly from yaml parameters file"""
+    mock_create_aws.return_value = self._clients
+    test_string = "{{one}}"
+    resolver = EFTemplateResolver(profile=get_account_alias("alpha0"),
+                                  env="alpha0", region=TEST_REGION, service=TEST_SERVICE)
+    with open(self.test_params_yaml) as yaml_file:
+      resolver.load(test_string, yaml_file)
+    self.assertEqual(resolver.render(), "alpha one")
