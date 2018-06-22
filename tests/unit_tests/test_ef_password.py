@@ -47,7 +47,8 @@ class TestEFPassword(unittest.TestCase):
 
   def test_args(self):
     """Test parsing args with all valid values"""
-    args = [self.service, self.env, "--length", "10", "--plaintext", "test", "--decrypt", "test", "--secret_file", "test_data/test.cnf.parameters.json", "--match", "test"]
+    args = [self.service, self.env, "--length", "10", "--plaintext", "test", "--decrypt", "test", "--secret_file",
+            "test_data/test.cnf.parameters.json", "--match", "test"]
     context = ef_password.handle_args_and_set_context(args)
     self.assertEqual(context.env, self.env)
     self.assertEqual(context.service, self.service)
