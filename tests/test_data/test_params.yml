@@ -15,6 +15,13 @@ params:
   test:
     one: testenv one
     two: testenv two
+    multi: |-
+      thisisareallylongstringthatcoversmultiple
+      linesfortestingmultilinestrings
+    list:
+      - one
+      - two
+      - three
     ENV: myenvironmentshouldnotoverride
   staging:
     one: staging one
