@@ -85,18 +85,24 @@ class TestEFTemplateResolver(unittest.TestCase):
     mock_iam_client = Mock(name="Mock IAM Client")
     mock_iam_client.get_user.return_value = {"User": {"Arn": "::::111111111:"}}
     mock_iam_client.list_account_aliases.return_value = {"AccountAliases": ["alphaaccount"]}
+    mock_kms_client = Mock(name="Mock KMS Client")
+    mock_lambda_client = Mock(name="Mock Lambda Client")
     mock_route_53_client = Mock(name="Mock Route 53 Client")
+    mock_s3_client = Mock(name="Mock S3 Client")
     mock_waf_client = Mock(name="Mock WAF Client")
     mock_session = Mock(name="Mock Client")
 
-    self.test_params_json = os.path.join(os.path.dirname(__file__), '../test_data/test_params.json')
-    self.test_params_yaml = os.path.join(os.path.dirname(__file__), '../test_data/test_params.yml')
+    self.test_params_json = os.path.join(os.path.dirname(__file__), '../test_data/test.cnf.parameters.json')
+    self.test_params_yaml = os.path.join(os.path.dirname(__file__), '../test_data/test.cnf.parameters.yml')
     self._clients = {
         "cloudformation": mock_cloud_formation_client,
         "cloudfront": mock_cloud_front_client,
         "ec2": mock_ec2_client,
         "iam": mock_iam_client,
+        "kms": mock_kms_client,
+        "lambda": mock_lambda_client,
         "route53": mock_route_53_client,
+        "s3": mock_s3_client,
         "waf": mock_waf_client,
         "SESSION": mock_session
     }
