@@ -197,3 +197,14 @@ class TestEFTemplateResolver(unittest.TestCase):
     with open(self.test_params_yaml) as yaml_file:
       resolver.load(test_string, yaml_file)
     self.assertEqual(resolver.render(), "alpha one")
+
+  @patch('ef_template_resolver.create_aws_clients')
+  def test_render_multiline_string(self, mock_create_aws):
+    """Does {{multi}} resolve correctly as a multiline string from yaml parameters file"""
+    mock_create_aws.return_value = self._clients
+    test_string = "{{multi}}"
+    resolver = EFTemplateResolver(profile=get_account_alias("test"),
+                                  env="test", region=TEST_REGION, service=TEST_SERVICE)
+    with open(self.test_params_yaml) as yaml_file:
+      resolver.load(test_string, yaml_file)
+    self.assertEqual(resolver.render(), "thisisareallylongstringthatcoversmultiple\nlinesfortestingmultilinestrings")
