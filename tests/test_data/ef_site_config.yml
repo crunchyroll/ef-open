@@ -60,3 +60,7 @@ S3_VERSION_BUCKET: "ellation-cx-global-versions"
 # What envs are allowed to have special versions?
 SPECIAL_VERSION_ENVS:
   - "test"
+
+# Custom data that can be referenced via lookup
+CUSTOM_DATA:
+  mock_data: "mock_data_1"
