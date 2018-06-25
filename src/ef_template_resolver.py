@@ -433,7 +433,10 @@ class EFTemplateResolver(object):
         if resolved_symbol is not None:
           self.resolved[symbol] = resolved_symbol
           if isinstance(resolved_symbol, list):
-            self.template = self.template.replace("{{" + symbol + "}}", "\n".join(self.resolved[symbol]))
+            # String.replace() will hang if exact match is not found. We need to protect list symobls with double quotes
+            if not re.search('"{{' + symbol + '}}"', self.template):
+              continue
+            self.template = self.template.replace('"{{' + symbol + '}}"', str(self.resolved[symbol]).replace("'", '"'))
           else:
             self.template = self.template.replace("{{" + symbol + "}}", self.resolved[symbol])
           go_again = True
