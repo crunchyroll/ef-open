@@ -214,3 +214,25 @@ class TestEFTemplateResolver(unittest.TestCase):
     with open(self.test_params_yaml) as yaml_file:
       resolver.load(test_string, yaml_file)
     self.assertEqual(resolver.render(), "thisisareallylongstringthatcoversmultiple\nlinesfortestingmultilinestrings")
+
+  @patch('ef_template_resolver.create_aws_clients')
+  def test_render_list(self, mock_create_aws):
+    """Does {{list}} resolve correctly as a list from yaml parameters file"""
+    mock_create_aws.return_value = self._clients
+    test_string = '"{{list}}"'
+    resolver = EFTemplateResolver(profile=get_account_alias("test"),
+                                  env="test", region=TEST_REGION, service=TEST_SERVICE)
+    with open(self.test_params_yaml) as yaml_file:
+      resolver.load(test_string, yaml_file)
+    self.assertEqual(resolver.render(), '["one", "two", "three"]')
+
+  @patch('ef_template_resolver.create_aws_clients')
+  def test_fail_render_list_bad_symbol(self, mock_create_aws):
+    """Does {{list}} fail to resolve from yaml parameters file due to incorrect symbol"""
+    mock_create_aws.return_value = self._clients
+    test_string = '{{list}}'
+    resolver = EFTemplateResolver(profile=get_account_alias("test"),
+                                  env="test", region=TEST_REGION, service=TEST_SERVICE)
+    with open(self.test_params_yaml) as yaml_file:
+      resolver.load(test_string, yaml_file)
+    self.assertEqual(resolver.render(), '{{list}}')
