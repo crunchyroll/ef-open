@@ -1,24 +1,44 @@
 {
   "dest": {
-    "path": "/srv/test-instances/test.cnf", 
-    "dir_perm": "755", 
-    "file_perm": "644", 
+    "path": "/srv/test-instances/test.cnf",
+    "dir_perm": "755",
+    "file_perm": "644",
     "user_group": "wwwuser:wwwuser"
-  }, 
+  },
   "params": {
     "default": {
+      "one": "default one",
+      "two": "default two",
+      "o": "o",
+      "ne": "ne",
+      "/_-.": "slashunderscoredashdot",
+      ".": "dot",
+      "my-thing": "my-hyphen-thing",
       "username": "foobar"
-    }, 
+    },
     "test": {
+      "one": "testenv one",
+      "two": "testenv two",
+      "multi": "thisisareallylongstringthatcoversmultiple\nlinesfortestingmultilinestrings",
+      "list": [
+        "one",
+        "two",
+        "three"
+      ],
+      "ENV": "myenvironmentshouldnotoverride",
       "password": "mock_secret1"
     },
-    "proto0": {
+    "alpha0": {
+      "blah": "unused",
+      "two": "alpha two",
+      "one": "alpha one",
       "password": "mock_secret2"
-    }, 
-    "staging": {
+    },
+    "alpha1": {
       "password": "mock_secret3"
-    }, 
-    "prod": {
+    },
+    "staging": {
+      "one": "staging one",
       "password": "{{aws:kms:decrypt,AQICAHgKKKY71tobDHsDpqGJpxUVx1IxoYgan68yJy9Qn2fHfQFbZWSx2xCeWJWnOjAkWwaYAAAAZjBkBgkqhkiG9w0BBwagVzBVAgEAMFAGCSqGSIb3DQEHATAeBglghkgBZQMEAS4wEQQM3M7VHlVrzvqbsrnjAgEQgCMjK+W1PoyJzkA43Qz9ioK22STjZvvy61mLxMBx9PUbjK+MWQ==}}"
     }
   }

@@ -28,7 +28,7 @@
       "jira_project": "project",
       "chef_role": "base",
       "team_email": "email@example.com",
-      "environments": ["staging", "proto", "mgmt.ellationeng"],
+      "environments": ["staging", "alpha", "mgmt.ellationeng"],
       "policies": ["policy_1", "policy_2"]
     },
     "test-instance-2": {
@@ -38,7 +38,7 @@
       "jira_project": "project",
       "chef_role": "base",
       "team_email": "email@example.com",
-      "environments": ["staging", "proto", "mgmt.ellationeng"],
+      "environments": ["staging", "alpha", "mgmt.ellationeng"],
       "policies": ["policy_1", "policy_2"]
     },
     "test-instance-error": {
@@ -60,7 +60,7 @@
       "jira_project": "project",
       "chef_role": "base",
       "team_email": "email@example.com",
-      "environments": ["staging", "proto", "mgmt.ellationeng"],
+      "environments": ["staging", "alpha", "mgmt.ellationeng"],
       "policies": ["policy_1", "policy_2"]
     }
   },

@@ -1,5 +1,5 @@
 """
-Copyright 2016-2017 Ellation, Inc.
+Copyright 2016-2018 Ellation, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -18,6 +18,7 @@ from __future__ import print_function
 
 from ef_config import EFConfig
 
+
 class EFConfigResolver(object):
   """
   Resolves values from the tool configuration in the EFConfig class (ef_config.py)
@@ -27,26 +28,44 @@ class EFConfigResolver(object):
     {{efconfig:accountaliasofenv,prod}} <-- gets the account alias of the account that hosts the 'prod' env
   """
 
-  def accountaliasofenv(self, lookup):
+  def accountaliasofenv(self, lookup, default=None):
     """
-    Return account alias of the account that hosts the env named in lookup, None otherwise
-    Params:
+    Args:
       lookup: ENV_SHORT name of an env, such as: 'prod' or 'proto'
+      default: the optional value to return if lookup failed; returns None if not set
+    Returns:
+      The account alias of the account that hosts the env named in lookupor default/None if no match found
     """
-
     if lookup in EFConfig.ENV_ACCOUNT_MAP:
       return EFConfig.ENV_ACCOUNT_MAP[lookup]
     else:
       return None
 
+  def customdata(self, lookup, default=None):
+    """
+    Args:
+      lookup: the custom data file
+      default: the optional value to return if lookup failed; returns None if not set
+    Returns:
+      The custom data returned from the file 'lookup' or default/None if no match found
+    """
+    try:
+      if lookup in EFConfig.CUSTOM_DATA:
+        return EFConfig.CUSTOM_DATA[lookup]
+      else:
+        return default
+    except AttributeError:
+      return default
 
   def lookup(self, token):
     try:
-      key, value = token.split(",")
+      kv = token.split(",")
     except ValueError:
       return None
-    if key == "accountaliasofenv":
-      return self.accountaliasofenv(value)
+    if kv[0] == "accountaliasofenv":
+      return self.accountaliasofenv(*kv[1:])
+    if kv[0] == "customdata":
+      return self.customdata(*kv[1:])
     else:
       return None
 
