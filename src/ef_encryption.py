@@ -9,8 +9,9 @@ import sqlite3
 import boto3
 import botocore.exceptions
 
-from ef_utils import fail
+from ef_config import EFConfig
 from ef_site_config import EFSiteConfig
+from ef_utils import fail
 
 
 class ObjectDb(object):
@@ -18,18 +19,24 @@ class ObjectDb(object):
         self.conn = sqlite3.connect(db_file)
         self.cursor = self.conn.cursor()
 
+    def create_checksums_schema(self):
+        self.cursor.execute(
+            '''CREATE TABLE checksums (FilePath text NOT NULL, MD5 text NOT NULL, PRIMARY KEY (FilePath))''')
+
 
 class ConfigEncryption(object):
-    configdir = './configs'
-    parameter_exten = '.parameters.json'
-    encrypted_start_char = '_'
+
     lockfile_dir = '.ef-lock/locked'
 
     def __init__(self, kms_clients):
         self.db_file = os.path.join(os.getcwd(), '.ef-lock/objects.db')
+        self.encrypted_key_prefix = EFConfig.ENCRYPTED_KEY_PREFIX
         self.kms_clients = kms_clients
         self.unlocked = self.is_repo_unlocked()
-        self.param_files = self.list_param_files()
+        # The distinction between config and cf param files can be removed if we move cf to the ef-open param format
+        self.config_param_files = self.list_param_files('./configs')
+        self.cf_param_files = self.list_param_files('./cloudformation')
+        self.all_param_files = self.config_param_files + self.cf_param_files
 
     def is_repo_unlocked(self):
         try:
@@ -38,17 +45,17 @@ class ConfigEncryption(object):
         except OSError:
             return False
 
-    def list_param_files(self):
+    @staticmethod
+    def list_param_files(parent_dir):
         files = []
 
-        def step(ext, dirname, names):
-            ext = ext.lower()
+        def step(_, dirname, names):
 
-            for name in names:
-                if name.lower().endswith(ext):
+            if dirname.lower().endswith("/parameters"):
+                for name in names:
                     files.append(os.path.join(dirname, name))
 
-        os.path.walk(self.configdir, step, self.parameter_exten)
+        os.path.walk(parent_dir, step, None)
         return files
 
     def encrypt_secret(self, service, env, secret):
@@ -78,7 +85,7 @@ class ConfigEncryption(object):
         for env, params in data["params"].items():
             if env in self.kms_clients.keys():
                 for key, value in params.items():
-                    if key.startswith(self.encrypted_start_char) and value.startswith("{{aws:kms:decrypt"):
+                    if key.startswith(self.encrypted_key_prefix) and value.startswith("{{aws:kms:decrypt"):
                         encrypted_value = "".join(value.strip('{}').split(',')[1:])  # strip away ef-open lookup symbols
                         decrypted_value = kms_decrypt(self.kms_clients[env], encrypted_value)
                         data['params'][env][key] = decrypted_value

@@ -142,7 +142,7 @@ def generate_secret_file(file_path, pattern, service, environment, clients):
   if changed:
     with open(file_path, "w") as encrypted_file:
       json.dump(data, encrypted_file, indent=2, separators=(',', ': '))
-      # Writing new line here so it conforms to WG14 N1256 §5.1.1.1 (so github doesn't complain)
+      # Writing new line here so it conforms to WG14 N1256 5.1.1.1 (so github doesn't complain)
       encrypted_file.write("\n")
 
 def handle_args_and_set_context(args):

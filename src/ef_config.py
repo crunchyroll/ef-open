@@ -46,6 +46,7 @@ class EFConfig(object):
   DEFAULT_SERVICE_REGISTRY_FILE = "service_registry.json"
   PARAMETER_FILE_SUFFIX = ".parameters.json"
   POLICY_TEMPLATE_PATH_SUFFIX = "/policy_templates/"
+  ENCRYPTED_KEY_PREFIX = "_"
   # the service group 'fixtures' always exists
   SERVICE_GROUPS.add("fixtures")
 

@@ -1,7 +1,8 @@
+from collections import OrderedDict
+import json
 import os
 import shutil
-import json
-from collections import OrderedDict
+import sys
 
 from ef_utils import assert_root
 import ef_encryption
@@ -40,47 +41,48 @@ class EfLock(ef_encryption.ConfigEncryption):
 def main():
 
     kms_clients = ef_encryption.create_kms_clients()
+    repo = EfLock(kms_clients)
+    assert_root()  # TODO: Not exiting properly when not in repo
 
-    config_repo = EfLock(kms_clients)
+    if not repo.unlocked:
+        print("ef-lock currently only supports locking unlocked repos. run ef-unlock first.")
+        sys.exit(1)
+    else:
+        db = ef_encryption.ObjectDb(repo.db_file)
 
-    assert_root()  # TODO: Not exiting properly
-
-    if config_repo.unlocked:
-        db = ef_encryption.ObjectDb(config_repo.db_file)
-
-        for f in config_repo.param_files:
-            if config_repo.file_changed(f, db.cursor):
+        for f in repo.param_files:
+            # TODO: If original file doesn't exist, lock it
+            if repo.file_changed(f, db.cursor):
                 with open(f, 'r') as current:
                     current_data = json.load(current, object_pairs_hook=OrderedDict)
-                    original_locked = config_repo.get_locked_copy_data(f)
-                    original_decrypted = config_repo.get_locked_copy_data_decrypted(f)
+                    original_locked = repo.get_locked_copy_data(f)
+                    original_decrypted = repo.get_locked_copy_data_decrypted(f)
 
-                    # TODO: Error handling if original file doesnt exist
                     for env, params in current_data['params'].items():
                         for key, value in params.items():
                             # If this is an encrypted key use the original encryption string if the value hasn't
-                            # changed (so there is no git diffs). Otherwise, encrypt the new value.
-                            if key.startswith('_'):
+                            # changed (so there are no git diffs). Otherwise, encrypt the new value.
+                            if key.startswith(repo.encrypted_key_prefix):
                                 if key in original_locked['params'][env]:
                                     original_value = original_decrypted['params'][env][key]
                                     if value == original_value:
                                         current_data['params'][env][key] = original_locked['params'][env][key]
                                     else:
-                                        current_data['params'][env][key] = config_repo.encrypt_secret(
+                                        current_data['params'][env][key] = repo.encrypt_secret(
                                             env=env,
-                                            service=config_repo.get_service_from_filepath(f),
+                                            service=repo.get_service_from_filepath(f),
                                             secret=value)
                                 else:
-                                    current_data['params'][env][key] = config_repo.encrypt_secret(
+                                    current_data['params'][env][key] = repo.encrypt_secret(
                                         env=env,
-                                        service=config_repo.get_service_from_filepath(f),
+                                        service=repo.get_service_from_filepath(f),
                                         secret=value)
-
+                #  TODO: Detect source file format and match output (yaml vs json)
                 with open(f, 'w') as current:
                     json.dump(current_data, current, indent=2, separators=(',', ': '))
                     current.write("\n")
             else:
-                config_repo.restore_locked_copy(f)
+                repo.restore_locked_copy(f)
                 print("restoring {}".format(f))
 
         db.conn.close()
@@ -88,4 +90,5 @@ def main():
 
 
 if __name__ == "__main__":
+    # TODO: Allow for default encrypted values
     main()
