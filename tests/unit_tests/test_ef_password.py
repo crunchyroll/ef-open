@@ -31,7 +31,7 @@ class TestEFPassword(unittest.TestCase):
     self.service = "test-service"
     self.env = "test"
     self.secret = "secret"
-    self.secret_file = os.path.join(os.path.dirname(__file__), '../test_data/test.cnf.parameters.json')
+    self.secret_file = os.path.join(os.path.dirname(__file__), '../test_data/parameters/test.cnf.parameters.json')
     self.error_response = {'Error': {'Code': 'FakeError', 'Message': 'Testing catch of all ClientErrors'}}
     self.client_error = ClientError(self.error_response, "boto3")
     self.mock_kms = Mock(name="mocked kms client")
@@ -48,14 +48,14 @@ class TestEFPassword(unittest.TestCase):
   def test_args(self):
     """Test parsing args with all valid values"""
     args = [self.service, self.env, "--length", "10", "--plaintext", "test", "--decrypt", "test", "--secret_file",
-            "test_data/test.cnf.parameters.json", "--match", "test"]
+            "test_data/parameters/test.cnf.parameters.json", "--match", "test"]
     context = ef_password.handle_args_and_set_context(args)
     self.assertEqual(context.env, self.env)
     self.assertEqual(context.service, self.service)
     self.assertEqual(context.length, 10)
     self.assertEqual(context.plaintext, "test")
     self.assertEqual(context.decrypt, "test")
-    self.assertEqual(context.secret_file, "test_data/test.cnf.parameters.json")
+    self.assertEqual(context.secret_file, "test_data/parameters/test.cnf.parameters.json")
     self.assertEqual(context.match, "test")
 
   def test_args_invalid_env(self):
@@ -84,7 +84,7 @@ class TestEFPassword(unittest.TestCase):
 
   def test_args_without_match(self):
     """Without the --match flag"""
-    args = [self.service, self.env, "--secret_file", "test_data/test.cnf.parameters.json"]
+    args = [self.service, self.env, "--secret_file", "test_data/parameters/test.cnf.parameters.json"]
     with self.assertRaises(ValueError):
       ef_password.handle_args_and_set_context(args)
 
