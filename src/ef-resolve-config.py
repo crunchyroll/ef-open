@@ -26,6 +26,7 @@ from __future__ import print_function
 
 import argparse
 from ef_config import EFConfig
+import ef_utils
 import yaml
 from os.path import abspath, dirname, normpath
 import sys
@@ -42,7 +43,7 @@ class Context:
     self.service = service
     self.template_path = template_path
     self.no_params = no_params
-    self.param_path = self.template_path.replace("/templates", "/parameters") + EFConfig.PARAMETER_FILE_SUFFIX
+    self.param_path = ef_utils.get_template_parameters_file(self.template_path)
     self.verbose = verbose
 
   def __str__(self):
