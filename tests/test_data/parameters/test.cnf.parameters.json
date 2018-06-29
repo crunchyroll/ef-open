@@ -20,6 +20,7 @@
       "one": "testenv one",
       "two": "testenv two",
       "multi": "thisisareallylongstringthatcoversmultiple\nlinesfortestingmultilinestrings",
+      "multi2": ["one", "two", "three"],
       "list": [
         "one",
         "two",
