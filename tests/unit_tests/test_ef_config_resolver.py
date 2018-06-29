@@ -53,7 +53,3 @@ class TestEFConfigResolver(unittest.TestCase):
     ef_config_resolver = EFConfigResolver()
     result_custom_data = ef_config_resolver.lookup("customdata,mock_data")
     self.assertEquals(result_custom_data, None)
-
-
-if __name__ == '__main__':
-  unittest.main()
