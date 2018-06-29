@@ -75,7 +75,7 @@ aws lookup subnets of proto3 env via vpc: {{aws:ec2:vpc/subnets,vpc-proto3}}\n\
 aws lookup subnets of the current env '{{ENV}}' via vpc: {{aws:ec2:vpc/subnets,vpc-{{ENV}}}}\n\
 multi-line:\n\
 {{multi-line-thing}}\n\
-{{multi-line-thing-2}}\n\
+\"{{multi-line-thing-2}}\"\n\
 Subnets: [ \"{{aws:ec2:vpc/subnets,vpc-staging}}\" ]\n\
 Single-subnet lookup, subnet-proto3-a: {{aws:ec2:subnet/subnet-id,subnet-{{ENV}}-a}}\n\
 WAF Rule ID lookup: {{aws:waf:rule-id,global-OfficeCidr}}\n\
@@ -90,12 +90,13 @@ Cloudfront Origin Access Identity Canonical User ID lookup: \
 VPC CIDR block: {{aws:ec2:vpc/cidrblock,vpc-staging}}\n\
 WAF Web ACL ID: {{aws:waf:web-acl-id,staging-StaticAcl}}\n\
 SSL Certificate ARN us-west-2/cx-proto3.com: {{aws:acm:certificate-arn,us-west-2/cx-proto3.com}}\n\
-Elastic network interface (ENI) eni-proto3-dnsproxy-1a: {{aws:ec2:eni/eni-id,eni-proto3-dnsproxy-1a}}\n\
+Elastic network interface (ENI) eni-proto0-dnsproxy-1a: {{aws:ec2:eni/eni-id,eni-proto0-dnsproxy-1a}}\n\
 Elastic IP Allocation ID: {{aws:ec2:elasticip/elasticip-id,ElasticIpMgmtCingest1}}\n\
 Elastic IP IP Address: {{aws:ec2:elasticip/elasticip-ipaddress,ElasticIpMgmtCingest1}}\n\
 EFConfig resolver, accountaliasofenv,prod: {{efconfig:accountaliasofenv,staging}}\n\
 AMI lookup: {{version:ami-id,proto0/test-instance}}\n\
-Latest AMI for test-instance: {{version:ami-id,proto0/test-instance}}\
+Latest AMI for test-instance: {{version:ami-id,proto0/test-instance}}\n\
+Custom Data: \"{{efconfig:customdata,office_ips}}\"\
 "
 
 GLOBAL_ENV_TEST_STRING = "fully-qualified environment:{{ENV_FULL}}\n"
