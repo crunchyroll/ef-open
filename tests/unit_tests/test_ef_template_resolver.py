@@ -92,8 +92,8 @@ class TestEFTemplateResolver(unittest.TestCase):
     mock_waf_client = Mock(name="Mock WAF Client")
     mock_session = Mock(name="Mock Client")
 
-    self.test_params_json = os.path.join(os.path.dirname(__file__), '../test_data/test.cnf.parameters.json')
-    self.test_params_yaml = os.path.join(os.path.dirname(__file__), '../test_data/test.cnf.parameters.yml')
+    self.test_params_json = os.path.join(os.path.dirname(__file__), '../test_data/parameters/test.cnf.parameters.json')
+    self.test_params_yaml = os.path.join(os.path.dirname(__file__), '../test_data/parameters/test.cnf.parameters.yml')
     self._clients = {
         "cloudformation": mock_cloud_formation_client,
         "cloudfront": mock_cloud_front_client,
