@@ -260,14 +260,12 @@ configs/myservice/templates/sample_config.ini<br>
 db_user=Admin
 db_password={{encrypted_db_password}}
 ```
-configs/myservice/parameters/sample_config.ini.parameters.json<br>
+configs/myservice/parameters/sample_config.ini.parameters.yml<br>
 ```
 ...
-"params": {
-    "staging": {
-      "encrypted_db_password": "{{aws:kms:decrypt,AQICAHgtk0pYU9G1rCODigWoZcXcZW5fKBOTBQD/8s4qq1DTTgHbE/sR4gQQ4oBuQ0MmBtLtAAAAYzBhBgkqhkiG9w0BBwagVDBSAgEAME0GCSqGSIb3DQEHATAeBglghkgBZQMEAS4wEQQMci3LiBQwEQfSdV0vAgEQgCDVbxzz/fcS2BZyiuG1T/RtudZ+4ii4tYWkdq35datbGg==}}"
-    }
-}
+params:
+  staging:
+    encrypted_db_password: "{{aws:kms:decrypt,AQICAHgtk0pYU9G1rCODigWoZcXcZW5fKBOTBQD/8s4qq1DTTgHbE/sR4gQQ4oBuQ0MmBtLtAAAAYzBhBgkqhkiG9w0BBwagVDBSAgEAME0GCSqGSIb3DQEHATAeBglghkgBZQMEAS4wEQQMci3LiBQwEQfSdV0vAgEQgCDVbxzz/fcS2BZyiuG1T/RtudZ+4ii4tYWkdq35datbGg==}}"
 ```
 
 
