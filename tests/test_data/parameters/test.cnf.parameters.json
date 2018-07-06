@@ -1,6 +1,6 @@
 {
   "dest": {
-    "path": "/srv/test-instances/test.cnf",
+    "path": "/srv/test-instance/test.cnf",
     "dir_perm": "755",
     "file_perm": "644",
     "user_group": "wwwuser:wwwuser"
@@ -20,6 +20,7 @@
       "one": "testenv one",
       "two": "testenv two",
       "multi": "thisisareallylongstringthatcoversmultiple\nlinesfortestingmultilinestrings",
+      "multi2": ["one", "two", "three"],
       "list": [
         "one",
         "two",

@@ -75,10 +75,10 @@ def merge_files(service):
 
   For S3, full path becomes:
     s3://ellation-cx-global-configs/<service>/templates/<filename>
-    s3://ellation-cx-global-configs/<service>/parameters/<filename>.parameters.json
+    s3://ellation-cx-global-configs/<service>/parameters/<filename>.parameters.<yaml|yml|json>
   For filesystem, full path becomes:
     /vagrant/configs/<service>/templates/<filename>
-    /vagrant/configs/<service>/parameters/<filename>.parameters.json
+    /vagrant/configs/<service>/parameters/<filename>.parameters.<yaml|yml|json>
   """
   if WHERE == "ec2":
     config_reader = EFInstanceinitConfigReader("s3", service, log_info, RESOURCES["s3"])
@@ -97,7 +97,7 @@ def merge_files(service):
 
     # if 'dest' for the current object contains an 'environments' list, check it
     dest = config_reader.dest
-    if dest.has_key("environments"):
+    if "environments" in dest:
       if not resolver.resolved["ENV_SHORT"] in dest["environments"]:
         log_info("Environment: {} not enabled for {}".format(
           resolver.resolved["ENV_SHORT"], config_reader.current_key)

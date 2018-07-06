@@ -385,8 +385,9 @@ class TestEFUtils(unittest.TestCase):
       ef_utils.get_instance_aws_context(mock_ec2_client)
     self.assertIn("Did not find environment in role name:", exception.exception.message)
 
+  @patch('subprocess.check_call')
   @patch('subprocess.check_output')
-  def test_pull_repo_ssh_credentials(self, mock_check_output):
+  def test_pull_repo_ssh_credentials(self, mock_check_output, mock_check_call):
     """
     Tests pull_repo by mocking the subprocess.check_output to return git ssh credentials.
 
@@ -409,8 +410,9 @@ class TestEFUtils(unittest.TestCase):
     except RuntimeError as exception:
       self.fail("Exception occurred during test_pull_repo_ssh_credentials: " + exception.message)
 
+  @patch('subprocess.check_call')
   @patch('subprocess.check_output')
-  def test_pull_repo_https_credentials(self, mock_check_output):
+  def test_pull_repo_https_credentials(self, mock_check_output, mock_check_call):
     """
     Tests the pull_repo by mocking the subprocess.check_output to return git http credentials.
 
@@ -734,6 +736,23 @@ class TestEFUtils(unittest.TestCase):
     with self.assertRaises(ValueError) as exception:
       ef_utils.global_env_valid(None)
     self.assertTrue("Invalid global env" in exception.exception.message)
+
+  def test_get_template_parameters_file(self):
+    """Test method returns valid parameters file"""
+    test_template = os.path.join(os.path.dirname(__file__), '../test_data/templates/test.cnf')
+    target_parameters = os.path.join(os.path.dirname(__file__), '../test_data/parameters/test.cnf.parameters.yml')
+    test_parameters = ef_utils.get_template_parameters_file(test_template)
+    self.assertEquals(test_parameters, target_parameters)
+
+  def test_get_template_parameters_s3(self):
+    """Test method returns valid parameters file"""
+    mock_s3_resource = Mock(name="Mock S3 Client")
+    response = {"Error": {"Code": "NoSuchKey"}}
+    mock_s3_resource.Object.return_value.get.side_effect = [ClientError(response, "Get Object"), None]
+    test_template = os.path.join('test-instance/templates/test.cnf')
+    target_parameters = os.path.join('test-instance/parameters/test.cnf.parameters.yml')
+    test_parameters = ef_utils.get_template_parameters_s3(test_template, mock_s3_resource)
+    self.assertEquals(test_parameters, target_parameters)
 
 
 class TestEFUtilsKMS(unittest.TestCase):

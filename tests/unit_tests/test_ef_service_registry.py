@@ -79,7 +79,3 @@ class TestEFUtils(unittest.TestCase):
     self.assertIn("staging", sr.valid_envs("test-instance"))
     self.assertIn("mgmt.ellationeng", sr.valid_envs("test-instance"))
     self.assertNotIn("mgmt.ellation", sr.valid_envs("test-instance"))
-
-
-if __name__ == '__main__':
-  unittest.main()

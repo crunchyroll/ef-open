@@ -92,8 +92,8 @@ class TestEFTemplateResolver(unittest.TestCase):
     mock_waf_client = Mock(name="Mock WAF Client")
     mock_session = Mock(name="Mock Client")
 
-    self.test_params_json = os.path.join(os.path.dirname(__file__), '../test_data/test.cnf.parameters.json')
-    self.test_params_yaml = os.path.join(os.path.dirname(__file__), '../test_data/test.cnf.parameters.yml')
+    self.test_params_json = os.path.join(os.path.dirname(__file__), '../test_data/parameters/test.cnf.parameters.json')
+    self.test_params_yaml = os.path.join(os.path.dirname(__file__), '../test_data/parameters/test.cnf.parameters.yml')
     self._clients = {
         "cloudformation": mock_cloud_formation_client,
         "cloudfront": mock_cloud_front_client,
@@ -203,6 +203,28 @@ class TestEFTemplateResolver(unittest.TestCase):
     with open(self.test_params_yaml) as yaml_file:
       resolver.load(test_string, yaml_file)
     self.assertEqual(resolver.render(), "alpha one")
+
+  @patch('ef_template_resolver.create_aws_clients')
+  def test_render_multiline_string_from_string(self, mock_create_aws):
+    """Does {{multi}} resolve correctly as a multiline string from yaml parameters file"""
+    mock_create_aws.return_value = self._clients
+    test_string = "{{multi}}"
+    resolver = EFTemplateResolver(profile=get_account_alias("test"),
+                                  env="test", region=TEST_REGION, service=TEST_SERVICE)
+    with open(self.test_params_json) as json_file:
+      resolver.load(test_string, json_file)
+    self.assertEqual(resolver.render(), "thisisareallylongstringthatcoversmultiple\nlinesfortestingmultilinestrings")
+
+  @patch('ef_template_resolver.create_aws_clients')
+  def test_render_multiline_string_from_list(self, mock_create_aws):
+    """Does {{multi}} resolve correctly as a multiline string from yaml parameters file"""
+    mock_create_aws.return_value = self._clients
+    test_string = "{{multi2}}"
+    resolver = EFTemplateResolver(profile=get_account_alias("test"),
+                                  env="test", region=TEST_REGION, service=TEST_SERVICE)
+    with open(self.test_params_json) as json_file:
+      resolver.load(test_string, json_file)
+    self.assertEqual(resolver.render(), "one\ntwo\nthree")
 
   @patch('ef_template_resolver.create_aws_clients')
   def test_render_multiline_string(self, mock_create_aws):

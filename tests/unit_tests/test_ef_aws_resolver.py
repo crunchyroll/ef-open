@@ -1928,6 +1928,3 @@ class TestEFAwsResolver(unittest.TestCase):
     ef_aws_resolver = EFAwsResolver(self._clients)
     with self.assertRaises(RuntimeError):
       ef_aws_resolver.lookup("kms:key_arn,alias/key_no_exist")
-
-if __name__ == '__main__':
-  unittest.main()

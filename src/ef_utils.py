@@ -20,7 +20,7 @@ from __future__ import print_function
 import base64
 import json
 from os import access, X_OK
-from os.path import isfile
+from os.path import isfile, exists
 import re
 from socket import gethostname
 import subprocess
@@ -336,3 +336,38 @@ def kms_key_arn(kms_client, alias):
     raise RuntimeError("Failed to obtain key arn for alias {}, error: {}".format(alias, error.response["Error"]["Message"]))
 
   return key_arn
+
+def get_template_parameters_file(template_full_path):
+    """
+    Checks for existance of parameters file against supported suffixes and returns parameters file path if found
+    Args:
+      template_full_path: full filepath for template file
+    Returns:
+      filename of parameters file if it exists
+    """
+    for suffix in EFConfig.PARAMETER_FILE_SUFFIXES:
+      parameters_file = template_full_path.replace("/templates", "/parameters") + suffix
+      if exists(parameters_file):
+        return parameters_file
+      else:
+        continue
+    return None
+
+def get_template_parameters_s3(template_key, s3_resource):
+  """
+  Checks for existance of parameters object in S3 against supported suffixes and returns parameters file key if found
+  Args:
+    template_key: S3 key for template file. omit bucket.
+    s3_resource: a boto3 s3 resource
+  Returns:
+    filename of parameters file if it exists
+  """
+  for suffix in EFConfig.PARAMETER_FILE_SUFFIXES:
+    parameters_key = template_key.replace("/templates", "/parameters") + suffix
+    try:
+      obj = s3_resource.Object(EFConfig.S3_CONFIG_BUCKET, parameters_key)
+      obj.get()
+      return parameters_key
+    except ClientError:
+      continue
+  return None
