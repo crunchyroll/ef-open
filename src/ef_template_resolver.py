@@ -25,7 +25,7 @@ import botocore.exceptions
 from ef_aws_resolver import EFAwsResolver
 from ef_config import EFConfig
 from ef_config_resolver import EFConfigResolver
-from ef_utils import create_aws_clients, fail, http_get_metadata, whereami
+from ef_utils import create_aws_clients, fail, get_account_id, http_get_metadata, whereami
 from ef_version_resolver import EFVersionResolver
 
 # CONSTANTS
@@ -238,7 +238,7 @@ class EFTemplateResolver(object):
       try:
         EFTemplateResolver.__CLIENTS = create_aws_clients(self.resolved["REGION"], profile,
                                                           "cloudformation", "cloudfront", "ec2", "iam", "kms",
-                                                          "lambda", "route53", "s3", "waf")
+                                                          "lambda", "route53", "s3", "sts", "waf")
       except RuntimeError as error:
         fail("Exception logging in with Session()", error)
 
@@ -290,7 +290,7 @@ class EFTemplateResolver(object):
           if whereami() == "ec2":
             self.resolved["ACCOUNT"] = str(json.loads(http_get_metadata('iam/info'))["InstanceProfileArn"].split(":")[4])
           else:
-            self.resolved["ACCOUNT"] = EFTemplateResolver.__CLIENTS["iam"].get_user()["User"]["Arn"].split(":")[4]
+            self.resolved["ACCOUNT"] = get_account_id(EFTemplateResolver.__CLIENTS["sts"])
         except botocore.exceptions.ClientError as error:
           fail("Exception in get_user()", error)
         self.resolved["ENV"] = env
