@@ -43,7 +43,7 @@ from ef_context import EFContext
 from ef_plugin import run_plugins
 from ef_service_registry import EFServiceRegistry
 from ef_template_resolver import EFTemplateResolver
-from ef_utils import create_aws_clients, fail, http_get_metadata, pull_repo
+from ef_utils import create_aws_clients, fail, get_account_id, http_get_metadata, pull_repo
 
 # Globals
 CLIENTS = None
@@ -459,7 +459,7 @@ def conditionally_create_kms_key(role_name, service_type):
             "kms:GrantIsForAWSResource": true
           }
         }
-      }      
+      }
     ]
   }'''
 
@@ -517,8 +517,8 @@ def main():
       CONTEXT.account_id = str(json.loads(http_get_metadata('iam/info'))["InstanceProfileArn"].split(":")[4])
     else:
       # Otherwise, we use local user creds based on the account alias
-      CLIENTS = create_aws_clients(EFConfig.DEFAULT_REGION, CONTEXT.account_alias, "ec2", "iam", "kms")
-      CONTEXT.account_id = CLIENTS["SESSION"].resource('iam').CurrentUser().arn.split(':')[4]
+      CLIENTS = create_aws_clients(EFConfig.DEFAULT_REGION, CONTEXT.account_alias, "ec2", "iam", "kms", "sts")
+      CONTEXT.account_id = get_account_id(CLIENTS["sts"])
   except RuntimeError:
     fail("Exception creating AWS clients in region {} with profile {}".format(
       EFConfig.DEFAULT_REGION, CONTEXT.account_alias))
