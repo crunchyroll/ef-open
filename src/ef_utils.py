@@ -192,7 +192,10 @@ def create_aws_clients(region, profile, *clients):
   client_key = (region, profile)
 
   existing_clients = client_cache.get(client_key, {})
-  if existing_clients:
+  requested_clients = set(clients)
+  new_clients = requested_clients.difference(existing_clients)
+
+  if existing_clients and not new_clients:
     return existing_clients
 
   session = existing_clients.get("SESSION")
@@ -200,9 +203,10 @@ def create_aws_clients(region, profile, *clients):
     if not session:
       session = boto3.Session(region_name=region, profile_name=profile)
     # build clients
-    client_dict = { c: session.client(c) for c in clients }
+    client_dict = { c: session.client(c) for c in new_clients }
     # append the session itself in case it's needed by the client code - can't get it from the clients themselves
     client_dict.update({"SESSION": session})
+    client_dict.update(existing_clients)
 
     # add the created clients to the cache
     client_cache[client_key] = client_dict
