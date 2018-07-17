@@ -191,26 +191,26 @@ def create_aws_clients(region, profile, *clients):
 
   client_key = (region, profile)
 
-  existing_clients = client_cache.get(client_key, {})
+  aws_clients = client_cache.get(client_key, {})
   requested_clients = set(clients)
-  new_clients = requested_clients.difference(existing_clients)
+  new_clients = requested_clients.difference(aws_clients)
 
-  if existing_clients and not new_clients:
-    return existing_clients
+  if not new_clients:
+    return aws_clients
 
-  session = existing_clients.get("SESSION")
+  session = aws_clients.get("SESSION")
   try:
     if not session:
       session = boto3.Session(region_name=region, profile_name=profile)
+      aws_clients["SESSION"] = session
     # build clients
     client_dict = { c: session.client(c) for c in new_clients }
     # append the session itself in case it's needed by the client code - can't get it from the clients themselves
-    client_dict.update({"SESSION": session})
-    client_dict.update(existing_clients)
+    aws_clients.update(client_dict)
 
     # add the created clients to the cache
-    client_cache[client_key] = client_dict
-    return client_dict
+    client_cache[client_key] = aws_clients
+    return aws_clients
   except ClientError as error:
     raise RuntimeError("Exception logging in with Session() and creating clients", error)
 
