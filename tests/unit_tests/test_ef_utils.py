@@ -617,6 +617,35 @@ class TestEFUtils(unittest.TestCase):
           built_clients.get(case),
           ef_utils.client_cache.get(case))
 
+  @patch('boto3.Session')
+  def test_create_aws_clients_cache_same_client(self, mock_session_constructor):
+    """
+    Test create_aws_clients with same parameters and mocking the boto3
+    Session constructor.
+
+    Check that we get the same clients every time.
+
+    Args:
+      mock_session_constructor: MagicMock, returns Mock object representing a boto3.Session object
+
+    Returns:
+      None
+
+    Raises:
+      AssertionError if any of the assert checks fail
+    """
+    mock_session = Mock(name="mock-boto3-session")
+    # make sure we get different clients on every call
+    mock_session.client.side_effect = lambda *args, **kwargs: Mock(name="mock-boto3-session")
+    mock_session_constructor.return_value = mock_session
+    amazon_services = ["acm", "batch", "ec2", "sqs"]
+    region, profile = "us-west-2a", "testing"
+
+    clients1 = ef_utils.create_aws_clients(region, profile, *amazon_services)
+    clients2 = ef_utils.create_aws_clients(region, profile, *amazon_services)
+
+    self.assertEquals(clients1, clients2, msg="Should get the same clients for the same region/profile pair")
+
   def test_get_account_alias(self):
     """
     Checks if get_account_alias returns the correct account based on valid environments
