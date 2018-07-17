@@ -4,7 +4,7 @@ To build and setup the ef-open tools, you will need to...
 
 | What | Where | When |
 | --- | --- | --- |
-| INSTALL:<br>install pants<br>install java8+ | on every system that will use pants to build (your laptop, Jenkins, ...) | once per system |
+| INSTALL:<br>install pants<br>install java8+<br>install Python 2.7 (python-dev on Debian/Ubuntu, python-devel on RHEL/CentOS) | on every system that will use pants to build (your laptop, Jenkins, ...) | once per system |
 | BUILD:<br>run pants<br>_or_<br>use the example script, <code>tools/build-ef-open</code> that checks setup and runs pants | any pants-capable system | every time you build ef-open<br>(whenever there's an update to /src) |
 | CUSTOMIZE:<br>configure "ef_site_config.yml" | your infrastructure repo(s) | once per repo initially (and later to change a value in ef_site_config.yml) |
 
@@ -93,13 +93,15 @@ After a successful build, the build-ef-open script also removes the '.pex' exten
 Syntax:
 ```
 cd <directory_above_repos>
-ef-open/tools/build-ef-open
+export EF_SITE_REPO=<REPO>
+ef-open/tools/build-ef-open <REPO>
 ```
 
 Example:
 ```bash
 $ cd ~/workspace
-$ ef-open/tools/build-ef-open
+$ export EF_SITE_REPO=ellation_formation
+$ ef-open/tools/build-ef-open ellation_formation
 ```
 (ignore the fatal message below)
 ```

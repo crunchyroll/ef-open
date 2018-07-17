@@ -1,4 +1,4 @@
-## What does the ellation_formation ef-cf tool do?
+## What does the ef-open ef-cf tool do?
 
 The main difference in CF templating is the availability of {{SYMBOLS}} to fill in values from the AWS environment.
 
