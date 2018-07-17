@@ -186,19 +186,26 @@ def create_aws_clients(region, profile, *clients):
     { "cloudfront": <cloudfront_client>, ... }
     Dictionary contains an extra record, "SESSION" - pointing to the session that created the clients
   """
+  if not profile:
+    profile = None
+
+  client_key = (region, profile)
+
+  existing_clients = client_cache.get(client_key, {})
+  if existing_clients:
+    return existing_clients
+
+  session = existing_clients.get("SESSION")
   try:
-
-    if not profile:
-      profile = None
-
-    session = boto3.Session(region_name=region, profile_name=profile)
+    if not session:
+      session = boto3.Session(region_name=region, profile_name=profile)
     # build clients
     client_dict = { c: session.client(c) for c in clients }
     # append the session itself in case it's needed by the client code - can't get it from the clients themselves
     client_dict.update({"SESSION": session})
 
     # add the created clients to the cache
-    client_cache[(region, profile)] = client_dict
+    client_cache[client_key] = client_dict
     return client_dict
   except ClientError as error:
     raise RuntimeError("Exception logging in with Session() and creating clients", error)
