@@ -534,6 +534,33 @@ class TestEFUtils(unittest.TestCase):
     self.assertTrue("sqs" in client_dict)
     self.assertTrue("SESSION" in client_dict)
 
+  @patch('boto3.Session')
+  def test_create_aws_clients_cache(self, mock_session_constructor):
+    """
+    Test create_aws_clients with all the parameters except profile and mocking
+    the boto3 Session constructor.
+    Check that the returned clients are present in the client cache under the
+    (region, profile) key.
+
+    Args:
+      mock_session_constructor: MagicMock, returns Mock object representing a boto3.Session object
+
+    Returns:
+      None
+
+    Raises:
+      AssertionError if any of the assert checks fail
+    """
+    mock_session = Mock(name="mock-boto3-session")
+    mock_session.client.return_value = Mock(name="mock-client")
+    mock_session_constructor.return_value = mock_session
+    amazon_services = ["acm", "batch", "ec2", "sqs"]
+
+    client_dict = ef_utils.create_aws_clients("us-west-2d", None, *amazon_services)
+    cached_clients = ef_utils.client_cache.get(("us-west-2d", None))
+
+    self.assertEquals(client_dict, cached_clients)
+
   def test_get_account_alias(self):
     """
     Checks if get_account_alias returns the correct account based on valid environments

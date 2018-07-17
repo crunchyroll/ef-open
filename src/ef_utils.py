@@ -40,6 +40,9 @@ __VIRT_WHAT_VIRTUALBOX_WITH_KVM = ["virtualbox", "kvm"]
 # Matches CIDRs (loosely, TBH)
 CIDR_REGEX = r"^(([1-2][0-9]{2}|[0-9]{0,2})\.){3}([1-2][0-9]{2}|[0-9]{0,2})\/([1-3][0-9]|[0-9])$"
 
+# Cache for AWS clients. Keeps all the clients under (region, profile) keys.
+client_cache = {}
+
 def fail(message, exception_data=None):
   """
   Print a failure message and exit nonzero
@@ -184,16 +187,18 @@ def create_aws_clients(region, profile, *clients):
     Dictionary contains an extra record, "SESSION" - pointing to the session that created the clients
   """
   try:
+
     if not profile:
-      # use instance credentials
-      session = boto3.Session(region_name=region)
-    else:
-      # explicitly use a credential from .aws/credentials
-      session = boto3.Session(region_name=region, profile_name=profile)
+      profile = None
+
+    session = boto3.Session(region_name=region, profile_name=profile)
     # build clients
     client_dict = { c: session.client(c) for c in clients }
     # append the session itself in case it's needed by the client code - can't get it from the clients themselves
     client_dict.update({"SESSION": session})
+
+    # add the created clients to the cache
+    client_cache[(region, profile)] = client_dict
     return client_dict
   except ClientError as error:
     raise RuntimeError("Exception logging in with Session() and creating clients", error)
