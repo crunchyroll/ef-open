@@ -51,7 +51,8 @@ class TestEFUtils(unittest.TestCase):
     Returns:
       None
     """
-    pass
+    # reset the client cache after every run
+    ef_utils.client_cache = {}
 
   @patch('sys.stderr', new_callable=StringIO)
   def test_fail_with_message(self, mock_stderr):
@@ -639,12 +640,18 @@ class TestEFUtils(unittest.TestCase):
     mock_session.client.side_effect = lambda *args, **kwargs: Mock(name="mock-boto3-session")
     mock_session_constructor.return_value = mock_session
     amazon_services = ["acm", "batch", "ec2", "sqs"]
-    region, profile = "us-west-2a", "testing"
+    cases = [
+        ("us-west-2d", None),
+        ("us-west-3d", None),
+        ("us-west-2d", "codemobs"),
+        ("us-west-2d", "ellationeng"),
+        ("", None),
+    ]
+    for region, profile in cases:
+      clients1 = ef_utils.create_aws_clients(region, profile, *amazon_services)
+      clients2 = ef_utils.create_aws_clients(region, profile, *amazon_services)
 
-    clients1 = ef_utils.create_aws_clients(region, profile, *amazon_services)
-    clients2 = ef_utils.create_aws_clients(region, profile, *amazon_services)
-
-    self.assertEquals(clients1, clients2, msg="Should get the same clients for the same region/profile pair")
+      self.assertEquals(clients1, clients2, msg="Should get the same clients for the same region/profile pair")
 
   def test_get_account_alias(self):
     """
