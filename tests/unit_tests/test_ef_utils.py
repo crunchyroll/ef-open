@@ -51,8 +51,7 @@ class TestEFUtils(unittest.TestCase):
     Returns:
       None
     """
-    # reset the client cache after every run
-    ef_utils.client_cache = {}
+    pass
 
   @patch('sys.stderr', new_callable=StringIO)
   def test_fail_with_message(self, mock_stderr):
@@ -536,33 +535,6 @@ class TestEFUtils(unittest.TestCase):
     self.assertTrue("SESSION" in client_dict)
 
   @patch('boto3.Session')
-  def test_create_aws_clients_cache(self, mock_session_constructor):
-    """
-    Test create_aws_clients with all the parameters except profile and mocking
-    the boto3 Session constructor.
-    Check that the returned clients are present in the client cache under the
-    (region, profile) key.
-
-    Args:
-      mock_session_constructor: MagicMock, returns Mock object representing a boto3.Session object
-
-    Returns:
-      None
-
-    Raises:
-      AssertionError if any of the assert checks fail
-    """
-    mock_session = Mock(name="mock-boto3-session")
-    mock_session.client.return_value = Mock(name="mock-client")
-    mock_session_constructor.return_value = mock_session
-    amazon_services = ["acm", "batch", "ec2", "sqs"]
-
-    client_dict = ef_utils.create_aws_clients("us-west-2d", None, *amazon_services)
-    cached_clients = ef_utils.client_cache.get(("us-west-2d", None))
-
-    self.assertEquals(client_dict, cached_clients)
-
-  @patch('boto3.Session')
   def test_create_aws_clients_cache_multiple_configs(self, mock_session_constructor):
     """
     Test create_aws_clients with multiple parameters and mocking the boto3
@@ -597,26 +569,12 @@ class TestEFUtils(unittest.TestCase):
 
     for region, profile in cases:
       client_dict = ef_utils.create_aws_clients(region, profile, *amazon_services)
-      cached_clients = ef_utils.client_cache.get((region, profile))
-
-      self.assertTrue((region, profile) in ef_utils.client_cache)
-      self.assertEquals(client_dict, cached_clients)
 
       for key, clients in built_clients.items():
         # check if the new clients are unique
-        self.assertNotEquals(cached_clients, clients,
+        self.assertNotEquals(client_dict, clients,
                              msg="Duplicate clients for {} vs {}".format(key, (region, profile)))
       built_clients[(region, profile)] = client_dict
-
-    for case in cases:
-      # check if the (region, profile) clients have been added to the cache
-      self.assertTrue(
-          case in ef_utils.client_cache,
-          msg="{} not in {}".format(case, ef_utils.client_cache.keys()))
-      # check if there are the same clients we got are in the cache
-      self.assertEquals(
-          built_clients.get(case),
-          ef_utils.client_cache.get(case))
 
   @patch('boto3.Session')
   def test_create_aws_clients_cache_same_client(self, mock_session_constructor):
