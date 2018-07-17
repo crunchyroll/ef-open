@@ -679,11 +679,16 @@ class TestEFUtils(unittest.TestCase):
     region, profile = "us-west-2", "testing"
 
     clients = ef_utils.create_aws_clients(region, profile, *amazon_services)
+    # copy the old clients, so they're not overwritten
+    built_clients = {k: v for k, v in clients.items()}
     new_clients = ef_utils.create_aws_clients(region, profile, *new_amazon_services)
+
 
     for service in new_amazon_services:
       self.assertIn(service, new_clients)
 
+    for service, client in built_clients.items():
+      self.assertEquals(new_clients.get(service), client)
 
   def test_get_account_alias(self):
     """
