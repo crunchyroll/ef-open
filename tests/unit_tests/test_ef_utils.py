@@ -561,6 +561,62 @@ class TestEFUtils(unittest.TestCase):
 
     self.assertEquals(client_dict, cached_clients)
 
+  @patch('boto3.Session')
+  def test_create_aws_clients_cache_multiple_configs(self, mock_session_constructor):
+    """
+    Test create_aws_clients with multiple parameters and mocking the boto3
+    Session constructor.
+
+    Check that every (region, profile) pair gets its own set of clients.
+
+    Args:
+      mock_session_constructor: MagicMock, returns Mock object representing a boto3.Session object
+
+    Returns:
+      None
+
+    Raises:
+      AssertionError if any of the assert checks fail
+    """
+    mock_session = Mock(name="mock-boto3-session")
+    # make sure we get different clients on every call
+    mock_session.client.side_effect = lambda *args, **kwargs: Mock(name="mock-boto3-session")
+    mock_session_constructor.return_value = mock_session
+    amazon_services = ["acm", "batch", "ec2", "sqs"]
+
+    cases = [
+        ("us-west-2d", None),
+        ("us-west-3d", None),
+        ("us-west-2d", "codemobs"),
+        ("us-west-2d", "ellationeng"),
+        ("", None),
+    ]
+
+    built_clients = {}
+
+    for region, profile in cases:
+      client_dict = ef_utils.create_aws_clients(region, profile, *amazon_services)
+      cached_clients = ef_utils.client_cache.get((region, profile))
+
+      self.assertTrue((region, profile) in ef_utils.client_cache)
+      self.assertEquals(client_dict, cached_clients)
+
+      for key, clients in built_clients.items():
+        # check if the new clients are unique
+        self.assertNotEquals(cached_clients, clients,
+                             msg="Duplicate clients for {} vs {}".format(key, (region, profile)))
+      built_clients[(region, profile)] = client_dict
+
+    for case in cases:
+      # check if the (region, profile) clients have been added to the cache
+      self.assertTrue(
+          case in ef_utils.client_cache,
+          msg="{} not in {}".format(case, ef_utils.client_cache.keys()))
+      # check if there are the same clients we got are in the cache
+      self.assertEquals(
+          built_clients.get(case),
+          ef_utils.client_cache.get(case))
+
   def test_get_account_alias(self):
     """
     Checks if get_account_alias returns the correct account based on valid environments
