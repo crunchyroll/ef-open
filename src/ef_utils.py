@@ -237,6 +237,13 @@ def get_account_alias(env):
       raise ValueError("generic env: {} has no entry in ENV_ACCOUNT_MAP of ef_site_config.py".format(env_short))
     return EFConfig.ENV_ACCOUNT_MAP[env_short]
 
+def get_account_id(sts_client):
+  """
+  Args:
+    sts_client (boto3 sts client object): Instantiated sts client object. Usually created through create_aws_clients
+  """
+  return sts_client.get_caller_identity().get('Account')
+
 def get_env_short(env):
   """
   Given an env, return <env_short> if env is valid

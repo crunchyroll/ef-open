@@ -706,6 +706,21 @@ class TestEFUtils(unittest.TestCase):
       ef_utils.get_account_alias(None)
     self.assertTrue("unknown env" in exception.exception.message)
 
+  def test_get_account_id(self):
+    """
+    Checks if get_account_id returns the correct account id
+
+    Returns:
+      None
+
+    Raises:
+      AssertionError if any of the assert checks fail
+    """
+    target_account_id = "123456789"
+    mock_sts_client = Mock(name="mock sts client")
+    mock_sts_client.get_caller_identity.return_value.get.return_value = target_account_id
+    self.assertEquals(ef_utils.get_account_id(mock_sts_client), target_account_id)
+
   def test_get_env_short(self):
     """
     Checks if get_env_short returns the correct environment shortname when given valid environments
