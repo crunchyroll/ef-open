@@ -43,6 +43,7 @@ CIDR_REGEX = r"^(([1-2][0-9]{2}|[0-9]{0,2})\.){3}([1-2][0-9]{2}|[0-9]{0,2})\/([1
 # Cache for AWS clients. Keeps all the clients under (region, profile) keys.
 client_cache = {}
 
+
 def fail(message, exception_data=None):
   """
   Print a failure message and exit nonzero
@@ -204,7 +205,7 @@ def create_aws_clients(region, profile, *clients):
       session = boto3.Session(region_name=region, profile_name=profile)
       aws_clients["SESSION"] = session
     # build clients
-    client_dict = { c: session.client(c) for c in new_clients }
+    client_dict = {c: session.client(c) for c in new_clients}
     # append the session itself in case it's needed by the client code - can't get it from the clients themselves
     aws_clients.update(client_dict)
 

@@ -641,7 +641,6 @@ class TestEFUtils(unittest.TestCase):
     built_clients = {k: v for k, v in clients.items()}
     new_clients = ef_utils.create_aws_clients(region, profile, *new_amazon_services)
 
-
     for service in new_amazon_services:
       self.assertIn(service, new_clients)
 
