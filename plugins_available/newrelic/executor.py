@@ -3,8 +3,8 @@ import logging
 
 from ef_plugin import ef_plugin
 from ef_utils import kms_decrypt
+from ef_config import EFConfig
 
-import config
 from interface import NewRelic, AlertPolicy
 
 
@@ -17,9 +17,10 @@ class NewRelicAlerts(object):
 
   def __init__(self):
     # load config settings
-    self.conditions = config.alert_conditions
-    self.admin_token = config.admin_token
-    self.all_notification_channels = config.env_notification_map
+    self.config = EFConfig.PLUGINS['newrelic']
+    self.conditions = self.config['alert_conditions']
+    self.admin_token = self.config['admin_token']
+    self.all_notification_channels = self.config['env_notification_map']
 
   @classmethod
   def replace_symbols(cls, condition_obj, symbols):
@@ -42,26 +43,25 @@ class NewRelicAlerts(object):
     return condition_obj
 
   def run(self):
+    print("check 1")
+    print(self.context.env)
+    print(self.__dict__)
     if self.context.env in self.all_notification_channels.keys():
-      if config.token_kms_encrypted:
+      if self.config['token_kms_encrypted']:
         self.admin_token = kms_decrypt(self.clients['kms'], self.admin_token)
 
       newrelic = NewRelic(self.admin_token)
-
       for service in self.context.service_registry.iter_services(service_group="application_services"):
         service_name = service[0]
         service_environments = service[1]['environments']
         service_alert_overrides = service[1]['alerts'] if "alerts" in service[1] else {}
-
         if self.context.env in service_environments:
 
           policy = AlertPolicy(env=self.context.env, service=service_name)
-
           # Create service alert policy if it doesn't already exist
           if not newrelic.alert_policy_exists(policy.name):
             newrelic.create_alert_policy(policy.name)
             logger.info("create alert policy {}".format(policy.name))
-
           policy.id = next(alert['id'] for alert in newrelic.all_alerts if alert['name'] == policy.name)
           policy.notification_channels = self.all_notification_channels[self.context.env]
           policy.conditions = newrelic.get_policy_alert_conditions(policy.id)
