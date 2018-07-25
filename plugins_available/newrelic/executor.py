@@ -43,9 +43,6 @@ class NewRelicAlerts(object):
     return condition_obj
 
   def run(self):
-    print("check 1")
-    print(self.context.env)
-    print(self.__dict__)
     if self.context.env in self.all_notification_channels.keys():
       if self.config['token_kms_encrypted']:
         self.admin_token = kms_decrypt(self.clients['kms'], self.admin_token)
