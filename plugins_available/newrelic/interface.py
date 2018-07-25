@@ -149,7 +149,7 @@ class NewRelic(object):
     add_condition = requests.post(
       url='https://infra-api.newrelic.com/v2/alerts/conditions',
       headers=self.auth_header,
-      data=json.dumps({ "data": condition })
+      data=json.dumps({"data": condition})
     )
     add_condition.raise_for_status()
     return add_condition.json()['data']['id']
