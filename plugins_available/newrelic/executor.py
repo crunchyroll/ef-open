@@ -1,9 +1,9 @@
 from copy import deepcopy
 import logging
 
+from ef_config import EFConfig
 from ef_plugin import ef_plugin
 from ef_utils import kms_decrypt
-from ef_config import EFConfig
 
 from interface import NewRelic, AlertPolicy
 
