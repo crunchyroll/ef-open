@@ -40,6 +40,10 @@ __VIRT_WHAT_VIRTUALBOX_WITH_KVM = ["virtualbox", "kvm"]
 # Matches CIDRs (loosely, TBH)
 CIDR_REGEX = r"^(([1-2][0-9]{2}|[0-9]{0,2})\.){3}([1-2][0-9]{2}|[0-9]{0,2})\/([1-3][0-9]|[0-9])$"
 
+# Cache for AWS clients. Keeps all the clients under (region, profile) keys.
+client_cache = {}
+
+
 def fail(message, exception_data=None):
   """
   Print a failure message and exit nonzero
@@ -183,18 +187,31 @@ def create_aws_clients(region, profile, *clients):
     { "cloudfront": <cloudfront_client>, ... }
     Dictionary contains an extra record, "SESSION" - pointing to the session that created the clients
   """
+  if not profile:
+    profile = None
+
+  client_key = (region, profile)
+
+  aws_clients = client_cache.get(client_key, {})
+  requested_clients = set(clients)
+  new_clients = requested_clients.difference(aws_clients)
+
+  if not new_clients:
+    return aws_clients
+
+  session = aws_clients.get("SESSION")
   try:
-    if not profile:
-      # use instance credentials
-      session = boto3.Session(region_name=region)
-    else:
-      # explicitly use a credential from .aws/credentials
+    if not session:
       session = boto3.Session(region_name=region, profile_name=profile)
+      aws_clients["SESSION"] = session
     # build clients
-    client_dict = { c: session.client(c) for c in clients }
+    client_dict = {c: session.client(c) for c in new_clients}
     # append the session itself in case it's needed by the client code - can't get it from the clients themselves
-    client_dict.update({"SESSION": session})
-    return client_dict
+    aws_clients.update(client_dict)
+
+    # add the created clients to the cache
+    client_cache[client_key] = aws_clients
+    return aws_clients
   except ClientError as error:
     raise RuntimeError("Exception logging in with Session() and creating clients", error)
 

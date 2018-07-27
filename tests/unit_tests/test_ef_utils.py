@@ -534,6 +534,119 @@ class TestEFUtils(unittest.TestCase):
     self.assertTrue("sqs" in client_dict)
     self.assertTrue("SESSION" in client_dict)
 
+  @patch('boto3.Session')
+  def test_create_aws_clients_cache_multiple_configs(self, mock_session_constructor):
+    """
+    Test create_aws_clients with multiple parameters and mocking the boto3
+    Session constructor.
+
+    Check that every (region, profile) pair gets its own set of clients.
+
+    Args:
+      mock_session_constructor: MagicMock, returns Mock object representing a boto3.Session object
+
+    Returns:
+      None
+
+    Raises:
+      AssertionError if any of the assert checks fail
+    """
+    mock_session = Mock(name="mock-boto3-session")
+    # make sure we get different clients on every call
+    mock_session.client.side_effect = lambda *args, **kwargs: Mock(name="mock-boto3-session")
+    mock_session_constructor.return_value = mock_session
+    amazon_services = ["acm", "batch", "ec2", "sqs"]
+
+    cases = [
+        ("us-west-2d", None),
+        ("us-west-3d", None),
+        ("us-west-2d", "codemobs"),
+        ("us-west-2d", "ellationeng"),
+        ("", None),
+    ]
+
+    built_clients = {}
+
+    for region, profile in cases:
+      client_dict = ef_utils.create_aws_clients(region, profile, *amazon_services)
+
+      for key, clients in built_clients.items():
+        # check if the new clients are unique
+        self.assertNotEquals(client_dict, clients,
+                             msg="Duplicate clients for {} vs {}".format(key, (region, profile)))
+      built_clients[(region, profile)] = client_dict
+
+  @patch('boto3.Session')
+  def test_create_aws_clients_cache_same_client(self, mock_session_constructor):
+    """
+    Test create_aws_clients with same parameters and mocking the boto3
+    Session constructor.
+
+    Check that we get the same clients every time.
+
+    Args:
+      mock_session_constructor: MagicMock, returns Mock object representing a boto3.Session object
+
+    Returns:
+      None
+
+    Raises:
+      AssertionError if any of the assert checks fail
+    """
+    mock_session = Mock(name="mock-boto3-session")
+    # make sure we get different clients on every call
+    mock_session.client.side_effect = lambda *args, **kwargs: Mock(name="mock-boto3-session")
+    mock_session_constructor.return_value = mock_session
+    amazon_services = ["acm", "batch", "ec2", "sqs"]
+    cases = [
+        ("us-west-2d", None),
+        ("us-west-3d", None),
+        ("us-west-2d", "codemobs"),
+        ("us-west-2d", "ellationeng"),
+        ("", None),
+    ]
+    for region, profile in cases:
+      clients1 = ef_utils.create_aws_clients(region, profile, *amazon_services)
+      clients2 = ef_utils.create_aws_clients(region, profile, *amazon_services)
+
+      self.assertEquals(clients1, clients2, msg="Should get the same clients for the same region/profile pair")
+
+  @patch('boto3.Session')
+  def test_create_aws_clients_cache_new_clients(self, mock_session_constructor):
+    """
+    Test create_aws_clients with same parameters and mocking the boto3
+    Session constructor.
+
+    Check that we get the same clients every time.
+
+    Args:
+      mock_session_constructor: MagicMock, returns Mock object representing a boto3.Session object
+
+    Returns:
+      None
+
+    Raises:
+      AssertionError if any of the assert checks fail
+    """
+    mock_session = Mock(name="mock-boto3-session")
+    # make sure we get different clients on every call
+    mock_session.client.side_effect = lambda *args, **kwargs: Mock(name="mock-boto3-session")
+    mock_session_constructor.return_value = mock_session
+    amazon_services = ["acm", "batch", "ec2", "sqs"]
+    new_amazon_services = amazon_services + ["cloudfront"]
+    region, profile = "us-west-2", "testing"
+
+    clients = ef_utils.create_aws_clients(region, profile, *amazon_services)
+    # copy the old clients, so they're not overwritten
+    built_clients = {k: v for k, v in clients.items()}
+    new_clients = ef_utils.create_aws_clients(region, profile, *new_amazon_services)
+
+    for service in new_amazon_services:
+      self.assertIn(service, new_clients)
+
+    for service, client in built_clients.items():
+      self.assertEquals(new_clients.get(service), client)
+
   def test_get_account_alias(self):
     """
     Checks if get_account_alias returns the correct account based on valid environments
