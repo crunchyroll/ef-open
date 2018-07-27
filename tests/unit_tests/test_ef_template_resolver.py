@@ -89,6 +89,7 @@ class TestEFTemplateResolver(unittest.TestCase):
     mock_lambda_client = Mock(name="Mock Lambda Client")
     mock_route_53_client = Mock(name="Mock Route 53 Client")
     mock_s3_client = Mock(name="Mock S3 Client")
+    mock_sts_client = Mock(name="Mock STS Client")
     mock_waf_client = Mock(name="Mock WAF Client")
     mock_session = Mock(name="Mock Client")
 
@@ -103,6 +104,7 @@ class TestEFTemplateResolver(unittest.TestCase):
         "lambda": mock_lambda_client,
         "route53": mock_route_53_client,
         "s3": mock_s3_client,
+        "sts": mock_sts_client,
         "waf": mock_waf_client,
         "SESSION": mock_session
     }
