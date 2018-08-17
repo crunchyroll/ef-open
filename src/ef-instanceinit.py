@@ -82,17 +82,13 @@ def merge_files(service):
   """
   if WHERE == "ec2":
     config_reader = EFInstanceinitConfigReader("s3", service, log_info, RESOURCES["s3"])
+    resolver = EFTemplateResolver()
   elif WHERE == "virtualbox-kvm":
     config_path = "{}/{}".format(VIRTUALBOX_CONFIG_ROOT, service)
     config_reader = EFInstanceinitConfigReader("file", config_path, log_info)
+    resolver = EFTemplateResolver(env=EFConfig.VAGRANT_ENV, service=service)
 
   while config_reader.next():
-    # Make a new TemplateResolver for every file::parameters pair, so cached keys don't carry over
-    if WHERE == "ec2":
-      resolver = EFTemplateResolver()
-    elif WHERE == "virtualbox-kvm":
-      resolver = EFTemplateResolver(env=EFConfig.VAGRANT_ENV, service=service)
-
     log_info("checking: {}".format(config_reader.current_key))
 
     # if 'dest' for the current object contains an 'environments' list, check it
