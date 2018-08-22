@@ -177,11 +177,15 @@ def main():
     fail("Invalid environment: {} for service_name: {}\nValid environments are: {}" \
          .format(context.env_full, service_name, ", ".join(context.service_registry.valid_envs(service_name))))
 
+  # Set the region found in the service_registry. Default is EFConfig.DEFAULT_REGION is region key not found
+  region = context.service_registry.service_region(service_name)
+
   if context.verbose:
     print("service_name: {}".format(service_name))
     print("env: {}".format(context.env))
     print("env_full: {}".format(context.env_full))
     print("env_short: {}".format(context.env_short))
+    print("region: {}".format(region))
     print("template_file: {}".format(context.template_file))
     print("parameter_file: {}".format(parameter_file))
     if profile:
@@ -193,16 +197,16 @@ def main():
     template=context.template_file,
     profile=profile,
     env=context.env,
-    region=EFConfig.DEFAULT_REGION,
+    region=region,
     service=service_name,
     verbose=context.verbose
   )
 
   # Create clients - if accessing by role, profile should be None
   try:
-    clients = create_aws_clients(EFConfig.DEFAULT_REGION, profile, "cloudformation")
+    clients = create_aws_clients(region, profile, "cloudformation")
   except RuntimeError as error:
-    fail("Exception creating clients in region {} with profile {}".format(EFConfig.DEFAULT_REGION, profile), error)
+    fail("Exception creating clients in region {} with profile {}".format(region, profile), error)
 
   stack_name = context.env + "-" + service_name
   try:
@@ -216,7 +220,7 @@ def main():
       template=parameter_file,
       profile=profile,
       env=context.env,
-      region=EFConfig.DEFAULT_REGION,
+      region=region,
       service=service_name,
       verbose=context.verbose
     )
