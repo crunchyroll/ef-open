@@ -83,7 +83,7 @@ class TestEFUtils(unittest.TestCase):
     self.assertRegexpMatches(sr.service_region("test-instance-3"), "^us-east-1$")
 
   def test_service_region_override_negative(self):
-    """Does the lookup for the region that was specified of a single service work?"""
+    """Does the lookup for the wrong region that was specified of a single service fail?"""
     sr = EFServiceRegistry(service_registry_file=self.service_registry_file)
     self.assertNotRegexpMatches(sr.service_region("test-instance-3"), "^us-west-2$")
 
