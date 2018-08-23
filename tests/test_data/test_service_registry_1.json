@@ -60,6 +60,7 @@
       "jira_project": "project",
       "chef_role": "base",
       "team_email": "email@example.com",
+      "region": "us-east-1",
       "environments": ["staging", "alpha", "mgmt.ellationeng"],
       "policies": ["policy_1", "policy_2"]
     }
