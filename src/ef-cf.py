@@ -177,7 +177,7 @@ def main():
     fail("Invalid environment: {} for service_name: {}\nValid environments are: {}" \
          .format(context.env_full, service_name, ", ".join(context.service_registry.valid_envs(service_name))))
 
-  # Set the region found in the service_registry. Default is EFConfig.DEFAULT_REGION is region key not found
+  # Set the region found in the service_registry. Default is EFConfig.DEFAULT_REGION if region key not found
   region = context.service_registry.service_region(service_name)
 
   if context.verbose:
