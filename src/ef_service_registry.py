@@ -162,6 +162,18 @@ class EFServiceRegistry(object):
         return group
     return None
 
+  def service_region(self, service_name):
+    """
+    Args:
+      service_name: the name of the service in the service registry
+    Returns:
+      the region the service is in, or EFConfig.DEFAULT_REGION if the region was not found
+    """
+    if not self.services()[service_name].has_key("region"):
+      return EFConfig.DEFAULT_REGION
+    else:
+      return self.services()[service_name]["region"]
+
   def version_keys(self):
     return self.service_registry_json["version_keys"]
 

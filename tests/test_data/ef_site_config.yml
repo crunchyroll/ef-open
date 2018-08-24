@@ -64,3 +64,5 @@ SPECIAL_VERSION_ENVS:
 # Custom data that can be referenced via lookup
 CUSTOM_DATA:
   mock_data: "mock_data_1"
+
+PLUGINS:

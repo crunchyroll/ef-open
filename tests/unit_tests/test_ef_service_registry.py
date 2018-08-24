@@ -72,6 +72,21 @@ class TestEFUtils(unittest.TestCase):
     sr = EFServiceRegistry(service_registry_file=self.service_registry_file)
     self.assertRegexpMatches(sr.service_group("test-instance-2"), "^platform_services$")
 
+  def test_service_region(self):
+    """Does the lookup for the region that was not specified of a single service work?"""
+    sr = EFServiceRegistry(service_registry_file=self.service_registry_file)
+    self.assertRegexpMatches(sr.service_region("test-instance-2"), "^us-west-2$")
+
+  def test_service_region_override(self):
+    """Does the lookup for the region that was specified of a single service work?"""
+    sr = EFServiceRegistry(service_registry_file=self.service_registry_file)
+    self.assertRegexpMatches(sr.service_region("test-instance-3"), "^us-east-1$")
+
+  def test_service_region_override_negative(self):
+    """Does the lookup for the wrong region that was specified of a single service fail?"""
+    sr = EFServiceRegistry(service_registry_file=self.service_registry_file)
+    self.assertNotRegexpMatches(sr.service_region("test-instance-3"), "^us-west-2$")
+
   def test_valid_envs(self):
     """Does valid_envs return correct envs?"""
     sr = EFServiceRegistry(service_registry_file=self.service_registry_file)
