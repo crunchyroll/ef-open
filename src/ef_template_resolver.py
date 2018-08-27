@@ -401,6 +401,8 @@ class EFTemplateResolver(object):
       - 4. built-in context (such as "ENV")
       - 5. parameters from a parameter file / dictionary of params
     """
+    # Ensure that our symbols are clean and are not from a previous template that was rendered
+    self.symbols = set()
     # Until all symbols are resolved or it is determined that some cannot be resolved, repeat:
     go_again = True
     while go_again:
@@ -424,6 +426,7 @@ class EFTemplateResolver(object):
         else:
           # 1. context - these are already in the resolved table
           # self.resolved[symbol] may have value=None; use has_key tell "resolved w/value=None" from "not resolved"
+          # these may be "global" symbols such like "ENV", "ACCOUNT", etc.
           if symbol in self.resolved:
             resolved_symbol = self.resolved[symbol]
           # 2. parameters
@@ -431,11 +434,10 @@ class EFTemplateResolver(object):
             resolved_symbol = self.search_parameters(symbol)
         # if symbol was resolved, replace it everywhere
         if resolved_symbol is not None:
-          self.resolved[symbol] = resolved_symbol
           if isinstance(resolved_symbol, list):
-            self.template = self.template.replace("{{" + symbol + "}}", "\n".join(self.resolved[symbol]))
+            self.template = self.template.replace("{{" + symbol + "}}", "\n".join(resolved_symbol))
           else:
-            self.template = self.template.replace("{{" + symbol + "}}", self.resolved[symbol])
+            self.template = self.template.replace("{{" + symbol + "}}", resolved_symbol)
           go_again = True
     return self.template
 
