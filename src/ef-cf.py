@@ -34,6 +34,10 @@ from ef_service_registry import EFServiceRegistry
 from ef_template_resolver import EFTemplateResolver
 from ef_utils import create_aws_clients, fail, pull_repo
 
+# CONSTANTS
+# Cloudformation template size limit in bytes (which translates to the length of the template)
+CLOUDFORMATION_SIZE_LIMIT = 51200
+
 class EFCFContext(EFContext):
   def __init__(self):
     super(EFCFContext, self).__init__()
@@ -230,6 +234,14 @@ def main():
       fail("JSON error in parameter file: {}".format(parameter_file, error))
   else:
     parameters = []
+
+  # Detect if the template exceeds the maximum size that is allowed by Cloudformation
+  if len(template) > CLOUDFORMATION_SIZE_LIMIT:
+    # Compress the generated template by removing whitespaces
+    print("Template exceeds the max allowed length that Cloudformation will accept. Compressing template...")
+    print("Uncompressed size of template: {}".format(len(template)))
+    template = template.replace(" ", "")
+    print("Compressed size of template: {}".format(len(template)))
 
   # Validate rendered template before trying the stack operation
   if context.verbose:
