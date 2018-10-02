@@ -240,7 +240,8 @@ def main():
     # Compress the generated template by removing whitespaces
     print("Template exceeds the max allowed length that Cloudformation will accept. Compressing template...")
     print("Uncompressed size of template: {}".format(len(template)))
-    template = template.replace(" ", "")
+    unpacked = json.loads(template)
+    template = json.dumps(unpacked)
     print("Compressed size of template: {}".format(len(template)))
 
   # Validate rendered template before trying the stack operation
