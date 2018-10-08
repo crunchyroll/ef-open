@@ -1,12 +1,51 @@
+*.py[co]
+*.DS_Store
 *.pyc
+
+# Packages
+*.egg
+*.egg-info
+dist
+build
+eggs
+parts
+var
+sdist
+develop-eggs
+.installed.cfg
 .DS_Store
 .cache
-.idea
-.pants.d
-.pants.workdir.file_lock
 .pids
-dist
-.coverage
 
-# Ignore Python virtualenv folder
+# Installer logs
+pip-log.txt
+
+# Unit test / coverage reports
+.coverage
+.tox
+coverage.xml
+nosetests.xml
+
+#Translations
+*.mo
+
+# Emacs backup files
+*~
+
+# Eclipse IDE
+/.project
+/.pydevproject
+
+# IDEA IDE
+.idea*
+src/
+
+# CLI docs generation
+doc/source/aws_man_pages.json
+doc/source/reference
+doc/source/topic
+doc/source/tutorial/services.rst
+
+# Pyenv
+.python-version
 venv/
