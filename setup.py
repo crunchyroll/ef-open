@@ -4,7 +4,7 @@ from setuptools import setup
 
 setup(
     name='ef-open',
-    version='0.1.2',
+    version='0.1.3',
     packages=['efopen'],
     install_requires=[
         "boto3",

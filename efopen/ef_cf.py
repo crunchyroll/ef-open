@@ -29,7 +29,6 @@ import botocore.exceptions
 
 from ef_config import EFConfig
 from ef_context import EFContext
-from ef_plugin import run_plugins
 from ef_service_registry import EFServiceRegistry
 from ef_template_resolver import EFTemplateResolver
 from ef_utils import create_aws_clients, fail, pull_repo
@@ -298,7 +297,6 @@ def main():
             sys.exit(1)
           elif re.match(r".*_IN_PROGRESS(?!.)", stack_status) is not None:
             time.sleep(EFConfig.EF_CF_POLL_PERIOD)
-    run_plugins(context, clients)
   except botocore.exceptions.ClientError as error:
     if error.response["Error"]["Message"] in "No updates are to be performed.":
       # Don't fail when there is no update to the stack
