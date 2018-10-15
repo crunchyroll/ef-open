@@ -33,7 +33,7 @@ Where:
 `TAG` - the most recent Git tag string (written by the user when the Git tag was created)
 `DISTANCE` - the number of commits between the current commit and the given TAG.  If this git commit _is_ the tagged commit, this value will be omitted.
 `SHORTHASH` - the short Git ref hash, specifying the specific Git ref of the current commit.  If this git commit _is_ the tagged commit, this value will be omitted.
-".dirty" - will be appended if the working copy has uncommitted modifications.
+".dirty" - will be appended if the working copy has uncommitted changes to tracked files (but importantly, un-tracked files will not affect this flag).
 
 ### Creating a new Release
 To cut a new package release:
