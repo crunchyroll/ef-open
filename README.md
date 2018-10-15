@@ -36,10 +36,10 @@ Where:
 ".dirty" - will be appended if the working copy has uncommitted changes to tracked files (but importantly, un-tracked files will not affect this flag).
 
 ### Creating a new Release
-To cut a new package release:
+To cut a new package release (for example, for a version `1.2.3`):
 - Git tag the target Git commit:
 ``` bash
-git tag -a -m "Some reasonable tag message"
+git tag -a 1.2.3 -m "Some reasonable tag message"
 ```
 - Push the code and tag:
 ``` bash
