@@ -1,14 +1,18 @@
 #!/usr/bin/env python
 
 from setuptools import setup
+import versioneer
 
 setup(
     name='ef-open',
-    version='0.1.3',
-    packages=['efopen'],
+    version=versioneer.get_version(),
+    cmdclass=versioneer.get_cmdclass(),
+    packages=[
+        'efopen'
+    ],
     install_requires=[
-        "boto3",
-        "PyYAML"
+        'boto3',
+        'PyYAML'
     ],
     entry_points={
         'console_scripts': [
