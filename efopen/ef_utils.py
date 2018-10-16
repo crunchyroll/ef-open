@@ -89,9 +89,12 @@ def whereami():
   except:
     pass
   # Virtualbox?
-  if isfile(__VIRT_WHAT) and access(__VIRT_WHAT, X_OK):
-    if subprocess.check_output(["sudo", __VIRT_WHAT]).split('\n')[0:2] == __VIRT_WHAT_VIRTUALBOX_WITH_KVM:
-      return "virtualbox-kvm"
+  try:
+    if isfile(__VIRT_WHAT) and access(__VIRT_WHAT, X_OK):
+      if subprocess.check_output(["sudo", __VIRT_WHAT]).split('\n')[0:2] == __VIRT_WHAT_VIRTUALBOX_WITH_KVM:
+        return "virtualbox-kvm"
+  except:
+    return "unknown"
   # Outside virtualbox/vagrant but not in aws; hostname is "<name>.local"
   hostname = gethostname()
   if re.findall(r"\.local$", hostname):
