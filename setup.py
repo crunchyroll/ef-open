@@ -12,8 +12,14 @@ setup(
     ],
     install_requires=[
         'boto3',
-        'PyYAML'
+        'PyYAML',
     ],
+    extras_require={
+        'test': [
+            'mock',
+            'pylint',
+        ]
+    },
     entry_points={
         'console_scripts': [
             'ef-cf=efopen.ef_cf:main',

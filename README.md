@@ -20,6 +20,15 @@ If you have the ef-open installed and want to upgrade to the latest version you 
 
 
 # Development
+## Testing and Linting
+This project uses Python `unittest` framework for unit tests, and pylint for lint checking.
+```
+python setup.py test
+
+pylint --rcfile=./pylintrc ./efopen
+```
+
+
 ## Versions
 This project uses [Versioneer](https://github.com/warner/python-versioneer) to manage the release versions, based on Git tags on the code repository.
 
