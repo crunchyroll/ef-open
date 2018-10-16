@@ -23,7 +23,7 @@ from mock import Mock, patch, mock_open
 
 import context_paths
 
-ef_password = __import__("ef-password")
+import ef_password
 
 
 class TestEFPassword(unittest.TestCase):
@@ -88,9 +88,9 @@ class TestEFPassword(unittest.TestCase):
     with self.assertRaises(ValueError):
       ef_password.handle_args_and_set_context(args)
 
-  @patch('ef-password.generate_secret', return_value="mock_secret")
+  @patch('ef_password.generate_secret', return_value="mock_secret")
   @patch('ef_utils.create_aws_clients')
-  @patch('ef-password.handle_args_and_set_context')
+  @patch('ef_password.handle_args_and_set_context')
   def test_main(self, mock_context, mock_create_aws, mock_gen):
     """Test valid main() call with just service and env.
     Ensure generate_password and encrypt are called with the correct parameters"""
@@ -106,9 +106,9 @@ class TestEFPassword(unittest.TestCase):
       Plaintext="mock_secret".encode()
     )
 
-  @patch('ef-password.generate_secret', return_value="mock_secret")
+  @patch('ef_password.generate_secret', return_value="mock_secret")
   @patch('ef_utils.create_aws_clients')
-  @patch('ef-password.handle_args_and_set_context')
+  @patch('ef_password.handle_args_and_set_context')
   def test_main_plaintext(self, mock_context, mock_create_aws, mock_gen):
     """Test valid main() call with service, env, and --plaintext.
     Ensure generate_password and encrypt are called with the correct parameters"""
@@ -124,9 +124,9 @@ class TestEFPassword(unittest.TestCase):
       Plaintext=self.secret.encode()
     )
 
-  @patch('ef-password.generate_secret')
+  @patch('ef_password.generate_secret')
   @patch('ef_utils.create_aws_clients')
-  @patch('ef-password.handle_args_and_set_context')
+  @patch('ef_password.handle_args_and_set_context')
   def test_main_decrypt(self, mock_context, mock_create_aws, mock_gen):
     """Test valid main() call with service, env, and --decrypt.
     Ensure decrypt is called with the correct parameters"""
@@ -139,9 +139,9 @@ class TestEFPassword(unittest.TestCase):
     self.mock_kms.encrypt.assert_not_called()
     self.mock_kms.decrypt.assert_called_once_with(CiphertextBlob=self.secret)
 
-  @patch('ef-password.generate_secret_file')
+  @patch('ef_password.generate_secret_file')
   @patch('ef_utils.create_aws_clients')
-  @patch('ef-password.handle_args_and_set_context')
+  @patch('ef_password.handle_args_and_set_context')
   def test_main_secret_file_parameters(self, mock_context, mock_create_aws, mock_gen):
     """Test valid main() call with service, env, --secret_file, and --match.
     Ensure generate_secret_file is called with the correct parameters"""
@@ -158,7 +158,7 @@ class TestEFPassword(unittest.TestCase):
   @patch('json.load')
   @patch('__builtin__.open', new_callable=mock_open)
   @patch('ef_utils.create_aws_clients')
-  @patch('ef-password.handle_args_and_set_context')
+  @patch('ef_password.handle_args_and_set_context')
   def test_generate_secret_file(self, mock_context, mock_create_aws, mock_file_open, mock_json, mock_dump):
     """Test generate_secret_file and ensure encrypt is called with the correct parameters"""
     context = ef_password.EFPWContext()
