@@ -178,12 +178,32 @@ class TestEFUtils(unittest.TestCase):
       ef_utils.http_get_metadata("ami-id")
     self.assertIn("Non-200 response", exception.exception.message)
 
+  @patch('ef_utils.http_get_metadata')
+  def test_whereami_ec2(self, mock_http_get_metadata):
+    """
+    Tests whereami to see if it returns 'ec2' by mocking an ec2 environment
+
+    Args:
+      mock_http_get_metadata: MagicMock, returns "i-somestuff"
+
+    Returns:
+      None
+
+    Raises:
+      AssertionError if any of the assert checks fail
+    """
+    mock_http_get_metadata.return_value = "i-somestuff"
+    result = ef_utils.whereami()
+    self.assertEquals(result, "ec2")
+
   @patch('ef_utils.gethostname')
-  def test_whereami_local(self, mock_gethostname):
+  @patch('ef_utils.http_get_metadata')
+  def test_whereami_local(self, mock_http_get_metadata, mock_gethostname):
     """
     Tests whereami to see if it returns 'local' by mocking a local machine environment
 
     Args:
+      mock_http_get_metadata: MagicMock, returns something other than "i-...."
       mock_gethostname: MagicMock, returns .local
 
     Returns:
@@ -192,16 +212,19 @@ class TestEFUtils(unittest.TestCase):
     Raises:
       AssertionError if any of the assert checks fail
     """
+    mock_http_get_metadata.return_value = "nothinguseful"
     mock_gethostname.return_value = ".local"
     result = ef_utils.whereami()
     self.assertEquals(result, "local")
 
   @patch('ef_utils.gethostname')
-  def test_whereami_unknown(self, mock_gethostname):
+  @patch('ef_utils.http_get_metadata')
+  def test_whereami_unknown(self, mock_http_get_metadata, mock_gethostname):
     """
     Tests whereami to see if it returns 'unknown' by mocking the environment to not match anything
 
     Args:
+      mock_http_get_metadata: MagicMock, returns something other than "i-...."
       mock_gethostname: MagicMock, returns some junk value
 
     Returns:
@@ -210,6 +233,7 @@ class TestEFUtils(unittest.TestCase):
     Raises:
       AssertionError if any of the assert checks fail
     """
+    mock_http_get_metadata.return_value = "nothinguseful"
     mock_gethostname.return_value = "not local"
     result = ef_utils.whereami()
     self.assertEquals(result, "unknown")
