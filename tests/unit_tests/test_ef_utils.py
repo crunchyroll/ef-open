@@ -196,9 +196,10 @@ class TestEFUtils(unittest.TestCase):
     result = ef_utils.whereami()
     self.assertEquals(result, "ec2")
 
+  @patch('ef_utils.is_in_virtualbox')
   @patch('ef_utils.gethostname')
   @patch('ef_utils.http_get_metadata')
-  def test_whereami_local(self, mock_http_get_metadata, mock_gethostname):
+  def test_whereami_local(self, mock_http_get_metadata, mock_gethostname, mock_is_in_virtualbox):
     """
     Tests whereami to see if it returns 'local' by mocking a local machine environment
 
@@ -213,13 +214,15 @@ class TestEFUtils(unittest.TestCase):
       AssertionError if any of the assert checks fail
     """
     mock_http_get_metadata.return_value = "nothinguseful"
+    mock_is_in_virtualbox.return_value = False
     mock_gethostname.return_value = ".local"
     result = ef_utils.whereami()
     self.assertEquals(result, "local")
 
+  @patch('ef_utils.is_in_virtualbox')
   @patch('ef_utils.gethostname')
   @patch('ef_utils.http_get_metadata')
-  def test_whereami_unknown(self, mock_http_get_metadata, mock_gethostname):
+  def test_whereami_unknown(self, mock_http_get_metadata, mock_gethostname, mock_is_in_virtualbox):
     """
     Tests whereami to see if it returns 'unknown' by mocking the environment to not match anything
 
@@ -234,6 +237,7 @@ class TestEFUtils(unittest.TestCase):
       AssertionError if any of the assert checks fail
     """
     mock_http_get_metadata.return_value = "nothinguseful"
+    mock_is_in_virtualbox.return_value = False
     mock_gethostname.return_value = "not local"
     result = ef_utils.whereami()
     self.assertEquals(result, "unknown")

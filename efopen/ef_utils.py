@@ -72,6 +72,19 @@ def http_get_metadata(metadata_path, timeout=__HTTP_DEFAULT_TIMEOUT_SEC):
   except urllib2.URLError as error:
     raise IOError("URLError in http_get_metadata: " + repr(error))
 
+def is_in_virtualbox():
+  """
+  Is the current environment a virtualbox instance?
+  Returns a boolean
+  Raises IOError if the necessary tooling isn't available
+  """
+  if not isfile(__VIRT_WHAT) or not access(__VIRT_WHAT, X_OK):
+    raise IOError("virt-what not available")
+  try:
+    return subprocess.check_output(["sudo", "-n", __VIRT_WHAT]).split('\n')[0:2] == __VIRT_WHAT_VIRTUALBOX_WITH_KVM
+  except subprocess.CalledProcessError as e:
+    raise IOError("virt-what failed execution with {}".format(e))
+
 def whereami():
   """
   Determine if this is an ec2 instance or "running locally"
@@ -82,23 +95,27 @@ def whereami():
     "unknown" - I have no idea where I am
   """
   # If the metadata endpoint responds, this is an EC2 instance
+  # If it doesn't, we can safely say this isn't EC2 and try the other options
   try:
     response = http_get_metadata("instance-id", 1)
     if response[:2] == "i-":
       return "ec2"
   except:
     pass
+
   # Virtualbox?
   try:
-    if isfile(__VIRT_WHAT) and access(__VIRT_WHAT, X_OK):
-      if subprocess.check_output(["sudo", __VIRT_WHAT]).split('\n')[0:2] == __VIRT_WHAT_VIRTUALBOX_WITH_KVM:
-        return "virtualbox-kvm"
+    if is_in_virtualbox():
+      return "virtualbox-kvm"
   except:
-    return "unknown"
+    pass
+
   # Outside virtualbox/vagrant but not in aws; hostname is "<name>.local"
   hostname = gethostname()
   if re.findall(r"\.local$", hostname):
     return "local"
+
+  # we have no idea where we are
   return "unknown"
 
 def http_get_instance_env():
