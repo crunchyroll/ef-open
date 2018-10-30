@@ -605,8 +605,10 @@ class EFAwsResolver(object):
       return self.cloudfront_origin_access_identity_oai_canonical_user_id(*kv[1:])
     elif kv[0] == "cloudfront:origin-access-identity/oai-id":
       return self.cloudfront_origin_access_identity_oai_id(*kv[1:])
-    elif kv[0] == "cognito-identity:get-identity-pool-id":
+    elif kv[0] == "cognito-identity:identity-pool-id":
       return self.cognito_identity_identity_pool_id(*kv[1:])
+    elif kv[0] == "cognito-idp:user-pool-id":
+      return self.cognito_idp_user_pool_id(*kv[1:])
     elif kv[0] == "ec2:elasticip/elasticip-id":
       return self.ec2_elasticip_elasticip_id(*kv[1:])
     elif kv[0] == "ec2:elasticip/elasticip-ipaddress":
