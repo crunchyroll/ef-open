@@ -237,8 +237,9 @@ class EFTemplateResolver(object):
       # Create clients - if accessing by role, profile should be None
       try:
         EFTemplateResolver.__CLIENTS = create_aws_clients(self.resolved["REGION"], profile,
-                                                          "cloudformation", "cloudfront", "ec2", "iam", "kms",
-                                                          "lambda", "route53", "s3", "sts", "waf")
+                                                          "cloudformation", "cloudfront", "cognito-identity",
+                                                          "cognito-idp", "ec2", "iam", "kms", "lambda", "route53",
+                                                          "s3", "sts", "waf")
       except RuntimeError as error:
         fail("Exception logging in with Session()", error)
 

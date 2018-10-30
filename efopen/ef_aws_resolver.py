@@ -513,6 +513,65 @@ class EFAwsResolver(object):
       else:
         return default
 
+  def cognito_identity_identity_pool_id(self, lookup, default=None):
+    """
+    Args:
+        lookup: Cognito Federated Identity name, proto0-cms-identity-pool
+        default: the optional value to return if lookup failed; returns None if not set
+
+    Returns:
+        the Identity Pool ID corresponding to the given lookup, else default/None
+    """
+    list_limit = 60
+    response = EFAwsResolver.__CLIENTS["cognito-identity"].list_identity_pools(MaxResults=list_limit)
+
+    while True:
+      if not response.has_key("IdentityPools"):
+        break
+
+      # Loop through all the identity pools
+      for pool in response["IdentityPools"]:
+        if pool["IdentityPoolName"] == lookup:
+          return pool["IdentityPoolId"]
+
+      # No match found on this page, but there are more pages
+      if response.has_key("NextToken"):
+        response = EFAwsResolver.__CLIENTS["cognito-identity"].list_identity_pools(MaxResults=list_limit,
+                                                                                   NextToken=response["NextToken"])
+      else:
+        break
+
+    return default
+
+  def cognito_idp_user_pool_id(self, lookup, default=None):
+    """
+    Args:
+        lookup: Cognito User Pool name, proto0-cms-user-pool
+        default: the optional value to return if lookup failed; returns None if not set
+
+    Returns:
+        the User Pool ID corresponding to the given lookup, else default/None
+    """
+    list_limit = 60
+    response = EFAwsResolver.__CLIENTS["cognito-idp"].list_identity_pools(MaxResults=list_limit)
+    while True:
+      if not response.has_key("UserPools"):
+        break
+
+      # Loop through all user pools
+      for pool in response["UserPools"]:
+        if pool["Name"] == lookup:
+          return pool["Id"]
+
+        # No match found on this page, but there are more pages
+        if response.has_key("NextToken"):
+          response = EFAwsResolver.__CLIENTS["cognito-idp"].list_identity_pools(MaxResults=list_limit,
+                                                                                NextToken=response["NextToken"])
+        else:
+          break
+
+    return default
+
   def kms_decrypt_value(self, lookup):
     """
     Args:
@@ -546,6 +605,8 @@ class EFAwsResolver(object):
       return self.cloudfront_origin_access_identity_oai_canonical_user_id(*kv[1:])
     elif kv[0] == "cloudfront:origin-access-identity/oai-id":
       return self.cloudfront_origin_access_identity_oai_id(*kv[1:])
+    elif kv[0] == "cognito-identity:get-identity-pool-id":
+      return self.cognito_identity_identity_pool_id(*kv[1:])
     elif kv[0] == "ec2:elasticip/elasticip-id":
       return self.ec2_elasticip_elasticip_id(*kv[1:])
     elif kv[0] == "ec2:elasticip/elasticip-ipaddress":
