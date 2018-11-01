@@ -525,7 +525,7 @@ class EFAwsResolver(object):
     identity_pool_id = self.cognito_identity_identity_pool_id(lookup, default)
 
     # The ARN has to be constructed because there is no boto3 call that returns the full ARN for a cognito identity pool
-    return "arn:aws:cognito-identity:${AWS::Region}:${AWS::AccountId}:identitypool/{}".format(identity_pool_id)
+    return "arn:aws:cognito-identity:${{AWS::Region}}:${{AWS::AccountId}}:identitypool/{}".format(identity_pool_id)
 
   def cognito_identity_identity_pool_id(self, lookup, default=None):
     """
@@ -588,7 +588,7 @@ class EFAwsResolver(object):
         the User Pool ID corresponding to the given lookup, else default/None
     """
     list_limit = 60
-    response = EFAwsResolver.__CLIENTS["cognito-idp"].list_identity_pools(MaxResults=list_limit)
+    response = EFAwsResolver.__CLIENTS["cognito-idp"].list_user_pools(MaxResults=list_limit)
     while True:
       if not response.has_key("UserPools"):
         break
@@ -598,12 +598,12 @@ class EFAwsResolver(object):
         if pool["Name"] == lookup:
           return pool["Id"]
 
-        # No match found on this page, but there are more pages
-        if response.has_key("NextToken"):
-          response = EFAwsResolver.__CLIENTS["cognito-idp"].list_identity_pools(MaxResults=list_limit,
-                                                                                NextToken=response["NextToken"])
-        else:
-          break
+      # No match found on this page, but there are more pages
+      if response.has_key("NextToken"):
+        response = EFAwsResolver.__CLIENTS["cognito-idp"].list_identity_pools(MaxResults=list_limit,
+                                                                              NextToken=response["NextToken"])
+      else:
+        break
 
     return default
 
