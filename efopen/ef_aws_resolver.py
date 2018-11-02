@@ -540,8 +540,8 @@ class EFAwsResolver(object):
         the Cognito Identity Pool ID corresponding to the given lookup, else default/None
     """
     list_limit = 60
-    cognito_identity_client = EFAwsResolver.__CLIENTS["cognito-identity"]
-    response = cognito_identity_client.list_identity_pools(MaxResults=list_limit)
+    client = EFAwsResolver.__CLIENTS["cognito-identity"]
+    response = client.list_identity_pools(MaxResults=list_limit)
 
     while "IdentityPools" in response:
       # Loop through all the identity pools
@@ -551,7 +551,7 @@ class EFAwsResolver(object):
 
       # No match found on this page, but there are more pages
       if response.has_key("NextToken"):
-        response = cognito_identity_client.list_identity_pools(MaxResults=list_limit, NextToken=response["NextToken"])
+        response = client.list_identity_pools(MaxResults=list_limit, NextToken=response["NextToken"])
       else:
         break
 
@@ -566,12 +566,12 @@ class EFAwsResolver(object):
     Returns:
         the User Pool ARN corresponding to the given lookup, else default/None
     """
-    cognito_idp_client = EFAwsResolver.__CLIENTS["cognito-idp"]
-    user_pool_id = self.cognito_idp_user_pool_id(lookup, default)
+    client = EFAwsResolver.__CLIENTS["cognito-idp"]
+    user_pool_id = self.client(lookup, default)
     if not user_pool_id:
       return default
 
-    response = cognito_idp_client.describe_user_pool(UserPoolId=user_pool_id)
+    response = client.describe_user_pool(UserPoolId=user_pool_id)
 
     if not response.has_key("UserPool"):
       return default
@@ -588,8 +588,8 @@ class EFAwsResolver(object):
         the User Pool ID corresponding to the given lookup, else default/None
     """
     list_limit = 60
-    cognito_idp_client = EFAwsResolver.__CLIENTS["cognito-idp"]
-    response = cognito_idp_client.list_user_pools(MaxResults=list_limit)
+    client = EFAwsResolver.__CLIENTS["cognito-idp"]
+    response = client.list_user_pools(MaxResults=list_limit)
 
     while "UserPools" in response:
       # Loop through all user pools
@@ -599,7 +599,7 @@ class EFAwsResolver(object):
 
       # No match found on this page, but there are more pages
       if response.has_key("NextToken"):
-        response = cognito_idp_client.list_identity_pools(MaxResults=list_limit, NextToken=response["NextToken"])
+        response = client.list_identity_pools(MaxResults=list_limit, NextToken=response["NextToken"])
       else:
         break
 
