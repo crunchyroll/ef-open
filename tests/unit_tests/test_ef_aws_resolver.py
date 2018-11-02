@@ -1873,7 +1873,7 @@ class TestEFAwsResolver(unittest.TestCase):
     return identity_pool_list
 
   def test_cognito_identity_identity_pool_arn(self):
-    # Mock the return value of the cognito-identity client that would be invoked with this lookup
+    # Mock the return values involved with this lookup
     self._clients["cognito-identity"].list_identity_pools.return_value = \
       self._generate_cognito_identity_identity_pool_list()
 
@@ -1883,7 +1883,7 @@ class TestEFAwsResolver(unittest.TestCase):
                      result)
 
   def test_cognito_identity_identity_pool_arn_no_match(self):
-    # Mock the return value of the cognito-identity client that would be invoked with this lookup
+    # Mock the return values involved with this lookup
     self._clients["cognito-identity"].list_identity_pools.return_value = \
       self._generate_cognito_identity_identity_pool_list()
 
@@ -1892,7 +1892,7 @@ class TestEFAwsResolver(unittest.TestCase):
     self.assertIsNone(result)
 
   def test_cognito_identity_identity_pool_id(self):
-    # Mock the return value of the cognito-identity client that would be invoked with this lookup
+    # Mock the return values involved with this lookup
     self._clients["cognito-identity"].list_identity_pools.return_value = \
       self._generate_cognito_identity_identity_pool_list()
 
@@ -1901,7 +1901,7 @@ class TestEFAwsResolver(unittest.TestCase):
     self.assertEqual("us-west-2:proto0_pool_id", result)
 
   def test_cognito_identity_identity_pool_id_no_match(self):
-    # Mock the return value of the cognito-identity client that would be invoked with this lookup
+    # Mock the return values involved with this lookup
     self._clients["cognito-identity"].list_identity_pools.return_value = \
       self._generate_cognito_identity_identity_pool_list()
 
@@ -1909,6 +1909,65 @@ class TestEFAwsResolver(unittest.TestCase):
     result = ef_aws_resolver.lookup("cognito-identity:identity-pool-id,no_match")
     self.assertIsNone(result)
 
+  def _generate_cognito_idp_user_pool_list(self):
+    user_pool_list = \
+      {
+        "UserPools": [
+          {
+            "Id": "us-west-2_staging-user-pool-id",
+            "Name": "staging-cms-user-pool"
+          },
+          {
+            "Id": "us-west-2_proto0-user-pool-id",
+            "Name": "proto0-cms-user-pool"
+          }
+        ]
+      }
+    return user_pool_list
+
+  def _generate_cognito_idp_user_pool(self):
+    user_pool = \
+      {
+        "UserPool": {
+          "Id": "proto0-cms-user-pool",
+          "Arn": "arn:aws:cognito-idp:us-west-2:123:userpool/us-west-2_proto0-user-pool-id"
+        }
+      }
+    return user_pool
+
+  def test_cognito_idp_user_pool_arn(self):
+    # Mock the return values involved with this lookup
+    self._clients["cognito-idp"].list_user_pools.return_value = self._generate_cognito_idp_user_pool_list()
+    self._clients["cognito-idp"].describe_user_pool.return_value = self._generate_cognito_idp_user_pool()
+
+    ef_aws_resolver = EFAwsResolver(self._clients)
+    result = ef_aws_resolver.lookup("cognito-idp:user-pool-arn,proto0-cms-user-pool")
+    self.assertEqual("arn:aws:cognito-idp:us-west-2:123:userpool/us-west-2_proto0-user-pool-id", result)
+
+  def test_cognito_idp_user_pool_arn_no_match(self):
+    # Mock the return values involved with this lookup
+    self._clients["cognito-idp"].list_user_pools.return_value = self._generate_cognito_idp_user_pool_list()
+    self._clients["cognito-idp"].describe_user_pool.return_value = self._generate_cognito_idp_user_pool()
+
+    ef_aws_resolver = EFAwsResolver(self._clients)
+    result = ef_aws_resolver.lookup("cognito-idp:user-pool-arn,no_match")
+    self.assertIsNone(result)
+
+  def test_cognito_idp_user_pool_id(self):
+    # Mock the return values involved with this lookup
+    self._clients["cognito-idp"].list_user_pools.return_value = self._generate_cognito_idp_user_pool_list()
+
+    ef_aws_resolver = EFAwsResolver(self._clients)
+    result = ef_aws_resolver.lookup("cognito-idp:user-pool-id,proto0-cms-user-pool")
+    self.assertEqual("us-west-2_proto0-user-pool-id", result)
+
+  def test_cognito_idp_user_pool_id_no_match(self):
+    # Mock the return values involved with this lookup
+    self._clients["cognito-idp"].list_user_pools.return_value = self._generate_cognito_idp_user_pool_list()
+
+    ef_aws_resolver = EFAwsResolver(self._clients)
+    result = ef_aws_resolver.lookup("cognito-idp:user-pool-id,no_match")
+    self.assertIsNone(result)
 
   def test_lookup_invalid_input(self):
     """
