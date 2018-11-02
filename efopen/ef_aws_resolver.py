@@ -539,6 +539,7 @@ class EFAwsResolver(object):
     Returns:
         the Cognito Identity Pool ID corresponding to the given lookup, else default/None
     """
+    # List size cannot be greater than 60
     list_limit = 60
     client = EFAwsResolver.__CLIENTS["cognito-identity"]
     response = client.list_identity_pools(MaxResults=list_limit)
@@ -587,6 +588,7 @@ class EFAwsResolver(object):
     Returns:
         the User Pool ID corresponding to the given lookup, else default/None
     """
+    # List size cannot be greater than 60
     list_limit = 60
     client = EFAwsResolver.__CLIENTS["cognito-idp"]
     response = client.list_user_pools(MaxResults=list_limit)
