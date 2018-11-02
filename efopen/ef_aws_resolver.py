@@ -524,6 +524,9 @@ class EFAwsResolver(object):
     """
     identity_pool_id = self.cognito_identity_identity_pool_id(lookup, default)
 
+    if not identity_pool_id:
+      return default
+
     # The ARN has to be constructed because there is no boto3 call that returns the full ARN for a cognito identity pool
     return "arn:aws:cognito-identity:${{AWS::Region}}:${{AWS::AccountId}}:identitypool/{}".format(identity_pool_id)
 
