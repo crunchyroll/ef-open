@@ -1970,3 +1970,23 @@ class TestEFAwsResolver(unittest.TestCase):
     self.assertEqual(
       ef_aws_resolver.lookup("elbv2:load-balancer/hosted-zone,%s" % lb_name),
       None)
+
+  def test_elbv2_load_balancer_dns_name(self):
+    """
+    Tests for ELBV2 DNS name lookup
+    """
+    hosted_zone = "ELBV2_hosted_zone"
+    dns_name = 'load-balancer.ellation.com'
+    lb_name = "env-balancer-name"
+    lb_description = {
+        u'LoadBalancers': [{
+            u'CanonicalHostedZoneId': hosted_zone,
+            u'DNSName': dns_name,
+            u'LoadBalancerName': lb_name,
+            }],
+        }
+    self._clients["elbv2"].describe_load_balancers.return_value = lb_description
+    ef_aws_resolver = EFAwsResolver(self._clients)
+    self.assertEqual(
+      ef_aws_resolver.lookup("elbv2:load-balancer/dns-name,%s" % lb_name),
+      dns_name)
