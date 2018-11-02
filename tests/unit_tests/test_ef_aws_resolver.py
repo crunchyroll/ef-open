@@ -1950,9 +1950,9 @@ class TestEFAwsResolver(unittest.TestCase):
       ef_aws_resolver.lookup("elbv2:load-balancer/hosted-zone,%s" % lb_name),
       hosted_zone)
 
-  def test_elbv2_load_balancer_hosted_zone_no_such_elb(self):
+  def test_elbv2_load_balancer_no_such_elb(self):
     """
-    Tests for ELBv2 hosted zone lookup
+    Tests for fail in case of a missing ELBv2 attribute lookup
     """
     lb_name = "env-balancer-name"
     error = ClientError(
@@ -1966,10 +1966,14 @@ class TestEFAwsResolver(unittest.TestCase):
                 operation_name="DescribeLoadBalancers")
 
     self._clients["elbv2"].describe_load_balancers.side_effect = error
+
     ef_aws_resolver = EFAwsResolver(self._clients)
-    self.assertEqual(
-      ef_aws_resolver.lookup("elbv2:load-balancer/hosted-zone,%s" % lb_name),
-      None)
+    lookup_inputs = ["elbv2:load-balancer/hosted-zone,%s",
+                     "elbv2:load-balancer/dns-name,%s"]
+    for test in lookup_inputs:
+      self.assertEqual(
+        ef_aws_resolver.lookup(test % lb_name),
+        None)
 
   def test_elbv2_load_balancer_dns_name(self):
     """

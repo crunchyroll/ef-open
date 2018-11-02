@@ -312,6 +312,13 @@ class EFAwsResolver(object):
     else:
       return default
 
+  def elbv2_load_balancer(self, lookup):
+    client = EFAwsResolver.__CLIENTS['elbv2']
+    elbs = client.describe_load_balancers(Names=[lookup])
+    # getting the first one, since we requested only one lb
+    elb = elbs['LoadBalancers'][0]
+    return elb
+
   def elbv2_load_balancer_hosted_zone(self, lookup):
     """
     Args:
@@ -321,9 +328,7 @@ class EFAwsResolver(object):
       None if no match found
     """
     try:
-      client = EFAwsResolver.__CLIENTS['elbv2']
-      elbs = client.describe_load_balancers(Names=[lookup])
-      elb = elbs['LoadBalancers'][0]
+      elb = self.elbv2_load_balancer(lookup)
       return elb['CanonicalHostedZoneId']
     except ClientError:
       return None
@@ -337,9 +342,7 @@ class EFAwsResolver(object):
       None if no match found
     """
     try:
-      client = EFAwsResolver.__CLIENTS['elbv2']
-      elbs = client.describe_load_balancers(Names=[lookup])
-      elb = elbs['LoadBalancers'][0]
+      elb = self.elbv2_load_balancer(lookup)
       return elb['DNSName']
     except ClientError:
       return None
