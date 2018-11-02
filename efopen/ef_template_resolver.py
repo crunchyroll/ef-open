@@ -235,10 +235,13 @@ class EFTemplateResolver(object):
         self.resolved["REGION"] = get_metadata_or_fail("placement/availability-zone/")[:-1]
 
       # Create clients - if accessing by role, profile should be None
+      clients = [
+         "cloudformation", "cloudfront", "ec2",
+         "elbv2", "iam", "kms", "lambda",
+         "route53", "s3", "sts", "waf",
+      ]
       try:
-        EFTemplateResolver.__CLIENTS = create_aws_clients(self.resolved["REGION"], profile,
-                                                          "cloudformation", "cloudfront", "ec2", "iam", "kms",
-                                                          "lambda", "route53", "s3", "sts", "waf")
+        EFTemplateResolver.__CLIENTS = create_aws_clients(self.resolved["REGION"], profile, *clients)
       except RuntimeError as error:
         fail("Exception logging in with Session()", error)
 

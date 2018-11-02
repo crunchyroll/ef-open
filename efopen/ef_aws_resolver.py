@@ -312,6 +312,23 @@ class EFAwsResolver(object):
     else:
       return default
 
+  def elbv2_load_balancer_hosted_zone(self, lookup):
+    """
+    Args:
+      lookup: the friendly name of the V2 elb to look up
+    Returns:
+      The hosted zone ID of the ELB found with a name matching 'lookup'.
+      None if no match found
+    """
+    try:
+      client = EFAwsResolver.__CLIENTS['elbv2']
+      elbs = client.describe_load_balancers(Names=[lookup])
+      elb = elbs['LoadBalancers'][0]
+      return elb['CanonicalHostedZoneId']
+    except ClientError:
+      return None
+
+
   def waf_rule_id(self, lookup, default=None):
     """
     Args:
@@ -572,6 +589,8 @@ class EFAwsResolver(object):
       return self.ec2_vpc_subnets(*kv[1:])
     elif kv[0] == "ec2:vpc/vpc-id":
       return self.ec2_vpc_vpc_id(*kv[1:])
+    elif kv[0] == "elbv2:load-balancer/hosted-zone":
+      return self.elbv2_load_balancer_hosted_zone(*kv[1:])
     elif kv[0] == "kms:decrypt":
       return self.kms_decrypt_value(*kv[1:])
     elif kv[0] == "kms:key_arn":

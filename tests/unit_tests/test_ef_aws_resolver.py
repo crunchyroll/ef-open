@@ -47,6 +47,7 @@ class TestEFAwsResolver(unittest.TestCase):
     mock_waf_client = Mock(name="Mock WAF Client")
     mock_session = Mock(name="Mock Client")
     mock_kms_client = Mock(name="Mock KMS Client")
+    mock_elbv2_client = Mock(name="Mock ELBV2 Client")
 
     self._clients = {
       "cloudformation": mock_cloud_formation_client,
@@ -55,7 +56,8 @@ class TestEFAwsResolver(unittest.TestCase):
       "route53": mock_route_53_client,
       "waf": mock_waf_client,
       "SESSION": mock_session,
-      "kms": mock_kms_client
+      "kms": mock_kms_client,
+      "elbv2": mock_elbv2_client,
     }
 
   def tearDown(self):
@@ -1928,3 +1930,43 @@ class TestEFAwsResolver(unittest.TestCase):
     ef_aws_resolver = EFAwsResolver(self._clients)
     with self.assertRaises(RuntimeError):
       ef_aws_resolver.lookup("kms:key_arn,alias/key_no_exist")
+
+  def test_elbv2_load_balancer_hosted_zone(self):
+    """
+    Tests for ELBv2 hosted zone lookup
+    """
+    hosted_zone = "ELBV2_hosted_zone"
+    lb_name = "env-balancer-name"
+    lb_description = {
+        u'LoadBalancers': [{
+            u'CanonicalHostedZoneId': hosted_zone,
+            u'DNSName': 'load-balancer.ellation.com',
+            u'LoadBalancerName': lb_name,
+            }],
+        }
+    self._clients["elbv2"].describe_load_balancers.return_value = lb_description
+    ef_aws_resolver = EFAwsResolver(self._clients)
+    self.assertEqual(
+      ef_aws_resolver.lookup("elbv2:load-balancer/hosted-zone,%s" % lb_name),
+      hosted_zone)
+
+  def test_elbv2_load_balancer_hosted_zone_no_such_elb(self):
+    """
+    Tests for ELBv2 hosted zone lookup
+    """
+    lb_name = "env-balancer-name"
+    error = ClientError(
+            error_response={
+                'Error': {'Code': 'LoadBalancerNotFound',
+                    'Message': "Load balancers '[%s]' not found" % lb_name,
+                    'Type': 'Sender'},
+                'HTTPStatusCode': 400,
+                'RequestId': 'ed43d22b-ddf9-11e8-a877-6f5e88f35437',
+                'RetryAttempts': 0},
+                operation_name="DescribeLoadBalancers")
+
+    self._clients["elbv2"].describe_load_balancers.side_effect = error
+    ef_aws_resolver = EFAwsResolver(self._clients)
+    self.assertEqual(
+      ef_aws_resolver.lookup("elbv2:load-balancer/hosted-zone,%s" % lb_name),
+      None)
