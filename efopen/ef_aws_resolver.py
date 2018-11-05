@@ -313,11 +313,20 @@ class EFAwsResolver(object):
       return default
 
   def elbv2_load_balancer(self, lookup):
+    """
+    Args:
+      lookup: the friendly name of the V2 elb to look up
+    Returns:
+      A dict with the load balancer description
+    Raises:
+      botocore.exceptions.ClientError: no such load-balancer
+    """
     client = EFAwsResolver.__CLIENTS['elbv2']
     elbs = client.describe_load_balancers(Names=[lookup])
     # getting the first one, since we requested only one lb
     elb = elbs['LoadBalancers'][0]
     return elb
+
 
   def elbv2_load_balancer_hosted_zone(self, lookup):
     """
