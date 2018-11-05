@@ -328,33 +328,33 @@ class EFAwsResolver(object):
     return elb
 
 
-  def elbv2_load_balancer_hosted_zone(self, lookup):
+  def elbv2_load_balancer_hosted_zone(self, lookup, default=None):
     """
     Args:
       lookup: the friendly name of the V2 elb to look up
+      default: value to return in case of no match
     Returns:
       The hosted zone ID of the ELB found with a name matching 'lookup'.
-      None if no match found
     """
     try:
       elb = self.elbv2_load_balancer(lookup)
       return elb['CanonicalHostedZoneId']
     except ClientError:
-      return None
+      return default
 
-  def elbv2_load_balancer_dns_name(self, lookup):
+  def elbv2_load_balancer_dns_name(self, lookup, default=None):
     """
     Args:
       lookup: the friendly name of the V2 elb to look up
+      default: value to return in case of no match
     Returns:
       The hosted zone ID of the ELB found with a name matching 'lookup'.
-      None if no match found
     """
     try:
       elb = self.elbv2_load_balancer(lookup)
       return elb['DNSName']
     except ClientError:
-      return None
+      return default
 
   def waf_rule_id(self, lookup, default=None):
     """

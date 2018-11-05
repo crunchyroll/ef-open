@@ -1968,12 +1968,27 @@ class TestEFAwsResolver(unittest.TestCase):
     self._clients["elbv2"].describe_load_balancers.side_effect = error
 
     ef_aws_resolver = EFAwsResolver(self._clients)
-    lookup_inputs = ["elbv2:load-balancer/hosted-zone,%s",
-                     "elbv2:load-balancer/dns-name,%s"]
-    for test in lookup_inputs:
-      self.assertEqual(
-        ef_aws_resolver.lookup(test % lb_name),
-        None)
+
+    lookup_input = "elbv2:load-balancer/hosted-zone,{}".format(lb_name)
+    self.assertEqual(
+      ef_aws_resolver.lookup(lookup_input),
+      None)
+
+    lookup_input = "elbv2:load-balancer/dns-name,{}".format(lb_name)
+    self.assertEqual(
+      ef_aws_resolver.lookup(lookup_input),
+      None)
+
+    default = "default_value"
+    lookup_input = "elbv2:load-balancer/hosted-zone,{},{}".format(lb_name, default)
+    self.assertEqual(
+      ef_aws_resolver.lookup(lookup_input),
+      default)
+
+    lookup_input = "elbv2:load-balancer/dns-name,{},{}".format(lb_name, default)
+    self.assertEqual(
+      ef_aws_resolver.lookup(lookup_input),
+      default)
 
   def test_elbv2_load_balancer_dns_name(self):
     """
