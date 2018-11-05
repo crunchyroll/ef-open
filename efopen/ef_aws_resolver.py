@@ -65,7 +65,7 @@ class EFAwsResolver(object):
     elb = elbs['LoadBalancers'][0]
     return elb
 
-  def acm_certificate_arn(self, lookup, default=None):
+ a def acm_certificate_arn(self, lookup, default=None):
     """
     Args:
       lookup: region/domain on the certificate to be looked up
@@ -350,7 +350,7 @@ class EFAwsResolver(object):
       The hosted zone ID of the ELB found with a name matching 'lookup'.
     """
     try:
-      elb = self.elbv2_load_balancer(lookup)
+      elb = self._elbv2_load_balancer(lookup)
       return elb['DNSName']
     except ClientError:
       return default
