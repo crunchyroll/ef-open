@@ -50,6 +50,21 @@ class EFAwsResolver(object):
   # dictionary of boto3 clients: {"ec2":ec2_client, ... } made with ef_utils.create_aws_clients
   __CLIENTS = {}
 
+  def _elbv2_load_balancer(self, lookup):
+    """
+    Args:
+      lookup: the friendly name of the V2 elb to look up
+    Returns:
+      A dict with the load balancer description
+    Raises:
+      botocore.exceptions.ClientError: no such load-balancer
+    """
+    client = EFAwsResolver.__CLIENTS['elbv2']
+    elbs = client.describe_load_balancers(Names=[lookup])
+    # getting the first one, since we requested only one lb
+    elb = elbs['LoadBalancers'][0]
+    return elb
+
   def acm_certificate_arn(self, lookup, default=None):
     """
     Args:
@@ -312,22 +327,6 @@ class EFAwsResolver(object):
     else:
       return default
 
-  def elbv2_load_balancer(self, lookup):
-    """
-    Args:
-      lookup: the friendly name of the V2 elb to look up
-    Returns:
-      A dict with the load balancer description
-    Raises:
-      botocore.exceptions.ClientError: no such load-balancer
-    """
-    client = EFAwsResolver.__CLIENTS['elbv2']
-    elbs = client.describe_load_balancers(Names=[lookup])
-    # getting the first one, since we requested only one lb
-    elb = elbs['LoadBalancers'][0]
-    return elb
-
-
   def elbv2_load_balancer_hosted_zone(self, lookup, default=None):
     """
     Args:
@@ -337,7 +336,7 @@ class EFAwsResolver(object):
       The hosted zone ID of the ELB found with a name matching 'lookup'.
     """
     try:
-      elb = self.elbv2_load_balancer(lookup)
+      elb = self._elbv2_load_balancer(lookup)
       return elb['CanonicalHostedZoneId']
     except ClientError:
       return default
