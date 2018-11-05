@@ -65,7 +65,7 @@ class EFAwsResolver(object):
     elb = elbs['LoadBalancers'][0]
     return elb
 
- a def acm_certificate_arn(self, lookup, default=None):
+  def acm_certificate_arn(self, lookup, default=None):
     """
     Args:
       lookup: region/domain on the certificate to be looked up
