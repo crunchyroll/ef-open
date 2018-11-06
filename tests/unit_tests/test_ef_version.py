@@ -14,8 +14,12 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
+import datetime
 import os
+import StringIO
 import unittest
+
+from dateutil.tz import tzutc
 
 from mock import Mock, patch
 
@@ -200,3 +204,48 @@ class TestEFVersion(unittest.TestCase):
     response = {"Error": {"Code": "NoSuchKey"}}
     mock_version_object.side_effect = ClientError(response, "Get Object")
     self.assertTrue(ef_version.precheck_dist_hash(self))
+
+
+class TestVersion(unittest.TestCase):
+
+    def test_version_init(self):
+
+        version_body = StringIO.StringIO("ami-0f24a2bf2a5fb4090")
+
+        version_id = "a8Hwa86edlxkc24HLI_FvCp5J4eJZerK"
+        last_modified = datetime.datetime(2018, 11, 6, 6, 10, 4, tzinfo=tzutc())
+
+        version_attrs = {
+            'build_number': "43",
+            'commit_hash': "0f24a2bf2a5fb4090",
+            'location': "in space",
+            'last_modified': last_modified.strftime("%Y-%m-%dT%H:%M:%S%Z"),
+            'modified_by': "random_dud",
+            'status': "destabilized",
+            'value': version_body.getvalue()}
+
+        object_version = {
+            "AcceptRanges": "bytes",
+            "ContentType": "binary/octet-stream",
+            "LastModified": last_modified,
+            "ContentLength": 21,
+            "ContentEncoding": "utf-8",
+            "VersionId": version_id,
+            "ETag": "\"8c6a54dc6a1c907f7664f11a7b369d7b\"",
+            "Metadata": {
+                "ef-location": version_attrs["location"],
+                "ef-version-status": version_attrs["status"],
+                "ef-buildnumber": version_attrs["build_number"],
+                "ef-commithash": version_attrs["commit_hash"],
+                "ef-modifiedby": version_attrs["modified_by"]
+                },
+            "Body": version_body
+            }
+
+        version = ef_version.Version(object_version)
+
+        for attr, expected in version_attrs.items():
+            actual = getattr(version, attr)
+            self.assertEqual(
+                expected, actual,
+                msg="{attr}: expecting {expected!r}, got {actual!r}".format(**locals()))

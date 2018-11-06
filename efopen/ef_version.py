@@ -178,10 +178,10 @@ class Version(object):
 
     metadata = object_version["Metadata"]
     self._build_number = metadata.get(EFConfig.S3_VERSION_BUILDNUMBER_KEY,"")
-    self._commit_hash = metadata(EFConfig.S3_VERSION_COMMITHASH_KEY,"")
-    self._location = metadata(EFConfig.S3_VERSION_LOCATION_KEY,"")
-    self._modified_by = metadata(EFConfig.S3_VERSION_MODIFIEDBY_KEY,"")
-    self._status = metadata(EFConfig.S3_VERSION_STATUS_KEY,"")
+    self._commit_hash = metadata.get(EFConfig.S3_VERSION_COMMITHASH_KEY,"")
+    self._location = metadata.get(EFConfig.S3_VERSION_LOCATION_KEY,"")
+    self._modified_by = metadata.get(EFConfig.S3_VERSION_MODIFIEDBY_KEY,"")
+    self._status = metadata.get(EFConfig.S3_VERSION_STATUS_KEY,"")
 
   def __str__(self):
     return "{} {} {} {} {} {} {} {}".format(self._value, self._build_number, self._commit_hash, self._last_modified,
