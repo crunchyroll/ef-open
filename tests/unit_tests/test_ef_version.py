@@ -208,23 +208,27 @@ class TestEFVersion(unittest.TestCase):
 
 class TestVersion(unittest.TestCase):
 
-    def test_version_init(self):
+    def setUp(self):
 
         version_body = StringIO.StringIO("ami-0f24a2bf2a5fb4090")
 
         version_id = "a8Hwa86edlxkc24HLI_FvCp5J4eJZerK"
         last_modified = datetime.datetime(2018, 11, 6, 6, 10, 4, tzinfo=tzutc())
 
-        version_attrs = {
+        self.metadata_fields = {
             'build_number': "43",
             'commit_hash': "0f24a2bf2a5fb4090",
             'location': "in space",
+            'modified_by': "random_dude",
+            'status': "stable",
+        }
+        self.version_attrs = {
             'last_modified': last_modified.strftime("%Y-%m-%dT%H:%M:%S%Z"),
-            'modified_by': "random_dud",
-            'status': "destabilized",
-            'value': version_body.getvalue()}
+            'value': version_body.getvalue()
+            }
+        self.version_attrs.update(self.metadata_fields)
 
-        object_version = {
+        self.object_version = {
             "AcceptRanges": "bytes",
             "ContentType": "binary/octet-stream",
             "LastModified": last_modified,
@@ -233,18 +237,40 @@ class TestVersion(unittest.TestCase):
             "VersionId": version_id,
             "ETag": "\"8c6a54dc6a1c907f7664f11a7b369d7b\"",
             "Metadata": {
-                "ef-location": version_attrs["location"],
-                "ef-version-status": version_attrs["status"],
-                "ef-buildnumber": version_attrs["build_number"],
-                "ef-commithash": version_attrs["commit_hash"],
-                "ef-modifiedby": version_attrs["modified_by"]
+                "ef-location": self.version_attrs["location"],
+                "ef-version-status": self.version_attrs["status"],
+                "ef-buildnumber": self.version_attrs["build_number"],
+                "ef-commithash": self.version_attrs["commit_hash"],
+                "ef-modifiedby": self.version_attrs["modified_by"]
                 },
             "Body": version_body
             }
 
-        version = ef_version.Version(object_version)
+    def test_version_init(self):
+        """
+        Test that a Version object is build correctly
+        """
 
-        for attr, expected in version_attrs.items():
+        version = ef_version.Version(self.object_version)
+
+        for attr, expected in self.version_attrs.items():
+            actual = getattr(version, attr)
+            self.assertEqual(
+                expected, actual,
+                msg="{attr}: expecting {expected!r}, got {actual!r}".format(**locals()))
+
+    def test_version_init_no_metadata(self):
+        """
+        Test that a Version object is build correctly with missing metadata
+        """
+
+        self.object_version["Metadata"] = {}
+        # clear out the metadata fields in version_attrs
+        for field in self.metadata_fields:
+            self.version_attrs[field] = ""
+        version = ef_version.Version(self.object_version)
+
+        for attr, expected in self.version_attrs.items():
             actual = getattr(version, attr)
             self.assertEqual(
                 expected, actual,
