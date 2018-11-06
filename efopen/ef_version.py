@@ -172,29 +172,16 @@ class Version(object):
   """
 
   def __init__(self, object_version):
-    if EFConfig.S3_VERSION_BUILDNUMBER_KEY in object_version["Metadata"]:
-      self._build_number = object_version["Metadata"][EFConfig.S3_VERSION_BUILDNUMBER_KEY]
-    else:
-      self._build_number = ""
-    if EFConfig.S3_VERSION_COMMITHASH_KEY in object_version["Metadata"]:
-      self._commit_hash = object_version["Metadata"][EFConfig.S3_VERSION_COMMITHASH_KEY]
-    else:
-      self._commit_hash = ""
-    self._last_modified = object_version["LastModified"].strftime("%Y-%m-%dT%H:%M:%S%Z")
-    if EFConfig.S3_VERSION_LOCATION_KEY in object_version["Metadata"]:
-      self._location = object_version["Metadata"][EFConfig.S3_VERSION_LOCATION_KEY]
-    else:
-      self._location = ""
-    if EFConfig.S3_VERSION_MODIFIEDBY_KEY in object_version["Metadata"]:
-      self._modified_by = object_version["Metadata"][EFConfig.S3_VERSION_MODIFIEDBY_KEY]
-    else:
-      self._modified_by = ""
-    if EFConfig.S3_VERSION_STATUS_KEY in object_version["Metadata"]:
-      self._status = object_version["Metadata"][EFConfig.S3_VERSION_STATUS_KEY]
-    else:
-      self._status = ""
     self._value = object_version["Body"].read()
     self._version_id = object_version["VersionId"]
+    self._last_modified = object_version["LastModified"].strftime("%Y-%m-%dT%H:%M:%S%Z")
+
+    metadata = object_version["Metadata"]
+    self._build_number = metadata.get(EFConfig.S3_VERSION_BUILDNUMBER_KEY,"")
+    self._commit_hash = metadata(EFConfig.S3_VERSION_COMMITHASH_KEY,"")
+    self._location = metadata(EFConfig.S3_VERSION_LOCATION_KEY,"")
+    self._modified_by = metadata(EFConfig.S3_VERSION_MODIFIEDBY_KEY,"")
+    self._status = metadata(EFConfig.S3_VERSION_STATUS_KEY,"")
 
   def __str__(self):
     return "{} {} {} {} {} {} {} {}".format(self._value, self._build_number, self._commit_hash, self._last_modified,
