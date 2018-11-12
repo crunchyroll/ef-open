@@ -50,6 +50,21 @@ class EFAwsResolver(object):
   # dictionary of boto3 clients: {"ec2":ec2_client, ... } made with ef_utils.create_aws_clients
   __CLIENTS = {}
 
+  def _elbv2_load_balancer(self, lookup):
+    """
+    Args:
+      lookup: the friendly name of the V2 elb to look up
+    Returns:
+      A dict with the load balancer description
+    Raises:
+      botocore.exceptions.ClientError: no such load-balancer
+    """
+    client = EFAwsResolver.__CLIENTS['elbv2']
+    elbs = client.describe_load_balancers(Names=[lookup])
+    # getting the first one, since we requested only one lb
+    elb = elbs['LoadBalancers'][0]
+    return elb
+
   def acm_certificate_arn(self, lookup, default=None):
     """
     Args:
@@ -310,6 +325,34 @@ class EFAwsResolver(object):
     if len(vpcs.get("Vpcs")) > 0:
       return vpcs["Vpcs"][0]["VpcId"]
     else:
+      return default
+
+  def elbv2_load_balancer_hosted_zone(self, lookup, default=None):
+    """
+    Args:
+      lookup: the friendly name of the V2 elb to look up
+      default: value to return in case of no match
+    Returns:
+      The hosted zone ID of the ELB found with a name matching 'lookup'.
+    """
+    try:
+      elb = self._elbv2_load_balancer(lookup)
+      return elb['CanonicalHostedZoneId']
+    except ClientError:
+      return default
+
+  def elbv2_load_balancer_dns_name(self, lookup, default=None):
+    """
+    Args:
+      lookup: the friendly name of the V2 elb to look up
+      default: value to return in case of no match
+    Returns:
+      The hosted zone ID of the ELB found with a name matching 'lookup'.
+    """
+    try:
+      elb = self._elbv2_load_balancer(lookup)
+      return elb['DNSName']
+    except ClientError:
       return default
 
   def waf_rule_id(self, lookup, default=None):
@@ -674,6 +717,10 @@ class EFAwsResolver(object):
       return self.ec2_vpc_subnets(*kv[1:])
     elif kv[0] == "ec2:vpc/vpc-id":
       return self.ec2_vpc_vpc_id(*kv[1:])
+    elif kv[0] == "elbv2:load-balancer/dns-name":
+      return self.elbv2_load_balancer_dns_name(*kv[1:])
+    elif kv[0] == "elbv2:load-balancer/hosted-zone":
+      return self.elbv2_load_balancer_hosted_zone(*kv[1:])
     elif kv[0] == "kms:decrypt":
       return self.kms_decrypt_value(*kv[1:])
     elif kv[0] == "kms:key_arn":
