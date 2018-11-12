@@ -611,7 +611,7 @@ class EFAwsResolver(object):
         the User Pool ARN corresponding to the given lookup, else default/None
     """
     client = EFAwsResolver.__CLIENTS["cognito-idp"]
-    user_pool_id = self.client(lookup, default)
+    user_pool_id = self.cognito_idp_user_pool_id(lookup, default)
     if not user_pool_id:
       return default
 
