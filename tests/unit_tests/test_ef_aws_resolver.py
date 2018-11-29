@@ -2009,3 +2009,37 @@ class TestEFAwsResolver(unittest.TestCase):
     self.assertEqual(
       ef_aws_resolver.lookup("elbv2:load-balancer/dns-name,%s" % lb_name),
       dns_name)
+
+  def test_elbv2_load_balancer_arn_suffix(self):
+    """
+    Tests for ELBV2 ARN suffix lookup
+    """
+    lb_name = "env-balancer-name"
+    lb_arn_suffix = "app/env-balancer-name/0987654321"
+    lb_arn = "arn:aws:elasticloadbalancing:us-west-2:123456789:loadbalancer/app/env-balancer-name/0987654321"
+    self._clients["elbv2"].describe_load_balancers.return_value = {
+        u'LoadBalancers': [{
+            u'LoadBalancerArn': lb_arn,
+            }],
+        }
+    ef_aws_resolver = EFAwsResolver(self._clients)
+    self.assertEqual(
+      ef_aws_resolver.lookup("elbv2:load-balancer/arn-suffix,%s" % lb_name),
+      lb_arn_suffix)
+
+  def test_elbv2_target_group_arn_suffix(self):
+    """
+    Tests for ELBV2 target group ARN suffix lookup
+    """
+    tg_name = "target-group-name"
+    tg_arn_suffix = "targetgroup/target-group-name/0987654321"
+    tg_arn = "arn:aws:elasticloadbalancing:us-west-2:123456789:targetgroup/target-group-name/0987654321"
+    self._clients["elbv2"].describe_target_groups.return_value = {
+        u'TargetGroups': [{
+            u'TargetGroupArn': tg_arn,
+            }],
+        }
+    ef_aws_resolver = EFAwsResolver(self._clients)
+    self.assertEqual(
+      ef_aws_resolver.lookup("elbv2:target-group/arn-suffix,%s" % tg_name),
+      tg_arn_suffix)
