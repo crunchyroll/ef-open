@@ -199,26 +199,6 @@ which is looked up in 'proto3' as:<br>
 returns:<br>
 ```subnet-be2d211a```<br>
 
-#### {{aws:ec2:vpc/cidrblock,\<vpc_friendly_name>}}
-Returns: VPC's CIDR block<br>
-Needs: VPC's friendly name, which is always "vpc-\<env>"<br>
-Example:<br>
-```{{aws:ec2:vpc/cidrblock,<vpc_name>}}```<br>
-which is looked up in 'proto3' as:<br>
-```{{aws:ec2:vpc/cidrblock,vpc-proto3}}```<br>
-returns:<br>
-```10.8.64.0/18```<br>
-
-#### {{aws:ec2:vpc/vpc-id,\<vpc_friendly_name>}}
-Returns: VPC's ID<br>
-Needs: VPC's friendly name, which is always "vpc-\<env>"<br>
-Example:<br>
-```{{aws:ec2:vpc/vpc-id,vpc-{{ENV}}}}```<br>
-which is looked in 'proto3' as:<br>
-```{{aws:ec2:vpc/vpc-id,vpc-proto3}}```<br>
-returns:<br>
-```vpc-21ac3315```<br>
-
 #### {{aws:ec2:vpc/availabilityzones,\<vpc_friendly_name>}}
 Returns: Comma-separated list of availability zones that contain subnets within the VPC, with internal double-quotes (external double-quotes come from the template)<br>
 Needs: Friendly name of the VPC serving the target environment, which is always "vpc-\<env>"<br>
@@ -231,6 +211,16 @@ returns:<br>
 which resolves to this if the above example was followed exactly:<br>
 ```"AvailabilityZones": [ "us-west-2a","us-west-2b" ]```
 
+#### {{aws:ec2:vpc/cidrblock,\<vpc_friendly_name>}}
+Returns: VPC's CIDR block<br>
+Needs: VPC's friendly name, which is always "vpc-\<env>"<br>
+Example:<br>
+```{{aws:ec2:vpc/cidrblock,<vpc_name>}}```<br>
+which is looked up in 'proto3' as:<br>
+```{{aws:ec2:vpc/cidrblock,vpc-proto3}}```<br>
+returns:<br>
+```10.8.64.0/18```<br>
+
 #### {{aws:ec2:vpc/subnets,\<vpc_friendly_name>}}
 Returns: Comma-separated list of all subnet IDs within the VPC, with internal double-quotes (external double-quotes come from the template)
 Needs: Friendly name of the vpc serving the target environment, which is always "vpc-\<env>"
@@ -240,6 +230,38 @@ which is looked up in 'staging' as:<br>
 ```"Subnets": [ "{{aws:ec2:vpc/subnets,vpc-staging}}" ]```<br>
 which resolves to this if the above example was followed exactly:<br>
 ```"Subnets": [ "subnet-aac314be","subnet-aac351fa" ]```<br>
+
+#### {{aws:ec2:vpc/vpc-id,\<vpc_friendly_name>}}
+Returns: VPC's ID<br>
+Needs: VPC's friendly name, which is always "vpc-\<env>"<br>
+Example:<br>
+```{{aws:ec2:vpc/vpc-id,vpc-{{ENV}}}}```<br>
+which is looked in 'proto3' as:<br>
+```{{aws:ec2:vpc/vpc-id,vpc-proto3}}```<br>
+returns:<br>
+```vpc-21ac3315```<br>
+
+#### {{aws:elbv2:load-balancer/dns-name,\<load_balancer_name>}}
+TODO:
+
+#### {{aws:elbv2:load-balancer/hosted-zone,\<load_balancer_name>}}
+TODO:
+
+#### {{aws:elbv2:load-balancer/arn-suffix,\<load_balancer_name>}}
+Returns:  The suffix of the ALB's ARN<br>
+Needs: ALB's friendly name<br>
+Example:<br>
+`{{aws:elbv2:load-balancer/arn-suffix,{{ENV}}-{{SERVICE}}-external}}`
+would return something like:
+`app/production-some-service-external/0987654321`
+
+#### {{aws:elbv2:target-group/arn-suffix,\<target_group_name>}}
+Returns:  The suffix of the ALB target group's ARN<br>
+Needs: the target group's friendly name<br>
+Example:<br>
+`{{aws:elbv2:target-group/arn-suffix,{{ENV}}-{{SERVICE}}-ext-target-group}}`
+would return something like:
+`targetgroup/production-some-service-ext-target-group/0987654321`
 
 #### {{aws:kms:decrypt,\<kms_encrypted_data>}}
 Returns: Decrypted copy of kms-encrypted string<br>
@@ -268,8 +290,8 @@ params:
     encrypted_db_password: "{{aws:kms:decrypt,AQICAHgtk0pYU9G1rCODigWoZcXcZW5fKBOTBQD/8s4qq1DTTgHbE/sR4gQQ4oBuQ0MmBtLtAAAAYzBhBgkqhkiG9w0BBwagVDBSAgEAME0GCSqGSIb3DQEHATAeBglghkgBZQMEAS4wEQQMci3LiBQwEQfSdV0vAgEQgCDVbxzz/fcS2BZyiuG1T/RtudZ+4ii4tYWkdq35datbGg==}}"
 ```
 
-
-
+#### {{aws:kms:key_arn,\<kms_encrypted_data>}}
+TODO:
 
 #### {{aws:route53:private-hosted-zone-id,\<zone_name>.}}
 Returns: Private Hosted Zone's ID in Route53<br>

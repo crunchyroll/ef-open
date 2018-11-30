@@ -355,6 +355,39 @@ class EFAwsResolver(object):
     except ClientError:
       return default
 
+  def elbv2_load_balancer_arn_suffix(self, lookup, default=None):
+    """
+    Args:
+      lookup: the friendly name of the v2 elb to look up
+      default: value to return in case of no match
+    Returns:
+      The shorthand fragment of the ALB's ARN, of the form `app/*/*`
+    """
+    try:
+      elb = self._elbv2_load_balancer(lookup)
+      m = re.search(r'.+?(app\/[^\/]+\/[^\/]+)$', elb['LoadBalancerArn'])
+      return m.group(1)
+    except ClientError:
+      return default
+
+  def elbv2_target_group_arn_suffix(self, lookup, default=None):
+    """
+    Args:
+      lookup: the friendly name of the v2 elb target group
+      default: value to return in case of no match
+    Returns:
+      The shorthand fragment of the target group's ARN, of the form
+      `targetgroup/*/*`
+    """
+    try:
+      client = EFAwsResolver.__CLIENTS['elbv2']
+      elbs = client.describe_target_groups(Names=[lookup])
+      elb = elbs['TargetGroups'][0]
+      m = re.search(r'.+?(targetgroup\/[^\/]+\/[^\/]+)$', elb['TargetGroupArn'])
+      return m.group(1)
+    except ClientError:
+      return default
+
   def waf_rule_id(self, lookup, default=None):
     """
     Args:
@@ -619,6 +652,10 @@ class EFAwsResolver(object):
       return self.elbv2_load_balancer_dns_name(*kv[1:])
     elif kv[0] == "elbv2:load-balancer/hosted-zone":
       return self.elbv2_load_balancer_hosted_zone(*kv[1:])
+    elif kv[0] == "elbv2:load-balancer/arn-suffix":
+      return self.elbv2_load_balancer_arn_suffix(*kv[1:])
+    elif kv[0] == "elbv2:target-group/arn-suffix":
+      return self.elbv2_target_group_arn_suffix(*kv[1:])
     elif kv[0] == "kms:decrypt":
       return self.kms_decrypt_value(*kv[1:])
     elif kv[0] == "kms:key_arn":
