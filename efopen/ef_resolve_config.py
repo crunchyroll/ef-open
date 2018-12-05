@@ -144,11 +144,7 @@ def merge_files(context):
 
 def main():
   context = handle_args_and_set_context(sys.argv[1:])
-  try:
-    merge_files(context)
-  except Exception as e:
-    print("error {}".format(e))
-
+  merge_files(context)
 
 if __name__ == "__main__":
   main()
