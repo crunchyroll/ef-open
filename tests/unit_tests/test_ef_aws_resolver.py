@@ -42,6 +42,8 @@ class TestEFAwsResolver(unittest.TestCase):
     """
     mock_cloud_formation_client = Mock(name="Mock CloudFormation Client")
     mock_cloud_front_client = Mock(name="Mock CloudFront Client")
+    mock_cognito_identity_client = Mock(name="Mock Cognito Identity Client")
+    mock_cognito_idp_client = Mock(name="Mock Cognito IDP Client")
     mock_ec2_client = Mock(name="Mock EC2 Client")
     mock_route_53_client = Mock(name="Mock Route 53 Client")
     mock_waf_client = Mock(name="Mock WAF Client")
@@ -52,6 +54,8 @@ class TestEFAwsResolver(unittest.TestCase):
     self._clients = {
       "cloudformation": mock_cloud_formation_client,
       "cloudfront": mock_cloud_front_client,
+      "cognito-identity": mock_cognito_identity_client,
+      "cognito-idp": mock_cognito_idp_client,
       "ec2": mock_ec2_client,
       "route53": mock_route_53_client,
       "waf": mock_waf_client,
@@ -1852,6 +1856,119 @@ class TestEFAwsResolver(unittest.TestCase):
     self._clients["cloudfront"].list_cloud_front_origin_access_identities.return_value = \
       cloudfront_origin_access_identity_list
     result = ef_aws_resolver.lookup("cloudfront:origin-access-identity/oai-canonical-user-id,cant_possibly_match")
+    self.assertIsNone(result)
+
+  def _generate_cognito_identity_identity_pool_list(self):
+    identity_pool_list = \
+      {
+        "IdentityPools": [
+          {
+            "IdentityPoolId": "us-west-2:staging_pool_id",
+            "IdentityPoolName": "staging_cms_identity_pool"
+          },
+          {
+            "IdentityPoolId": "us-west-2:proto0_pool_id",
+            "IdentityPoolName": "proto0_cms_identity_pool"
+          }
+        ]
+      }
+    return identity_pool_list
+
+  def test_cognito_identity_identity_pool_arn(self):
+    # Mock the return values involved with this lookup
+    self._clients["cognito-identity"].list_identity_pools.return_value = \
+      self._generate_cognito_identity_identity_pool_list()
+
+    ef_aws_resolver = EFAwsResolver(self._clients)
+    result = ef_aws_resolver.lookup("cognito-identity:identity-pool-arn,proto0_cms_identity_pool")
+    self.assertEqual("arn:aws:cognito-identity:${AWS::Region}:${AWS::AccountId}:identitypool/us-west-2:proto0_pool_id",
+                     result)
+
+  def test_cognito_identity_identity_pool_arn_no_match(self):
+    # Mock the return values involved with this lookup
+    self._clients["cognito-identity"].list_identity_pools.return_value = \
+      self._generate_cognito_identity_identity_pool_list()
+
+    ef_aws_resolver = EFAwsResolver(self._clients)
+    result = ef_aws_resolver.lookup("cognito-identity:identity-pool-arn,no_match")
+    self.assertIsNone(result)
+
+  def test_cognito_identity_identity_pool_id(self):
+    # Mock the return values involved with this lookup
+    self._clients["cognito-identity"].list_identity_pools.return_value = \
+      self._generate_cognito_identity_identity_pool_list()
+
+    ef_aws_resolver = EFAwsResolver(self._clients)
+    result = ef_aws_resolver.lookup("cognito-identity:identity-pool-id,proto0_cms_identity_pool")
+    self.assertEqual("us-west-2:proto0_pool_id", result)
+
+  def test_cognito_identity_identity_pool_id_no_match(self):
+    # Mock the return values involved with this lookup
+    self._clients["cognito-identity"].list_identity_pools.return_value = \
+      self._generate_cognito_identity_identity_pool_list()
+
+    ef_aws_resolver = EFAwsResolver(self._clients)
+    result = ef_aws_resolver.lookup("cognito-identity:identity-pool-id,no_match")
+    self.assertIsNone(result)
+
+  def _generate_cognito_idp_user_pool_list(self):
+    user_pool_list = \
+      {
+        "UserPools": [
+          {
+            "Id": "us-west-2_staging-user-pool-id",
+            "Name": "staging-cms-user-pool"
+          },
+          {
+            "Id": "us-west-2_proto0-user-pool-id",
+            "Name": "proto0-cms-user-pool"
+          }
+        ]
+      }
+    return user_pool_list
+
+  def _generate_cognito_idp_user_pool(self):
+    user_pool = \
+      {
+        "UserPool": {
+          "Id": "proto0-cms-user-pool",
+          "Arn": "arn:aws:cognito-idp:us-west-2:123:userpool/us-west-2_proto0-user-pool-id"
+        }
+      }
+    return user_pool
+
+  def test_cognito_idp_user_pool_arn(self):
+    # Mock the return values involved with this lookup
+    self._clients["cognito-idp"].list_user_pools.return_value = self._generate_cognito_idp_user_pool_list()
+    self._clients["cognito-idp"].describe_user_pool.return_value = self._generate_cognito_idp_user_pool()
+
+    ef_aws_resolver = EFAwsResolver(self._clients)
+    result = ef_aws_resolver.lookup("cognito-idp:user-pool-arn,proto0-cms-user-pool")
+    self.assertEqual("arn:aws:cognito-idp:us-west-2:123:userpool/us-west-2_proto0-user-pool-id", result)
+
+  def test_cognito_idp_user_pool_arn_no_match(self):
+    # Mock the return values involved with this lookup
+    self._clients["cognito-idp"].list_user_pools.return_value = self._generate_cognito_idp_user_pool_list()
+    self._clients["cognito-idp"].describe_user_pool.return_value = self._generate_cognito_idp_user_pool()
+
+    ef_aws_resolver = EFAwsResolver(self._clients)
+    result = ef_aws_resolver.lookup("cognito-idp:user-pool-arn,no_match")
+    self.assertIsNone(result)
+
+  def test_cognito_idp_user_pool_id(self):
+    # Mock the return values involved with this lookup
+    self._clients["cognito-idp"].list_user_pools.return_value = self._generate_cognito_idp_user_pool_list()
+
+    ef_aws_resolver = EFAwsResolver(self._clients)
+    result = ef_aws_resolver.lookup("cognito-idp:user-pool-id,proto0-cms-user-pool")
+    self.assertEqual("us-west-2_proto0-user-pool-id", result)
+
+  def test_cognito_idp_user_pool_id_no_match(self):
+    # Mock the return values involved with this lookup
+    self._clients["cognito-idp"].list_user_pools.return_value = self._generate_cognito_idp_user_pool_list()
+
+    ef_aws_resolver = EFAwsResolver(self._clients)
+    result = ef_aws_resolver.lookup("cognito-idp:user-pool-id,no_match")
     self.assertIsNone(result)
 
   def test_lookup_invalid_input(self):

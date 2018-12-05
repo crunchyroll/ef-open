@@ -236,9 +236,19 @@ class EFTemplateResolver(object):
 
       # Create clients - if accessing by role, profile should be None
       clients = [
-         "cloudformation", "cloudfront", "ec2",
-         "elbv2", "iam", "kms", "lambda",
-         "route53", "s3", "sts", "waf",
+        "cloudformation",
+        "cloudfront",
+        "cognito-identity",
+        "cognito-idp",
+        "ec2",
+        "elbv2",
+        "iam",
+        "kms",
+        "lambda",
+        "route53",
+        "s3",
+        "sts",
+        "waf"
       ]
       try:
         EFTemplateResolver.__CLIENTS = create_aws_clients(self.resolved["REGION"], profile, *clients)

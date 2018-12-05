@@ -589,6 +589,100 @@ class EFAwsResolver(object):
       else:
         return default
 
+  def cognito_identity_identity_pool_arn(self, lookup, default=None):
+    """
+    Args:
+        lookup: Cognito Federated Identity name, proto0-cms-identity-pool
+        default: the optional value to return if lookup failed; returns None if not set
+
+    Returns:
+        the constructed ARN for the cognito identity pool, else default/None
+    """
+    identity_pool_id = self.cognito_identity_identity_pool_id(lookup, default)
+
+    if not identity_pool_id:
+      return default
+
+    # The ARN has to be constructed because there is no boto3 call that returns the full ARN for a cognito identity pool
+    return "arn:aws:cognito-identity:${{AWS::Region}}:${{AWS::AccountId}}:identitypool/{}".format(identity_pool_id)
+
+  def cognito_identity_identity_pool_id(self, lookup, default=None):
+    """
+    Args:
+        lookup: Cognito Federated Identity name, proto0-cms-identity-pool
+        default: the optional value to return if lookup failed; returns None if not set
+
+    Returns:
+        the Cognito Identity Pool ID corresponding to the given lookup, else default/None
+    """
+    # List size cannot be greater than 60
+    list_limit = 60
+    client = EFAwsResolver.__CLIENTS["cognito-identity"]
+    response = client.list_identity_pools(MaxResults=list_limit)
+
+    while "IdentityPools" in response:
+      # Loop through all the identity pools
+      for pool in response["IdentityPools"]:
+        if pool["IdentityPoolName"] == lookup:
+          return pool["IdentityPoolId"]
+
+      # No match found on this page, but there are more pages
+      if response.has_key("NextToken"):
+        response = client.list_identity_pools(MaxResults=list_limit, NextToken=response["NextToken"])
+      else:
+        break
+
+    return default
+
+  def cognito_idp_user_pool_arn(self, lookup, default=None):
+    """
+    Args:
+        lookup: Cognito User Pool name, proto0-cms-user-pool
+        default: the optional value to return if lookup failed; returns None if not set
+
+    Returns:
+        the User Pool ARN corresponding to the given lookup, else default/None
+    """
+    client = EFAwsResolver.__CLIENTS["cognito-idp"]
+    user_pool_id = self.cognito_idp_user_pool_id(lookup, default)
+    if not user_pool_id:
+      return default
+
+    response = client.describe_user_pool(UserPoolId=user_pool_id)
+
+    if not response.has_key("UserPool"):
+      return default
+
+    return response["UserPool"]["Arn"]
+
+  def cognito_idp_user_pool_id(self, lookup, default=None):
+    """
+    Args:
+        lookup: Cognito User Pool name, proto0-cms-user-pool
+        default: the optional value to return if lookup failed; returns None if not set
+
+    Returns:
+        the User Pool ID corresponding to the given lookup, else default/None
+    """
+    # List size cannot be greater than 60
+    list_limit = 60
+    client = EFAwsResolver.__CLIENTS["cognito-idp"]
+    response = client.list_user_pools(MaxResults=list_limit)
+
+    while "UserPools" in response:
+      # Loop through all user pools
+      for pool in response["UserPools"]:
+        if pool["Name"] == lookup:
+          return pool["Id"]
+
+      # No match found on this page, but there are more pages
+      if response.has_key("NextToken"):
+        response = client.list_identity_pools(MaxResults=list_limit, NextToken=response["NextToken"])
+      else:
+        break
+
+    return default
+
   def kms_decrypt_value(self, lookup):
     """
     Args:
@@ -622,6 +716,14 @@ class EFAwsResolver(object):
       return self.cloudfront_origin_access_identity_oai_canonical_user_id(*kv[1:])
     elif kv[0] == "cloudfront:origin-access-identity/oai-id":
       return self.cloudfront_origin_access_identity_oai_id(*kv[1:])
+    elif kv[0] == "cognito-identity:identity-pool-arn":
+      return self.cognito_identity_identity_pool_arn(*kv[1:])
+    elif kv[0] == "cognito-identity:identity-pool-id":
+      return self.cognito_identity_identity_pool_id(*kv[1:])
+    elif kv[0] == "cognito-idp:user-pool-arn":
+      return self.cognito_idp_user_pool_arn(*kv[1:])
+    elif kv[0] == "cognito-idp:user-pool-id":
+      return self.cognito_idp_user_pool_id(*kv[1:])
     elif kv[0] == "ec2:elasticip/elasticip-id":
       return self.ec2_elasticip_elasticip_id(*kv[1:])
     elif kv[0] == "ec2:elasticip/elasticip-ipaddress":
