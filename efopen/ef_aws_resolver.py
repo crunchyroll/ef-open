@@ -600,7 +600,7 @@ class EFAwsResolver(object):
     """
     identity_pool_id = self.cognito_identity_identity_pool_id(lookup, default)
 
-    if not identity_pool_id:
+    if not identity_pool_id or identity_pool_id == default:
       return default
 
     # The ARN has to be constructed because there is no boto3 call that returns the full ARN for a cognito identity pool
@@ -645,7 +645,7 @@ class EFAwsResolver(object):
     """
     client = EFAwsResolver.__CLIENTS["cognito-idp"]
     user_pool_id = self.cognito_idp_user_pool_id(lookup, default)
-    if not user_pool_id:
+    if not user_pool_id or user_pool_id == default:
       return default
 
     response = client.describe_user_pool(UserPoolId=user_pool_id)
