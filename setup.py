@@ -1,29 +1,37 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 
 from setuptools import setup
 import versioneer
 
-setup(
-    name='ef-open',
-    version=versioneer.get_version(),
-    cmdclass=versioneer.get_cmdclass(),
-    packages=[
+
+def readme():
+    with open('README.md') as f:
+        return f.read()
+
+
+cfg = {
+    'name': 'ef-open',
+    'version': versioneer.get_version(),
+    'cmdclass': versioneer.get_cmdclass(),
+    'packages': [
         'efopen'
     ],
-    install_requires=[
+    'install_requires': [
         'boto3',
+        'click',
         'PyYAML',
         'cfn-lint'
     ],
-    extras_require={
+    'extras_require': {
         'test': [
             'mock',
             'pylint',
         ]
     },
-    entry_points={
+    'entry_points': {
         'console_scripts': [
             'ef-cf=efopen.ef_cf:main',
+            'ef-cf-diff=efopen.ef_cf_diff:main',
             'ef-check-config=efopen.ef_check_config:main',
             'ef-generate=efopen.ef_generate:main',
             'ef-instanceinit=efopen.ef_instanceinit:main',
@@ -32,9 +40,12 @@ setup(
             'ef-version=efopen.ef_version:main'
         ],
     },
-    url='https://github.com/crunchyroll/ef-open',
-    license="Apache License 2.0",
-    author='Ellation, Inc.',
-    author_email='ops@ellation.com',
-    description='CloudFormation Tools by Ellation'
-)
+    'url': 'https://github.com/crunchyroll/ef-open',
+    'license': "Apache License 2.0",
+    'author': 'Ellation, Inc.',
+    'author_email': 'ops@ellation.com',
+    'description': 'CloudFormation Tools by Ellation',
+    'long_description': readme()
+}
+
+setup(**cfg)

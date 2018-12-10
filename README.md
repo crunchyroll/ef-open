@@ -18,16 +18,23 @@ If you have the ef-open installed and want to upgrade to the latest version you 
 
     $ pip install --upgrade ef-open
 
+# Use
+`ef-cf` - Evaluate templatized CloudFormation templates, with the option to generate changesets or apply them
+`ef-check-config` - Validate the config files for JSON correctness
+`ef-generate` - Ensure the existence of various standard elements for a target environment
+`ef-instanceinit` - Host startup script which copies customized instance config from S3 to the local host
+`ef-password` - Manage an encrypted secrets file, with the keys stored in AWS's KMS
+`ef-resolve-config` - Generate late-bind config assets, for testing
+`ef-version` - Manage versioned tagging for AMI's and static assets
 
 # Development
 ## Testing and Linting
-This project uses Python `unittest` framework for unit tests, and pylint for lint checking.
+This project uses Python `unittest` framework for unit tests, and `pylint` for lint checking.
 ```
 python setup.py test
 
 pylint --rcfile=./pylintrc ./efopen
 ```
-
 
 ## Versions
 This project uses [Versioneer](https://github.com/warner/python-versioneer) to manage the release versions, based on Git tags on the code repository.
