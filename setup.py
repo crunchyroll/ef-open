@@ -20,6 +20,7 @@ cfg = {
     'install_requires': [
         'boto3',
         'click',
+        'cfn-lint',
         'PyYAML',
     ],
     'extras_require': {
