@@ -600,11 +600,11 @@ class EFAwsResolver(object):
     """
     identity_pool_id = self.cognito_identity_identity_pool_id(lookup, default)
 
-    if not identity_pool_id or identity_pool_id == default:
+    if identity_pool_id == default:
       return default
 
     # The ARN has to be constructed because there is no boto3 call that returns the full ARN for a cognito identity pool
-    return "arn:aws:cognito-identity:${{AWS::Region}}:${{AWS::AccountId}}:identitypool/{}".format(identity_pool_id)
+    return "arn:aws:cognito-identity:{{{{REGION}}}}:{{{{ACCOUNT}}}}:identitypool/{}".format(identity_pool_id)
 
   def cognito_identity_identity_pool_id(self, lookup, default=None):
     """
@@ -645,7 +645,7 @@ class EFAwsResolver(object):
     """
     client = EFAwsResolver.__CLIENTS["cognito-idp"]
     user_pool_id = self.cognito_idp_user_pool_id(lookup, default)
-    if not user_pool_id or user_pool_id == default:
+    if user_pool_id == default:
       return default
 
     response = client.describe_user_pool(UserPoolId=user_pool_id)
