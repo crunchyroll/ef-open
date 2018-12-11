@@ -261,7 +261,7 @@ def main():
         StackName=stack_name,
         TemplateBody=template,
         Parameters=parameters,
-        Capabilities=['CAPABILITY_IAM'],
+        Capabilities=['CAPABILITY_IAM', 'CAPABILITY_NAMED_IAM'],
         ChangeSetName=stack_name,
         ClientToken=stack_name
       )
@@ -272,7 +272,7 @@ def main():
           StackName=stack_name,
           TemplateBody=template,
           Parameters=parameters,
-          Capabilities=['CAPABILITY_IAM']
+          Capabilities=['CAPABILITY_IAM', 'CAPABILITY_NAMED_IAM']
         )
       else:
         print("Creating stack: {}".format(stack_name))
@@ -280,7 +280,7 @@ def main():
           StackName=stack_name,
           TemplateBody=template,
           Parameters=parameters,
-          Capabilities=['CAPABILITY_IAM']
+          Capabilities=['CAPABILITY_IAM', 'CAPABILITY_NAMED_IAM']
         )
       if context.poll_status:
         while True:
