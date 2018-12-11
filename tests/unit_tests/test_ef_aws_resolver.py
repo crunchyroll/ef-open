@@ -1881,7 +1881,7 @@ class TestEFAwsResolver(unittest.TestCase):
 
     ef_aws_resolver = EFAwsResolver(self._clients)
     result = ef_aws_resolver.lookup("cognito-identity:identity-pool-arn,proto0_cms_identity_pool")
-    self.assertEqual("arn:aws:cognito-identity:${AWS::Region}:${AWS::AccountId}:identitypool/us-west-2:proto0_pool_id",
+    self.assertEqual("arn:aws:cognito-identity:{{REGION}}:{{ACCOUNT}}:identitypool/us-west-2:proto0_pool_id",
                      result)
 
   def test_cognito_identity_identity_pool_arn_no_match(self):
