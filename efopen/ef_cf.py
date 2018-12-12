@@ -170,7 +170,7 @@ def main():
 
   # Get service registry and refresh repo if appropriate
   try:
-    if not (context.devel or getenv("JENKINS_URL", False) or context.lint):
+    if not (context.devel or getenv("JENKINS_URL", False)):
       pull_repo()
     else:
       print("not refreshing repo because --devel was set or running on Jenkins")
