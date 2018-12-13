@@ -96,6 +96,7 @@ INSTANCE_PROFILE_SERVICE_TYPES = [
 # these service types get KMS Keys
 KMS_SERVICE_TYPES = [
   "aws_ec2",
+  "aws_fixture",
   "aws_lambda",
   "http_service"
 ]
@@ -395,7 +396,7 @@ def conditionally_create_kms_key(role_name, service_type):
   Create KMS Master Key for encryption/decryption of sensitive values in cf templates and latebind configs
   Args:
       role_name: name of the role that kms key is being created for; it will be given decrypt privileges.
-      service_type: service registry service type: 'aws_ec2', 'aws_lambda', or 'http_service'
+      service_type: service registry service type: 'aws_ec2', 'aws_fixture', 'aws_lambda', or 'http_service'
   """
   if service_type not in KMS_SERVICE_TYPES:
     print_if_verbose("not eligible for kms; service_type: {} is not valid for kms".format(service_type))
@@ -412,55 +413,71 @@ def conditionally_create_kms_key(role_name, service_type):
     else:
       fail("Exception describing KMS key: {} {}".format(role_name, error))
 
-  formatted_principal = '"AWS": "arn:aws:iam::{}:role/{}"'.format(CONTEXT.account_id, role_name)
-  kms_key_policy = '''{
-    "Version": "2012-10-17",
-    "Statement": [
-      {
-        "Sid": "Enable IAM User Permissions",
-        "Effect": "Allow",
-        "Principal": {
-          "AWS": "arn:aws:iam::''' + CONTEXT.account_id + ''':root"
+  if service_type == "aws_fixture":
+    kms_key_policy = '''{
+      "Version": "2012-10-17",
+      "Statement": [
+        {
+          "Sid": "Enable IAM User Permissions",
+          "Effect": "Allow",
+          "Principal": {
+            "AWS": "arn:aws:iam::''' + CONTEXT.account_id + ''':root"
+          },
+          "Action": "kms:*",
+          "Resource": "*"
+        }
+      ]
+    }'''
+  else:
+    formatted_principal = '"AWS": "arn:aws:iam::{}:role/{}"'.format(CONTEXT.account_id, role_name)
+    kms_key_policy = '''{
+      "Version": "2012-10-17",
+      "Statement": [
+        {
+          "Sid": "Enable IAM User Permissions",
+          "Effect": "Allow",
+          "Principal": {
+            "AWS": "arn:aws:iam::''' + CONTEXT.account_id + ''':root"
+          },
+          "Action": "kms:*",
+          "Resource": "*"
         },
-        "Action": "kms:*",
-        "Resource": "*"
-      },
-      {
-        "Sid": "Allow Service Role Decrypt Privileges",
-        "Effect": "Allow",
-        "Principal": { ''' + formatted_principal + ''' },
-        "Action": "kms:Decrypt",
-        "Resource": "*"
-      },
-      {
-        "Sid": "Allow use of the key for default autoscaling group service role",
-        "Effect": "Allow",
-        "Principal": { "AWS": "arn:aws:iam::''' + CONTEXT.account_id + ''':role/aws-service-role/autoscaling.amazonaws.com/AWSServiceRoleForAutoScaling" },
-        "Action": [
-          "kms:Encrypt",
-          "kms:Decrypt",
-          "kms:ReEncrypt*",
-          "kms:GenerateDataKey*",
-          "kms:DescribeKey"
-        ],
-        "Resource": "*"
-      },
-      {
-        "Sid": "Allow attachment of persistent resourcesfor default autoscaling group service role",
-        "Effect": "Allow",
-        "Principal": { "AWS": "arn:aws:iam::''' + CONTEXT.account_id + ''':role/aws-service-role/autoscaling.amazonaws.com/AWSServiceRoleForAutoScaling" },
-        "Action": [
-          "kms:CreateGrant"
-        ],
-        "Resource": "*",
-        "Condition": {
-          "Bool": {
-            "kms:GrantIsForAWSResource": true
+        {
+          "Sid": "Allow Service Role Decrypt Privileges",
+          "Effect": "Allow",
+          "Principal": { ''' + formatted_principal + ''' },
+          "Action": "kms:Decrypt",
+          "Resource": "*"
+        },
+        {
+          "Sid": "Allow use of the key for default autoscaling group service role",
+          "Effect": "Allow",
+          "Principal": { "AWS": "arn:aws:iam::''' + CONTEXT.account_id + ''':role/aws-service-role/autoscaling.amazonaws.com/AWSServiceRoleForAutoScaling" },
+          "Action": [
+            "kms:Encrypt",
+            "kms:Decrypt",
+            "kms:ReEncrypt*",
+            "kms:GenerateDataKey*",
+            "kms:DescribeKey"
+          ],
+          "Resource": "*"
+        },
+        {
+          "Sid": "Allow attachment of persistent resourcesfor default autoscaling group service role",
+          "Effect": "Allow",
+          "Principal": { "AWS": "arn:aws:iam::''' + CONTEXT.account_id + ''':role/aws-service-role/autoscaling.amazonaws.com/AWSServiceRoleForAutoScaling" },
+          "Action": [
+            "kms:CreateGrant"
+          ],
+          "Resource": "*",
+          "Condition": {
+            "Bool": {
+              "kms:GrantIsForAWSResource": true
+            }
           }
         }
-      }
-    ]
-  }'''
+      ]
+    }'''
 
   if not kms_key:
     print("Create KMS key: {}".format(key_alias))
