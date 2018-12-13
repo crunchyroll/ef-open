@@ -13,6 +13,7 @@ setup(
     install_requires=[
         'boto3',
         'PyYAML',
+        'cfn-lint'
     ],
     extras_require={
         'test': [

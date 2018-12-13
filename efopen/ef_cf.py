@@ -17,13 +17,15 @@ limitations under the License.
 """
 
 from __future__ import print_function
+
 import argparse
 import json
-from os import getenv
-from os.path import basename, dirname, isfile, splitext
 import re
+import subprocess
 import sys
 import time
+from os import getenv, mkdir, remove, rmdir
+from os.path import basename, dirname, exists, isfile, join, splitext
 
 import botocore.exceptions
 
@@ -102,6 +104,8 @@ def handle_args_and_set_context(args):
   parser.add_argument("--verbose", help="Print additional info + resolved template", action="store_true", default=False)
   parser.add_argument("--devel", help="Allow running from branch; don't refresh from origin", action="store_true",
                       default=False)
+  parser.add_argument("--lint", help="Execute cfn-lint on the rendered template", action="store_true",
+                      default=False)
   parsed_args = vars(parser.parse_args(args))
   context = EFCFContext()
   try:
@@ -112,6 +116,7 @@ def handle_args_and_set_context(args):
   context.changeset = parsed_args["changeset"]
   context.commit = parsed_args["commit"]
   context.devel = parsed_args["devel"]
+  context.lint = parsed_args["lint"]
   context.poll_status = parsed_args["poll"]
   context.verbose = parsed_args["verbose"]
   # Set up service registry and policy template path which depends on it
@@ -297,6 +302,21 @@ def main():
             sys.exit(1)
           elif re.match(r".*_IN_PROGRESS(?!.)", stack_status) is not None:
             time.sleep(EFConfig.EF_CF_POLL_PERIOD)
+    elif context.lint:
+      print("=== LINTING ===")
+      work_dir = '.lint'
+      temp_file = join(work_dir, 'template.json')
+      if not exists(work_dir):
+        mkdir(work_dir)
+      with open(temp_file, 'w') as f:
+        f.write(template)
+      cmd = 'cfn-lint {}'.format(temp_file)
+      p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+      stdout, stderr = p.communicate()
+      print(stdout)
+      remove(temp_file)
+      rmdir(work_dir)
+      exit(p.returncode)
   except botocore.exceptions.ClientError as error:
     if error.response["Error"]["Message"] in "No updates are to be performed.":
       # Don't fail when there is no update to the stack
