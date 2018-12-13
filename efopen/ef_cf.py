@@ -94,9 +94,10 @@ def handle_args_and_set_context(args):
   parser = argparse.ArgumentParser()
   parser.add_argument("template_file", help="/path/to/template_file.json")
   parser.add_argument("env", help=", ".join(EFConfig.ENV_LIST))
-  parser.add_argument("--changeset", help="create a changeset; cannot be combined with --commit",
+  group = parser.add_mutually_exclusive_group()
+  group.add_argument("--changeset", help="create a changeset; cannot be combined with --commit",
                       action="store_true", default=False)
-  parser.add_argument("--commit", help="Make changes in AWS (dry run if omitted); cannot be combined with --changeset",
+  group.add_argument("--commit", help="Make changes in AWS (dry run if omitted); cannot be combined with --changeset",
                       action="store_true", default=False)
   parser.add_argument("--poll", help="Poll Cloudformation to check status of stack creation/updates",
                       action="store_true", default=False)
@@ -145,10 +146,6 @@ def resolve_template(template, profile, env, region, service, verbose):
 
 def main():
   context = handle_args_and_set_context(sys.argv[1:])
-
-  # argument sanity checks and contextual messages
-  if context.commit and context.changeset:
-    fail("Cannot use --changeset and --commit together")
 
   if context.changeset:
     print("=== CHANGESET ===\nCreating changeset only. See AWS GUI for changeset\n=== CHANGESET ===")
