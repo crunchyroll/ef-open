@@ -158,12 +158,12 @@ def handle_args_and_set_context(args):
   parser = argparse.ArgumentParser()
   parser.add_argument("service", help="name of service password is being generated for")
   parser.add_argument("env", help=", ".join(EFConfig.ENV_LIST))
-  parser.add_argument("--length", help="length of generated password (default 32)", default=32)
   group = parser.add_mutually_exclusive_group(required=True)
   group.add_argument("--decrypt", help="encrypted string to be decrypted", default="")
   group.add_argument("--plaintext", help="secret to be encrypted rather than a randomly generated one", default="")
   group.add_argument("--secret_file", help="json file containing secrets to be encrypted", default="")
   parser.add_argument("--match", help="used in conjunction with --secret_file to match against keys to be encrypted", default="")
+  parser.add_argument("--length", help="length of generated password (default 32)", default=32)
   parsed_args = vars(parser.parse_args(args))
   context = EFPWContext()
   try:
