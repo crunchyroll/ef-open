@@ -307,7 +307,7 @@ def main():
         mkdir(work_dir)
       with open(temp_file, 'w') as f:
         f.write(template)
-      cmd = 'cfn-lint {}'.format(temp_file)
+      cmd = 'cfn-lint --ignore-checks E2506 --template {}'.format(temp_file)
       p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
       stdout, stderr = p.communicate()
       print(stdout)
