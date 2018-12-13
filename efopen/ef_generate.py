@@ -396,7 +396,7 @@ def conditionally_create_kms_key(role_name, service_type):
   Create KMS Master Key for encryption/decryption of sensitive values in cf templates and latebind configs
   Args:
       role_name: name of the role that kms key is being created for; it will be given decrypt privileges.
-      service_type: service registry service type: 'aws_ec2', 'aws_lambda', or 'http_service'
+      service_type: service registry service type: 'aws_ec2', 'aws_fixture', 'aws_lambda', or 'http_service'
   """
   if service_type not in KMS_SERVICE_TYPES:
     print_if_verbose("not eligible for kms; service_type: {} is not valid for kms".format(service_type))
