@@ -45,16 +45,32 @@ class TestEFPassword(unittest.TestCase):
     self.assertEqual(len(random_secret), 24)
     assert not set('[~!@#$%^&*()_+{}":;\']+$').intersection(random_secret)
 
-  def test_args(self):
-    """Test parsing args with all valid values"""
-    args = [self.service, self.env, "--length", "10", "--plaintext", "test", "--decrypt", "test", "--secret_file",
-            "test_data/parameters/test.cnf.parameters.json", "--match", "test"]
+  def test_args_decrypt(self):
+    """Test parsing args with all valid values (decrypt)"""
+    args = [self.service, self.env, "--length", "10", "--decrypt", "test"]
+    context = ef_password.handle_args_and_set_context(args)
+    self.assertEqual(context.env, self.env)
+    self.assertEqual(context.service, self.service)
+    self.assertEqual(context.length, 10)
+    self.assertEqual(context.decrypt, "test")
+
+  def test_args_plaintext(self):
+    """Test parsing args with all valid values (plaintext)"""
+    args = [self.service, self.env, "--length", "10", "--plaintext", "test"]
     context = ef_password.handle_args_and_set_context(args)
     self.assertEqual(context.env, self.env)
     self.assertEqual(context.service, self.service)
     self.assertEqual(context.length, 10)
     self.assertEqual(context.plaintext, "test")
-    self.assertEqual(context.decrypt, "test")
+
+  def test_args_secret_file(self):
+    """Test parsing args with all valid values (secret file)"""
+    args = [self.service, self.env, "--length", "10", "--secret_file",
+            "test_data/parameters/test.cnf.parameters.json", "--match", "test"]
+    context = ef_password.handle_args_and_set_context(args)
+    self.assertEqual(context.env, self.env)
+    self.assertEqual(context.service, self.service)
+    self.assertEqual(context.length, 10)
     self.assertEqual(context.secret_file, "test_data/parameters/test.cnf.parameters.json")
     self.assertEqual(context.match, "test")
 
