@@ -158,7 +158,7 @@ def handle_args_and_set_context(args):
   parser = argparse.ArgumentParser()
   parser.add_argument("service", help="name of service password is being generated for")
   parser.add_argument("env", help=", ".join(EFConfig.ENV_LIST))
-  group = parser.add_mutually_exclusive_group(required=True)
+  group = parser.add_mutually_exclusive_group()
   group.add_argument("--decrypt", help="encrypted string to be decrypted", default="")
   group.add_argument("--plaintext", help="secret to be encrypted rather than a randomly generated one", default="")
   group.add_argument("--secret_file", help="json file containing secrets to be encrypted", default="")
