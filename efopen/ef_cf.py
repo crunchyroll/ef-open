@@ -259,7 +259,7 @@ def main():
   try:
     if context.changeset:
       print("Creating changeset: {}".format(stack_name))
-      clients["cloudformation"].create_change_set(
+      results = clients["cloudformation"].create_change_set(
         StackName=stack_name,
         TemplateBody=template,
         Parameters=parameters,
@@ -267,6 +267,9 @@ def main():
         ChangeSetName=stack_name,
         ClientToken=stack_name
       )
+      results_ids = {key: value for key, value in results.iteritems()
+                     if key in ('Id', 'StackId')}
+      print("Changeset Info: {}".format(json.dumps(results_ids)))
     elif context.commit:
       if stack_exists:
         print("Updating stack: {}".format(stack_name))
