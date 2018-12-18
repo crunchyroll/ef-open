@@ -20,6 +20,7 @@ If you have the ef-open installed and want to upgrade to the latest version you 
 
 # Use
 `ef-cf` - Evaluate templatized CloudFormation templates, with the option to generate changesets or apply them
+`ef-cf-diff` - Test some or all templates against a target environment, for differences
 `ef-check-config` - Validate the config files for JSON correctness
 `ef-generate` - Ensure the existence of various standard elements for a target environment
 `ef-instanceinit` - Host startup script which copies customized instance config from S3 to the local host
