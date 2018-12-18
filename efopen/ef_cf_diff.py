@@ -21,66 +21,100 @@ import logging
 import os
 import os.path
 import re
-import shutil
 import subprocess
 import sys
-import tempfile
+import time
+from botocore.exceptions import ClientError
 
 import click
 
 from .ef_config import EFConfig
 from .ef_service_registry import EFServiceRegistry
+from .ef_utils import create_aws_clients, get_account_alias, whereami
 
 logger = logging.getLogger()
 logger.setLevel(logging.DEBUG)
 
 ch = logging.StreamHandler(sys.stderr)
-ch.setLevel(logging.DEBUG)
+ch.setLevel(logging.INFO)
 ch.setFormatter(logging.Formatter('%(levelname)s - %(message)s'))
 logger.addHandler(ch)
 
+logging.getLogger('botocore').setLevel(logging.CRITICAL)
+
 ret_code = 0
+service_registry = None
 
 
-def test_template(file, env_name):
+def changeset_is_empty(response):
+    return (response['Status'] == 'FAILED' and "didn't contain changes" in response['StatusReason'])
+
+
+def wait_for_changeset_creation(cf_client, changeset_id, changeset_stackid):
+    remaining_tries = 3
+    while remaining_tries > 0:
+        remaining_tries -= 1
+        res = cf_client.describe_change_set(ChangeSetName=changeset_id, StackName=changeset_stackid)
+        if res['Status'] in ['CREATE_PENDING', 'CREATE_IN_PROGRESS']:
+            time.sleep(10)
+            continue
+        return
+    raise Exception('Timed out waiting for changeset to create.')
+
+
+def generate_changeset(service_name, environment, ef_root, template_file):
     """
-    Evaluate the cfn-validate command, for the given file, and dump the output in the
-    given subdirectory.  Make the output directory if it doesn't exist.
+    Given a service name and environment, and the details of where the
+    template file is, call ef-cf to generate a changeset.  Return the json
+    description response that's printed in the ef-cf output.
+
+    Will throw Exception if something goes wrong with the ef-cf call.
     """
-    logger.debug("Validating: `%s` in environment `%s`", file, env_name)
+    cmd = 'cd {} && ef-cf {} {} --changeset --devel'.format(ef_root, template_file, environment)
+    p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    stdout, stderr = p.communicate()
 
-    # cmd = 'cfn-lint {}'.format(file)
-    # p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    # stdout, stderr = p.communicate()
-    # if p.returncode != 0:
-    #     global ret_code
-    #     ret_code = 1
-    # return stdout
+    if p.returncode != 0:
+        stderr = '\n{}'.format(stderr).replace('\n', '\n        ')
+        stdout = '\n{}'.format(stdout).replace('\n', '\n        ')
+        raise Exception('Service: `{}`, Env: `{}`, Msg: `{}{}`'
+                        .format(service_name, environment, stderr, stdout))
+
+    logger.debug('Created changeset for `%s` in `%s`', template_file, environment)
+
+    r = re.match(r".*^Changeset Info: (.*)$", stdout, re.MULTILINE | re.DOTALL)
+    return json.loads(r.group(1))
 
 
-def test_for_cf_template_differences(template_dir):
+def delete_any_existing_changesets(cf_client, service_name, environment):
+    stack_name = '{}-{}'.format(environment, service_name)
+    logger.debug('Deleting existing changesets for `%s`', stack_name)
+
+    try:
+        changesets = cf_client.list_change_sets(StackName=stack_name)
+    except ClientError as e:
+        logger.debug("Error listing existing changesets: %s", e)
+        return
+
+    for changeset in changesets['Summaries']:
+        logger.debug('Deleting existing changeset: `%s`', changeset['ChangeSetId'])
+        cf_client.delete_change_set(ChangeSetName=changeset['ChangeSetId'], StackName=changeset['StackId'])
+
+
+def get_cloudformation_client(service_name, environment_name):
     """
-    Loop over all the generated templates in the given temporary directory,
-    and evaluate each template for differences agaist the target environment.
+    Given a service name and an environment name, return a boto CloudFormation
+    client object.
     """
-    envdirs = os.listdir(template_dir)
-    for envdir in envdirs:
-        envdir_fullpath = os.path.join(template_dir, envdir)
-        template_files = os.listdir(envdir_fullpath)
+    region = service_registry.service_region(service_name)
 
-        for template_file in template_files:
-            template_file = os.path.join(envdir_fullpath, template_file)
+    if whereami() == 'ec2':
+        profile = None
+    else:
+        profile = get_account_alias(environment_name)
 
-            test_template(template_file, envdir)
-
-
-def extract_template_from_efcf_output(raw_output):
-    """
-    The verbose output of ef-cf has some extra text before and after the
-    cloudformation template output.  Find just the template, and return that.
-    """
-    r = re.match(r".*(^{.*^}).*$", raw_output, re.MULTILINE | re.DOTALL)
-    return r.group(1)
+    clients = create_aws_clients(region, profile, 'cloudformation')
+    return clients['cloudformation']
 
 
 def generate_test_environment_name(env_name):
@@ -94,61 +128,77 @@ def generate_test_environment_name(env_name):
     return env_name
 
 
-def render_templates(services, ef_root, target_dir, include_env):
+def get_env_categories(envs):
+    """
+    Given a list of environments, return an associated list of environment
+    base names where, for example, 'proto0' becomes 'proto', but 'staging'
+    remains 'staging'.
+    """
+    return [re.match(r'^(.*?)\d*$', name).group(1) for name in envs]
+
+
+def evaluate_changesets(services, ef_root, include_env):
     """
     Given a dict of services, use ef-cf to render the cloudformation
-    templates.  These can then be evaluated for correctness in a later step.
+    templates and then generate changesets for each one.
+    These can then be evaluated for emptiness in a later step.
 
     Sub-services (names with '.' in them) are skipped.
+
+    If an ef-cf call fails, the error will be logged, the retcode set to 2, but
+    the function will run to completion and return the list of non-error
+    results.
     """
+    global ret_code
+
     for service_name, service in services.iteritems():
 
         if '.' in service_name:
             logger.debug("Service `%s` is a sub-service.  Skipping.", service_name)
             continue
 
-        for environment in service['environments']:
-            if environment not in include_env:
-                logger.debug('Skipping excluded environment `%s` for service `%s`',
-                             environment, service_name)
+        for env_category in service['environments']:
+            if env_category not in get_env_categories(include_env):
+                logger.debug('Skipping not-included environment `%s` for service `%s`',
+                             env_category, service_name)
                 continue
 
-            output_dir = os.path.join(target_dir, environment)
-            logger.debug('Generating template for service `%s` in `%s`: `%s`',
-                         service_name, environment, output_dir)
+            environment = generate_test_environment_name(env_category)
 
-            # Set up the output directory for this service template
-            try:
-                os.mkdir(output_dir)
-            except OSError:
-                pass
+            cf_client = get_cloudformation_client(service_name, environment)
 
-            gen_env = generate_test_environment_name(environment)
+            delete_any_existing_changesets(cf_client, service_name, environment)
 
             try:
-                cmd = 'cd {} && ef-cf {} {} --devel --verbose'.format(
-                      ef_root, service['template_file'], gen_env)
-
-                p = subprocess.Popen(cmd, shell=True,
-                                     stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-                stdout, stderr = p.communicate()
-                if p.returncode != 0:
-                    raise Exception("Service: `{}`, Env: `{}`, Msg: `\n{}`".format(
-                                    service_name, gen_env, stderr))
-
-                out_filename = '{}.{}'.format(
-                    service_name,
-                    os.path.splitext(service['template_file'])[1][1:])
-                out_file = os.path.join(output_dir, out_filename)
-
-                tpl_content = extract_template_from_efcf_output(stdout)
-                with open(out_file, 'w') as f:
-                    f.write(tpl_content)
-
+                changeset = generate_changeset(service_name, environment,
+                                               ef_root, service['template_file'])
             except Exception as e:
-                global ret_code
-                ret_code = 1
+                ret_code = 2
                 logger.error(e)
+                continue
+
+            logger.info('Investigating changeset for service `%s` '
+                        'in environment `%s`\n       Changeset ID: `%s`',
+                        service_name, environment, changeset['Id'])
+
+            wait_for_changeset_creation(cf_client, changeset['Id'], changeset['StackId'])
+
+            desc = cf_client.describe_change_set(
+                ChangeSetName=changeset['Id'], StackName=changeset['StackId'])
+
+            cf_client.delete_change_set(
+                ChangeSetName=changeset['Id'], StackName=changeset['StackId'])
+
+            if changeset_is_empty(desc):
+                logger.info('Deployed service `%s` in environment `%s` matches '
+                            'the local template.', service_name, environment)
+            else:
+                ret_code = 1
+                logger.error('Service `%s` in environment `%s` differs from '
+                             'the local template.',
+                             service_name, environment)
+                details = json.dumps(desc['Changes'], indent=2, sort_keys=True).replace('\n', '\n        ')
+                logger.info('Change details: %s', details)
 
 
 def test_for_unused_template_files(template_files, services):
@@ -253,31 +303,28 @@ def scan_dir_for_template_files(search_dir):
               required=False,
               type=click.Path(exists=True, file_okay=True, dir_okay=False,
                               readable=True, resolve_path=True),
-              help="A specific template to process.  Can be passed multiple times.  If excluded, all templates will be run.")
+              help="A specific template to process.  Can be passed multiple "
+                   "times.  If excluded, all templates will be run.")
 @click.version_option()
 def main(ef_root, sr, env, template_file):
+    global service_registry
     service_registry = EFServiceRegistry(sr)
 
     template_files = scan_dir_for_template_files(ef_root)
 
-    # If the list of whitelisted templates was passed, we're in "only render
-    # and test those templates" mode.  Otherwise we'll just do every template.
+    # If the list of whitelisted templates was passed, we're in "only test
+    # those templates" mode.  Otherwise we'll just do every template.
     if template_file:
         template_files = {name: file
                           for name, file in template_files.iteritems()
                           if file in template_file}
 
-    services = get_dict_registry_services(service_registry.filespec, template_files,
+    services = get_dict_registry_services(service_registry.filespec,
+                                          template_files,
                                           warn_missing_files=(not template_file))
 
     test_for_unused_template_files(template_files, services)
 
-    template_gendir = tempfile.mkdtemp()
-
-    render_templates(services, ef_root, template_gendir, env)
-
-    test_for_cf_template_differences(template_gendir)
-
-    shutil.rmtree(template_gendir)
+    evaluate_changesets(services, ef_root, env)
 
     exit(ret_code)
