@@ -24,9 +24,9 @@ import re
 import subprocess
 import sys
 import time
-from botocore.exceptions import ClientError
 
 import click
+from botocore.exceptions import ClientError
 
 from .ef_config import EFConfig
 from .ef_service_registry import EFServiceRegistry
