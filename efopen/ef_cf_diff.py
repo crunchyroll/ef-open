@@ -62,7 +62,7 @@ def wait_for_changeset_creation(cf_client, changeset_id, changeset_stackid):
     raise Exception('Timed out waiting for changeset to create.')
 
 
-def generate_changeset(service_name, environment, ef_root, template_file):
+def generate_changeset(service_name, environment, repo_root, template_file):
     """
     Given a service name and environment, and the details of where the
     template file is, call ef-cf to generate a changeset.  Return the json
@@ -70,7 +70,7 @@ def generate_changeset(service_name, environment, ef_root, template_file):
 
     Will throw Exception if something goes wrong with the ef-cf call.
     """
-    cmd = 'cd {} && ef-cf {} {} --changeset --devel'.format(ef_root, template_file, environment)
+    cmd = 'cd {} && ef-cf {} {} --changeset --devel'.format(repo_root, template_file, environment)
     p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     stdout, stderr = p.communicate()
 
@@ -137,7 +137,7 @@ def get_env_categories(envs):
     return [re.match(r'^(.*?)\d*$', name).group(1) for name in envs]
 
 
-def evaluate_changesets(services, ef_root, include_env):
+def evaluate_changesets(services, repo_root, include_env):
     """
     Given a dict of services, use ef-cf to render the cloudformation
     templates and then generate changesets for each one.
@@ -171,7 +171,7 @@ def evaluate_changesets(services, ef_root, include_env):
 
             try:
                 changeset = generate_changeset(service_name, environment,
-                                               ef_root, service['template_file'])
+                                               repo_root, service['template_file'])
             except Exception as e:
                 ret_code = 2
                 logger.error(e)
@@ -281,12 +281,12 @@ def scan_dir_for_template_files(search_dir):
 
 
 @click.command()
-@click.option('--ef_root',
+@click.option('--repo_root',
               default="./",
               required=False,
               type=click.Path(exists=True, file_okay=False, dir_okay=True,
                               readable=True, resolve_path=True),
-              help="The root directory of the ellation_formation git clone.")
+              help="The root directory of the template repository git clone.")
 @click.option('--sr',
               default=None,
               required=False,
@@ -306,11 +306,11 @@ def scan_dir_for_template_files(search_dir):
               help="A specific template to process.  Can be passed multiple "
                    "times.  If excluded, all templates will be run.")
 @click.version_option()
-def main(ef_root, sr, env, template_file):
+def main(repo_root, sr, env, template_file):
     global service_registry
     service_registry = EFServiceRegistry(sr)
 
-    template_files = scan_dir_for_template_files(ef_root)
+    template_files = scan_dir_for_template_files(repo_root)
 
     # If the list of whitelisted templates was passed, we're in "only test
     # those templates" mode.  Otherwise we'll just do every template.
@@ -325,6 +325,6 @@ def main(ef_root, sr, env, template_file):
 
     test_for_unused_template_files(template_files, services)
 
-    evaluate_changesets(services, ef_root, env)
+    evaluate_changesets(services, repo_root, env)
 
     exit(ret_code)
