@@ -51,7 +51,7 @@ def changeset_is_empty(response):
 
 
 def wait_for_changeset_creation(cf_client, changeset_id, changeset_stackid):
-    remaining_tries = 3
+    remaining_tries = 30
     while remaining_tries > 0:
         remaining_tries -= 1
         res = cf_client.describe_change_set(ChangeSetName=changeset_id, StackName=changeset_stackid)
