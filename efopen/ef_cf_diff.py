@@ -153,10 +153,6 @@ def evaluate_changesets(services, repo_root, include_env):
 
     for service_name, service in services.iteritems():
 
-        if '.' in service_name:
-            logger.debug("Service `%s` is a sub-service.  Skipping.", service_name)
-            continue
-
         for env_category in service['environments']:
             if env_category not in get_env_categories(include_env):
                 logger.debug('Skipping not-included environment `%s` for service `%s`',
