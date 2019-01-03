@@ -94,19 +94,19 @@ def handle_args_and_set_context(args):
   parser = argparse.ArgumentParser()
   parser.add_argument("template_file", help="/path/to/template_file.json")
   parser.add_argument("env", help=", ".join(EFConfig.ENV_LIST))
+  parser.add_argument("--sr", help="optional /path/to/service_registry_file.json", default=None)
+  parser.add_argument("--verbose", help="Print additional info + resolved template", action="store_true", default=False)
+  parser.add_argument("--devel", help="Allow running from branch; don't refresh from origin", action="store_true",
+                      default=False)
   group = parser.add_mutually_exclusive_group()
   group.add_argument("--changeset", help="create a changeset; cannot be combined with --commit",
                       action="store_true", default=False)
   group.add_argument("--commit", help="Make changes in AWS (dry run if omitted); cannot be combined with --changeset",
                       action="store_true", default=False)
+  group.add_argument("--lint", help="Execute cfn-lint on the rendered template", action="store_true",
+                      default=False)
   parser.add_argument("--poll", help="Poll Cloudformation to check status of stack creation/updates",
                       action="store_true", default=False)
-  parser.add_argument("--sr", help="optional /path/to/service_registry_file.json", default=None)
-  parser.add_argument("--verbose", help="Print additional info + resolved template", action="store_true", default=False)
-  parser.add_argument("--devel", help="Allow running from branch; don't refresh from origin", action="store_true",
-                      default=False)
-  parser.add_argument("--lint", help="Execute cfn-lint on the rendered template", action="store_true",
-                      default=False)
   parsed_args = vars(parser.parse_args(args))
   context = EFCFContext()
   try:
@@ -259,7 +259,7 @@ def main():
   try:
     if context.changeset:
       print("Creating changeset: {}".format(stack_name))
-      clients["cloudformation"].create_change_set(
+      results = clients["cloudformation"].create_change_set(
         StackName=stack_name,
         TemplateBody=template,
         Parameters=parameters,
@@ -267,6 +267,9 @@ def main():
         ChangeSetName=stack_name,
         ClientToken=stack_name
       )
+      results_ids = {key: value for key, value in results.iteritems()
+                     if key in ('Id', 'StackId')}
+      print("Changeset Info: {}".format(json.dumps(results_ids)))
     elif context.commit:
       if stack_exists:
         print("Updating stack: {}".format(stack_name))
