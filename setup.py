@@ -1,7 +1,14 @@
 #!/usr/bin/env python
 
 from setuptools import setup
+
 import versioneer
+
+
+def readme():
+    with open('README.md') as f:
+        return f.read()
+
 
 setup(
     name='ef-open',
@@ -12,6 +19,7 @@ setup(
     ],
     install_requires=[
         'boto3',
+        'click',
         'PyYAML',
         'cfn-lint'
     ],
@@ -24,6 +32,7 @@ setup(
     entry_points={
         'console_scripts': [
             'ef-cf=efopen.ef_cf:main',
+            'ef-cf-diff=efopen.ef_cf_diff:main',
             'ef-check-config=efopen.ef_check_config:main',
             'ef-generate=efopen.ef_generate:main',
             'ef-instanceinit=efopen.ef_instanceinit:main',
@@ -36,5 +45,6 @@ setup(
     license="Apache License 2.0",
     author='Ellation, Inc.',
     author_email='ops@ellation.com',
-    description='CloudFormation Tools by Ellation'
+    description='CloudFormation Tools by Ellation',
+    long_description=readme()
 )
