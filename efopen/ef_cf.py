@@ -144,6 +144,12 @@ def resolve_template(template, profile, env, region, service, verbose):
   else:
     return resolver.template
 
+def enable_stack_termination_protection(clients, stack_name):
+  clients["cloudformation"].update_termination_protection(
+    EnableTerminationProtection=True,
+    StackName=stack_name
+  )
+
 def main():
   context = handle_args_and_set_context(sys.argv[1:])
 
@@ -267,6 +273,7 @@ def main():
         ChangeSetName=stack_name,
         ClientToken=stack_name
       )
+      enable_stack_termination_protection(clients, stack_name)
     elif context.commit:
       if stack_exists:
         print("Updating stack: {}".format(stack_name))
@@ -276,6 +283,7 @@ def main():
           Parameters=parameters,
           Capabilities=['CAPABILITY_AUTO_EXPAND', 'CAPABILITY_IAM', 'CAPABILITY_NAMED_IAM']
         )
+        enable_stack_termination_protection(clients, stack_name)
       else:
         print("Creating stack: {}".format(stack_name))
         clients["cloudformation"].create_stack(
@@ -284,6 +292,7 @@ def main():
           Parameters=parameters,
           Capabilities=['CAPABILITY_AUTO_EXPAND', 'CAPABILITY_IAM', 'CAPABILITY_NAMED_IAM']
         )
+        enable_stack_termination_protection(clients, stack_name)
       if context.poll_status:
         while True:
           stack_status = clients["cloudformation"].describe_stacks(StackName=stack_name)["Stacks"][0]["StackStatus"]
