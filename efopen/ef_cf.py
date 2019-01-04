@@ -161,7 +161,10 @@ def main():
   # If running in EC2, use instance credentials (i.e. profile = None)
   # otherwise, use local credentials with profile name in .aws/credentials == account alias name
   if context.whereami == "ec2":
-    profile = None
+    if getenv("JENKINS_URL", False):
+      profile = context.account_alias
+    else:
+      profile = None
   else:
     profile = context.account_alias
 
