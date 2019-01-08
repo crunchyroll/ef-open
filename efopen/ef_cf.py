@@ -144,6 +144,15 @@ def resolve_template(template, profile, env, region, service, verbose):
   else:
     return resolver.template
 
+def is_stack_termination_protected_env(env):
+  return env in EFConfig.STACK_TERMINATION_PROTECTED_ENVS
+
+def enable_stack_termination_protection(clients, stack_name):
+  clients["cloudformation"].update_termination_protection(
+    EnableTerminationProtection=True,
+    StackName=stack_name
+  )
+
 def main():
   context = handle_args_and_set_context(sys.argv[1:])
 
@@ -267,6 +276,8 @@ def main():
         ChangeSetName=stack_name,
         ClientToken=stack_name
       )
+      if is_stack_termination_protected_env(context.env):
+        enable_stack_termination_protection(clients, stack_name)
       results_ids = {key: value for key, value in results.iteritems()
                      if key in ('Id', 'StackId')}
       print("Changeset Info: {}".format(json.dumps(results_ids)))
@@ -279,6 +290,8 @@ def main():
           Parameters=parameters,
           Capabilities=['CAPABILITY_AUTO_EXPAND', 'CAPABILITY_IAM', 'CAPABILITY_NAMED_IAM']
         )
+        if is_stack_termination_protected_env(context.env):
+          enable_stack_termination_protection(clients, stack_name)
       else:
         print("Creating stack: {}".format(stack_name))
         clients["cloudformation"].create_stack(
@@ -287,6 +300,8 @@ def main():
           Parameters=parameters,
           Capabilities=['CAPABILITY_AUTO_EXPAND', 'CAPABILITY_IAM', 'CAPABILITY_NAMED_IAM']
         )
+        if is_stack_termination_protected_env(context.env):
+          enable_stack_termination_protection(clients, stack_name)
       if context.poll_status:
         while True:
           stack_status = clients["cloudformation"].describe_stacks(StackName=stack_name)["Stacks"][0]["StackStatus"]

@@ -42,6 +42,7 @@ class EFConfig(object):
   S3_VERSION_BUCKET = _ef_site_config["S3_VERSION_BUCKET"]
   SERVICE_GROUPS = set(_ef_site_config["SERVICE_GROUPS"])
   SPECIAL_VERSION_ENVS = _ef_site_config["SPECIAL_VERSION_ENVS"]
+  STACK_TERMINATION_PROTECTED_ENVS = _ef_site_config["STACK_TERMINATION_PROTECTED_ENVS"]
   VAGRANT_ENV = _ef_site_config["VAGRANT_ENV"]
   PLUGINS = _ef_site_config["PLUGINS"]
 
