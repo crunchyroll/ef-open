@@ -25,18 +25,21 @@ limitations under the License.
 from __future__ import print_function
 
 import argparse
-from ef_config import EFConfig
-import ef_utils
-import yaml
-from os.path import abspath, dirname, normpath
+import json
+import subprocess
 import sys
+from os.path import abspath, dirname, normpath
 
+import yaml
+
+import ef_utils
+from ef_config import EFConfig
 from ef_template_resolver import EFTemplateResolver
-from ef_utils import get_account_alias
+from ef_utils import fail, get_account_alias
 
 
 class Context:
-  def __init__(self, profile, region, env, service, template_path, no_params, verbose):
+  def __init__(self, profile, region, env, service, template_path, no_params, verbose, lint):
     self.profile = profile
     self.region = region
     self.env = env
@@ -45,10 +48,11 @@ class Context:
     self.no_params = no_params
     self.param_path = ef_utils.get_template_parameters_file(self.template_path)
     self.verbose = verbose
+    self.lint = lint
 
   def __str__(self):
-    return("profile: {}\nregion: {}\nenv: {}\nservice: {}\ntemplate_path: {}\nparam_path: {}\n".format(
-           self.profile, self.region, self.env, self.service, self.template_path, self.param_path, self.verbose))
+    return("profile: {}\nregion: {}\nenv: {}\nservice: {}\ntemplate_path: {}\nparam_path: {}\nlint: {}".format(
+      self.profile, self.region, self.env, self.service, self.template_path, self.param_path, self.lint))
 
 
 def handle_args_and_set_context(args):
@@ -63,6 +67,7 @@ def handle_args_and_set_context(args):
   parser.add_argument("path_to_template", help="path to the config template to process")
   parser.add_argument("--no_params", help="disable loading values from params file", action="store_true", default=False)
   parser.add_argument("--verbose", help="Output extra info", action="store_true", default=False)
+  parser.add_argument("--lint", help="Test configs for valid JSON/YAML syntax", action="store_true", default=False)
   parsed = vars(parser.parse_args(args))
   path_to_template = abspath(parsed["path_to_template"])
   service = path_to_template.split('/')[-3]
@@ -74,7 +79,8 @@ def handle_args_and_set_context(args):
       service,
       path_to_template,
       parsed["no_params"],
-      parsed["verbose"]
+      parsed["verbose"],
+      parsed["lint"]
   )
 
 
@@ -123,6 +129,19 @@ def merge_files(context):
 
   if not resolver.resolved_ok():
     raise RuntimeError("Couldn't resolve all symbols; template has leftover {{ or }}: {}".format(resolver.unresolved_symbols()))
+
+  if context.lint and context.template_path.endswith(".json"):
+    try:
+      json.loads(rendered_body)
+    except ValueError as e:
+      fail("Failed to decode JSON", e)
+  elif context.lint and context.template_path.endswith((".yml", ".yaml")):
+    cmd = 'yamllint -d relaxed {}'.format(context.template_path)
+    yamllint = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    stdout, stderr = yamllint.communicate()
+    print(stdout, stderr)
+    if yamllint.returncode != 0:
+      fail("YAML failed linting process")
 
   if context.verbose:
     print(context)
