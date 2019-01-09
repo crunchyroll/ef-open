@@ -167,13 +167,12 @@ def enable_stack_termination_protection(clients, stack_name):
   )
 
 
-class CFTemplateTests(object):
+class CFTemplateLinter(object):
 
   def __init__(self, template):
     self.template = template
     self.work_dir = os.path.join(os.path.dirname(__file__), '.lint')
     self.local_template_path = os.path.join(self.work_dir, 'template.json')
-    self.jq_exit_code = None
     self.cfn_exit_code = None
     self.exit_code = None
     self.standup()
@@ -186,19 +185,8 @@ class CFTemplateTests(object):
       f.write(self.template)
 
   def run_tests(self):
-    self.json_lint()
     self.cfn_lint()
     self.teardown()
-
-  def json_lint(self):
-    print("=== JSON LINTING ===")
-    cmd = 'jq . {}'.format(self.local_template_path)
-    jq = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    stdout, stderr = jq.communicate()
-    print(stderr)
-    if jq.returncode == 0:
-      print("Template is valid JSON")
-    self.jq_exit_code = jq.returncode
 
   def cfn_lint(self):
     print("=== CLOUDFORMATION LINTING ===")
@@ -213,10 +201,7 @@ class CFTemplateTests(object):
   def teardown(self):
     os.remove(self.local_template_path)
     os.rmdir(self.work_dir)
-    if self.jq_exit_code != 0 or self.cfn_exit_code not in [0, 4]:  # ignore cfn warnings
-      self.exit_code = 1
-    else:
-      self.exit_code = 0
+    self.exit_code = 1 if self.cfn_exit_code not in [0, 4] else 0  # Ignore cfn-lint warnings
 
 
 def main():
@@ -325,6 +310,7 @@ def main():
     print("Validating template")
   try:
     clients["cloudformation"].validate_template(TemplateBody=template)
+    json.loads(template)  # Tests for valid JSON syntax, oddly not handled above
   except botocore.exceptions.ClientError as error:
     fail("Template did not pass validation", error)
 
@@ -384,7 +370,7 @@ def main():
           elif re.match(r".*_IN_PROGRESS(?!.)", stack_status) is not None:
             time.sleep(EFConfig.EF_CF_POLL_PERIOD)
     elif context.lint:
-      tester = CFTemplateTests(template)
+      tester = CFTemplateLinter(template)
       tester.run_tests()
       exit(tester.exit_code)
 
