@@ -313,6 +313,8 @@ def main():
     json.loads(template)  # Tests for valid JSON syntax, oddly not handled above
   except botocore.exceptions.ClientError as error:
     fail("Template did not pass validation", error)
+  except ValueError as e:  # includes simplejson.decoder.JSONDecodeError
+    fail('Failed to decode JSON', e)
 
   print("Template passed validation")
 
