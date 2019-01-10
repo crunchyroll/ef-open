@@ -136,7 +136,7 @@ def merge_files(context):
     except ValueError as e:
       fail("Failed to decode JSON", e)
   elif context.lint and context.template_path.endswith((".yml", ".yaml")):
-    cmd = 'yamllint -d relaxed {}'.format(context.template_path)
+    cmd = "yamllint -d relaxed {}".format(context.template_path)
     yamllint = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     stdout, stderr = yamllint.communicate()
     print(stdout, stderr)
