@@ -171,7 +171,7 @@ class CFTemplateLinter(object):
 
   def __init__(self, template):
     self.template = template
-    self.work_dir = os.path.join(os.path.dirname(__file__), '.lint')
+    self.work_dir = '.lint'
     self.local_template_path = os.path.join(self.work_dir, 'template.json')
     self.cfn_exit_code = None
     self.exit_code = None
@@ -199,8 +199,12 @@ class CFTemplateLinter(object):
     self.cfn_exit_code = cfn.returncode
 
   def teardown(self):
-    os.remove(self.local_template_path)
-    os.rmdir(self.work_dir)
+    try:
+      os.remove(self.local_template_path)
+      os.rmdir(self.work_dir)
+    except OSError as e:
+      print("WARNING: Unable to remove local workdir or test-copy of template")
+      print(e)
     self.exit_code = 1 if self.cfn_exit_code not in [0, 4] else 0  # Ignore cfn-lint warnings
 
 
