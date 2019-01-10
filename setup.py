@@ -21,7 +21,8 @@ setup(
         'boto3',
         'click',
         'PyYAML',
-        'cfn-lint'
+        'cfn-lint',
+        'yamllint'
     ],
     extras_require={
         'test': [
