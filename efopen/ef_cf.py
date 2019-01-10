@@ -20,12 +20,11 @@ from __future__ import print_function
 
 import argparse
 import json
+import os
 import re
 import subprocess
 import sys
 import time
-from os import getenv, mkdir, remove, rmdir
-from os.path import basename, dirname, exists, isfile, join, splitext
 
 import botocore.exceptions
 
@@ -43,6 +42,7 @@ class EFCFContext(EFContext):
   def __init__(self):
     super(EFCFContext, self).__init__()
     self._changeset = None
+    self._lint = None
     self._poll_status = None
     self._template_file = None
 
@@ -56,6 +56,17 @@ class EFCFContext(EFContext):
     if type(value) is not bool:
       raise TypeError("changeset value must be bool")
     self._changeset = value
+
+  @property
+  def lint(self):
+    """True if the tool should lint the rendered template rather than uploading to cloudformation"""
+    return self._lint
+
+  @lint.setter
+  def lint(self, value):
+    if type(value) is not bool:
+      raise TypeError("lint value must be bool")
+    self._lint = value
 
   @property
   def poll_status(self):
@@ -126,7 +137,7 @@ def handle_args_and_set_context(args):
 
 def resolve_template(template, profile, env, region, service, verbose):
   # resolve {{SYMBOLS}} in the passed template file
-  isfile(template) or fail("Not a file: {}".format(template))
+  os.path.isfile(template) or fail("Not a file: {}".format(template))
   resolver = EFTemplateResolver(profile=profile, target_other=True, env=env,
                                 region=region, service=service, verbose=verbose)
   with open(template) as template_file:
@@ -144,14 +155,54 @@ def resolve_template(template, profile, env, region, service, verbose):
   else:
     return resolver.template
 
+
 def is_stack_termination_protected_env(env):
   return env in EFConfig.STACK_TERMINATION_PROTECTED_ENVS
+
 
 def enable_stack_termination_protection(clients, stack_name):
   clients["cloudformation"].update_termination_protection(
     EnableTerminationProtection=True,
     StackName=stack_name
   )
+
+
+class CFTemplateLinter(object):
+
+  def __init__(self, template):
+    self.template = template
+    self.work_dir = os.path.join(os.path.dirname(__file__), '.lint')
+    self.local_template_path = os.path.join(self.work_dir, 'template.json')
+    self.cfn_exit_code = None
+    self.exit_code = None
+    self.setup()
+
+  def setup(self):
+    if not os.path.exists(self.work_dir):
+      os.mkdir(self.work_dir)
+
+    with open(self.local_template_path, 'w') as f:
+      f.write(self.template)
+
+  def run_tests(self):
+    self.cfn_lint()
+    self.teardown()
+
+  def cfn_lint(self):
+    print("=== CLOUDFORMATION LINTING ===")
+    cmd = 'cfn-lint --ignore-checks E2506 W3010 --template {}'.format(self.local_template_path)
+    cfn = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    stdout, stderr = cfn.communicate()
+    print(stdout, stderr)
+    if cfn.returncode in [0, 4]:
+      print("Template passed CFN linting")
+    self.cfn_exit_code = cfn.returncode
+
+  def teardown(self):
+    os.remove(self.local_template_path)
+    os.rmdir(self.work_dir)
+    self.exit_code = 1 if self.cfn_exit_code not in [0, 4] else 0  # Ignore cfn-lint warnings
+
 
 def main():
   context = handle_args_and_set_context(sys.argv[1:])
@@ -161,22 +212,22 @@ def main():
   elif not context.commit:
     print("=== DRY RUN ===\nValidation only. Use --commit to push template to CF\n=== DRY RUN ===")
 
-  service_name = basename(splitext(context.template_file)[0])
-  template_file_dir = dirname(context.template_file)
+  service_name = os.path.basename(os.path.splitext(context.template_file)[0])
+  template_file_dir = os.path.dirname(context.template_file)
   # parameter file may not exist, but compute the name it would have if it did
   parameter_file_dir = template_file_dir + "/../parameters"
   parameter_file = parameter_file_dir + "/" + service_name + ".parameters." + context.env_full + ".json"
 
   # If running in EC2, use instance credentials (i.e. profile = None)
   # otherwise, use local credentials with profile name in .aws/credentials == account alias name
-  if context.whereami == "ec2" and not getenv("JENKINS_URL", False):
+  if context.whereami == "ec2" and not os.getenv("JENKINS_URL", False):
     profile = None
   else:
     profile = context.account_alias
 
   # Get service registry and refresh repo if appropriate
   try:
-    if not (context.devel or getenv("JENKINS_URL", False)):
+    if not (context.devel or os.getenv("JENKINS_URL", False)):
       pull_repo()
     else:
       print("not refreshing repo because --devel was set or running on Jenkins")
@@ -229,7 +280,7 @@ def main():
     stack_exists = False
 
   # Load parameters from file
-  if isfile(parameter_file):
+  if os.path.isfile(parameter_file):
     parameters_template = resolve_template(
       template=parameter_file,
       profile=profile,
@@ -259,8 +310,11 @@ def main():
     print("Validating template")
   try:
     clients["cloudformation"].validate_template(TemplateBody=template)
+    json.loads(template)  # Tests for valid JSON syntax, oddly not handled above
   except botocore.exceptions.ClientError as error:
     fail("Template did not pass validation", error)
+  except ValueError as e:  # includes simplejson.decoder.JSONDecodeError
+    fail('Failed to decode JSON', e)
 
   print("Template passed validation")
 
@@ -318,20 +372,10 @@ def main():
           elif re.match(r".*_IN_PROGRESS(?!.)", stack_status) is not None:
             time.sleep(EFConfig.EF_CF_POLL_PERIOD)
     elif context.lint:
-      print("=== LINTING ===")
-      work_dir = '.lint'
-      temp_file = join(work_dir, 'template.json')
-      if not exists(work_dir):
-        mkdir(work_dir)
-      with open(temp_file, 'w') as f:
-        f.write(template)
-      cmd = 'cfn-lint --debug --ignore-checks E2506 W3010 --template {}'.format(temp_file)
-      p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-      stdout, stderr = p.communicate()
-      print(stdout)
-      remove(temp_file)
-      rmdir(work_dir)
-      exit(p.returncode)
+      tester = CFTemplateLinter(template)
+      tester.run_tests()
+      exit(tester.exit_code)
+
   except botocore.exceptions.ClientError as error:
     if error.response["Error"]["Message"] in "No updates are to be performed.":
       # Don't fail when there is no update to the stack
