@@ -175,9 +175,9 @@ class CFTemplateLinter(object):
     self.local_template_path = os.path.join(self.work_dir, 'template.json')
     self.cfn_exit_code = None
     self.exit_code = None
-    self.standup()
+    self.setup()
 
-  def standup(self):
+  def setup(self):
     if not os.path.exists(self.work_dir):
       os.mkdir(self.work_dir)
 
