@@ -65,7 +65,7 @@ class EFCFContext(EFContext):
   @lint.setter
   def lint(self, value):
     if type(value) is not bool:
-      raise TypeError("changeset value must be bool")
+      raise TypeError("lint value must be bool")
     self._lint = value
 
   @property
