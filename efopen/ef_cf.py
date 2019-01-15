@@ -116,6 +116,8 @@ def handle_args_and_set_context(args):
                       action="store_true", default=False)
   group.add_argument("--lint", help="Execute cfn-lint on the rendered template", action="store_true",
                       default=False)
+  parser.add_argument("--percent", help="Specifies an override to the percentage of instances in an Auto Scaling rolling update",
+                      type=int, default=False)
   parser.add_argument("--poll", help="Poll Cloudformation to check status of stack creation/updates",
                       action="store_true", default=False)
   parsed_args = vars(parser.parse_args(args))
@@ -129,6 +131,7 @@ def handle_args_and_set_context(args):
   context.commit = parsed_args["commit"]
   context.devel = parsed_args["devel"]
   context.lint = parsed_args["lint"]
+  context.percent = parsed_args["percent"]
   context.poll_status = parsed_args["poll"]
   context.verbose = parsed_args["verbose"]
   # Set up service registry and policy template path which depends on it
@@ -321,6 +324,10 @@ def main():
     fail('Failed to decode JSON', e)
 
   print("Template passed validation")
+  
+  if context.percent:
+    print("Modifying deploy rate to {}%".format(context.percent))
+
 
   # DO IT
   try:
