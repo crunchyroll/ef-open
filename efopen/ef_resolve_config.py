@@ -39,7 +39,7 @@ from ef_utils import fail, get_account_alias
 
 
 class Context:
-  def __init__(self, profile, region, env, service, template_path, no_params, verbose, lint):
+  def __init__(self, profile, region, env, service, template_path, no_params, verbose, lint, silent):
     self.profile = profile
     self.region = region
     self.env = env
@@ -49,6 +49,7 @@ class Context:
     self.param_path = ef_utils.get_template_parameters_file(self.template_path)
     self.verbose = verbose
     self.lint = lint
+    self.silent = silent
 
   def __str__(self):
     return("profile: {}\nregion: {}\nenv: {}\nservice: {}\ntemplate_path: {}\nparam_path: {}\nlint: {}".format(
@@ -68,6 +69,7 @@ def handle_args_and_set_context(args):
   parser.add_argument("--no_params", help="disable loading values from params file", action="store_true", default=False)
   parser.add_argument("--verbose", help="Output extra info", action="store_true", default=False)
   parser.add_argument("--lint", help="Test configs for valid JSON/YAML syntax", action="store_true", default=False)
+  parser.add_argument("--silent", help="Suppress output of rendered template", action="store_true", default=False)
   parsed = vars(parser.parse_args(args))
   path_to_template = abspath(parsed["path_to_template"])
   service = path_to_template.split('/')[-3]
@@ -80,7 +82,8 @@ def handle_args_and_set_context(args):
       path_to_template,
       parsed["no_params"],
       parsed["verbose"],
-      parsed["lint"]
+      parsed["lint"],
+      parsed["silent"]
   )
 
 
@@ -130,18 +133,24 @@ def merge_files(context):
   if not resolver.resolved_ok():
     raise RuntimeError("Couldn't resolve all symbols; template has leftover {{ or }}: {}".format(resolver.unresolved_symbols()))
 
-  if context.lint and context.template_path.endswith(".json"):
-    try:
-      json.loads(rendered_body)
-    except ValueError as e:
-      fail("Failed to decode JSON", e)
-  elif context.lint and context.template_path.endswith((".yml", ".yaml")):
-    cmd = "yamllint -d relaxed {}".format(context.template_path)
-    yamllint = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    stdout, stderr = yamllint.communicate()
-    print(stdout, stderr)
-    if yamllint.returncode != 0:
-      fail("YAML failed linting process")
+  if context.lint:
+    if context.template_path.endswith(".json"):
+      try:
+        json.loads(rendered_body)
+        print("JSON passed linting process.")
+      except ValueError as e:
+        fail("JSON failed linting process.", e)
+    elif context.template_path.endswith((".yml", ".yaml")):
+      cmd = "yamllint -d relaxed {}".format(context.template_path)
+      yamllint = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+      stdout, stderr = yamllint.communicate()
+      print(stdout, stderr)
+      if yamllint.returncode != 0:
+        fail("YAML failed linting process.")
+      else:
+        print("YAML passed linting process.")
+    else:
+      print("Template is not a yaml or json, skipping lint.")
 
   if context.verbose:
     print(context)
@@ -157,7 +166,10 @@ def merge_files(context):
       print("chown file to user: {}, group: {}\n".format(user, group))
 
     print("template body:\n{}\nrendered body:\n{}\n".format(template_body, rendered_body))
+  elif context.silent:
+    print("Config template rendered successfully.")
   else:
+    print("Config template rendered successfully.")
     print(rendered_body)
 
 
