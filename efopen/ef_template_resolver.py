@@ -437,7 +437,7 @@ class EFTemplateResolver(object):
         elif symbol[:8] == "version:":
           resolved_symbol = EFTemplateResolver.__VR.lookup(symbol[8:])
           if not resolved_symbol:
-            print("WARNING: No ami-id found for {{%s}} - placeholder value of 'NONE' used in rendered template" % symbol)
+            print("WARNING: Lookup failed for {{%s}} - placeholder value of 'NONE' used in rendered template" % symbol)
             resolved_symbol = "NONE"
         else:
           # 1. context - these are already in the resolved table
