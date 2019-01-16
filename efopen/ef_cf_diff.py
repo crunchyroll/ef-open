@@ -173,9 +173,9 @@ def evaluate_changesets(services, repo_root, include_env):
                 logger.error(e)
                 continue
 
-            logger.info('Investigating changeset for service `%s` '
+            logger.info('Investigating changeset for `%s`:`%s` '
                         'in environment `%s`\n       Changeset ID: `%s`',
-                        service_name, environment, changeset['Id'])
+                        service['type'], service_name, environment, changeset['Id'])
 
             wait_for_changeset_creation(cf_client, changeset['Id'], changeset['StackId'])
 
