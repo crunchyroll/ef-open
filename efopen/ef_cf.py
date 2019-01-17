@@ -32,7 +32,7 @@ from ef_config import EFConfig
 from ef_context import EFContext
 from ef_service_registry import EFServiceRegistry
 from ef_template_resolver import EFTemplateResolver
-from ef_utils import create_aws_clients, fail, pull_repo
+from ef_utils import create_aws_clients, get_autoscaling_group_properties, fail, pull_repo
 
 # CONSTANTS
 # Cloudformation template size limit in bytes (which translates to the length of the template)
@@ -169,6 +169,12 @@ def enable_stack_termination_protection(clients, stack_name):
     StackName=stack_name
   )
 
+def calculate_min_instances_in_service(autoscaling_group, percent):
+  print(autoscaling_group)
+
+def calculate_max_batch_size(clients, service, percent):
+  response = clients["autoscaling"].describe_auto_scaling_groups(AutoScalingGroupNames=[service])
+
 
 class CFTemplateLinter(object):
 
@@ -276,7 +282,7 @@ def main():
 
   # Create clients - if accessing by role, profile should be None
   try:
-    clients = create_aws_clients(region, profile, "cloudformation")
+    clients = create_aws_clients(region, profile, "cloudformation", "autoscaling")
   except RuntimeError as error:
     fail("Exception creating clients in region {} with profile {}".format(region, profile), error)
 
@@ -327,6 +333,15 @@ def main():
   
   if context.percent:
     print("Modifying deploy rate to {}%".format(context.percent))
+    modify_template = json.loads(template)
+    for key in modify_template["Resources"]:
+      if modify_template["Resources"][key]["Type"] == "AWS::AutoScaling::AutoScalingGroup":
+        if modify_template["Resources"][key]["UpdatePolicy"]:
+          autoscaling_group = modify_template["Resources"][key]["Properties"]
+          service = autoscaling_group["Tags"][0]["Value"]
+          autoscaling_group_properties = get_autoscaling_group_properties(clients, service.split("-")[0], service.split("-")[1])
+          new_min_instance_in_service = calculate_min_instances_in_service(autoscaling_group_properties, context.percent)
+          new_max_batch_size = calculate_max_batch_size(clients, service, context.percent)
 
 
   # DO IT
