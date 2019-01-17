@@ -255,6 +255,9 @@ def main():
     fail("Invalid environment: {} for service_name: {}\nValid environments are: {}" \
          .format(context.env_full, service_name, ", ".join(context.service_registry.valid_envs(service_name))))
 
+  if context.percent <= 0 or context.percent > 100:
+    fail("Percent value cannot be less than 0 and greater than 100")
+
   # Set the region found in the service_registry. Default is EFConfig.DEFAULT_REGION if region key not found
   region = context.service_registry.service_region(service_name)
 
