@@ -436,6 +436,9 @@ class EFTemplateResolver(object):
           resolved_symbol = EFTemplateResolver.__EFCR.lookup(symbol[9:])
         elif symbol[:8] == "version:":
           resolved_symbol = EFTemplateResolver.__VR.lookup(symbol[8:])
+          if not resolved_symbol:
+            print("WARNING: Lookup failed for {{%s}} - placeholder value of 'NONE' used in rendered template" % symbol)
+            resolved_symbol = "NONE"
         else:
           # 1. context - these are already in the resolved table
           # self.resolved[symbol] may have value=None; use has_key tell "resolved w/value=None" from "not resolved"
