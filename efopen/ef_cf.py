@@ -169,12 +169,9 @@ def enable_stack_termination_protection(clients, stack_name):
     StackName=stack_name
   )
 
-def calculate_min_instances_in_service(autoscaling_group, percent):
-  print(autoscaling_group)
-
 def calculate_max_batch_size(clients, service, percent):
-  response = clients["autoscaling"].describe_auto_scaling_groups(AutoScalingGroupNames=[service])
-
+  autoscaling_group_properties = get_autoscaling_group_properties(clients, service.split("-")[0], service.split("-")[1])
+  print(autoscaling_group_properties)
 
 class CFTemplateLinter(object):
 
@@ -343,7 +340,6 @@ def main():
           autoscaling_group = modify_template["Resources"][key]["Properties"]
           service = autoscaling_group["Tags"][0]["Value"]
           autoscaling_group_properties = get_autoscaling_group_properties(clients, service.split("-")[0], service.split("-")[1])
-          new_min_instance_in_service = calculate_min_instances_in_service(autoscaling_group_properties, context.percent)
           new_max_batch_size = calculate_max_batch_size(clients, service, context.percent)
 
 
