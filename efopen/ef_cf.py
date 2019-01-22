@@ -301,6 +301,7 @@ def main():
     parameters = []
 
   # Detect if the template exceeds the maximum size that is allowed by Cloudformation
+  unpacked = None
   if len(template) > CLOUDFORMATION_SIZE_LIMIT:
     # Compress the generated template by removing whitespaces
     print("Template exceeds the max allowed length that Cloudformation will accept. Compressing template...")
@@ -376,7 +377,7 @@ def main():
           elif re.match(r".*_IN_PROGRESS(?!.)", stack_status) is not None:
             time.sleep(EFConfig.EF_CF_POLL_PERIOD)
     elif context.lint:
-      tester = CFTemplateLinter(template)
+      tester = CFTemplateLinter(unpacked) if unpacked else CFTemplateLinter(template)
       tester.run_tests()
       exit(tester.exit_code)
 
