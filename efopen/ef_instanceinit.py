@@ -36,7 +36,7 @@ import botocore.exceptions
 
 from ef_config import EFConfig
 from ef_instanceinit_config_reader import EFInstanceinitConfigReader
-from ef_utils import http_get_instance_role, http_get_metadata, whereami
+from ef_utils import get_account_alias, http_get_instance_role, http_get_metadata, whereami
 from ef_template_resolver import EFTemplateResolver
 
 # constants
@@ -86,7 +86,9 @@ def merge_files(service):
   elif WHERE == "virtualbox-kvm":
     config_path = "{}/{}".format(VIRTUALBOX_CONFIG_ROOT, service)
     config_reader = EFInstanceinitConfigReader("file", config_path, log_info)
-    resolver = EFTemplateResolver(env=EFConfig.VAGRANT_ENV, service=service)
+    environment = EFConfig.VAGRANT_ENV
+    resolver = EFTemplateResolver(env=environment, profile=get_account_alias(environment),
+                                  region=EFConfig.DEFAULT_REGION, service=service)
 
   while config_reader.next():
     log_info("checking: {}".format(config_reader.current_key))

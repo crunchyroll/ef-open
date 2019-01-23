@@ -173,9 +173,9 @@ def evaluate_changesets(services, repo_root, include_env):
                 logger.error(e)
                 continue
 
-            logger.info('Investigating changeset for service `%s` '
+            logger.info('Investigating changeset for `%s`:`%s` '
                         'in environment `%s`\n       Changeset ID: `%s`',
-                        service_name, environment, changeset['Id'])
+                        service['type'], service_name, environment, changeset['Id'])
 
             wait_for_changeset_creation(cf_client, changeset['Id'], changeset['StackId'])
 
@@ -242,8 +242,8 @@ def get_dict_registry_services(registry, template_files, warn_missing_files=True
         parsed_registry = json.load(fr)
 
     services = {}
-    for type in ['fixtures', 'platform_services', 'application_services', 'internal_services']:
-        for name, service in parsed_registry[type].iteritems():
+    for type, type_services in parsed_registry.iteritems():
+        for name, service in type_services.iteritems():
             if name in services:
                 logger.warning("Template name appears twice, ignoring later items: `%s`", name)
                 continue
@@ -269,10 +269,12 @@ def scan_dir_for_template_files(search_dir):
     This includes all the template files in fixtures and in services.
     """
     template_files = {}
-    for type in ['fixtures', 'services']:
-        for x in os.listdir(os.path.join(search_dir, 'cloudformation', type, 'templates')):
+    cf_dir = os.path.join(search_dir, 'cloudformation')
+    for type in os.listdir(cf_dir):
+        template_dir = os.path.join(cf_dir, type, 'templates')
+        for x in os.listdir(template_dir):
             name = os.path.splitext(x)[0]
-            template_files[name] = os.path.join(search_dir, 'cloudformation', type, 'templates', x)
+            template_files[name] = os.path.join(template_dir, x)
     return template_files
 
 
