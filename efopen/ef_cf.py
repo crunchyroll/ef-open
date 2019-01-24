@@ -170,8 +170,8 @@ def enable_stack_termination_protection(clients, stack_name):
     StackName=stack_name
   )
 
-def calculate_max_batch_size(clients, service, percent):
-  autoscaling_group_properties = get_autoscaling_group_properties(clients, service.split("-")[0], "-".join(service.split("-")[1:]))
+def calculate_max_batch_size(asg_client, service, percent):
+  autoscaling_group_properties = get_autoscaling_group_properties(asg_client, service.split("-")[0], "-".join(service.split("-")[1:]))
   current_desired = autoscaling_group_properties[0]["DesiredCapacity"]
   new_batch_size = int(math.ceil(current_desired * (percent * 0.01)))
   return new_batch_size
@@ -320,8 +320,8 @@ def main():
         if modify_template["Resources"][key]["UpdatePolicy"]:
           autoscaling_group = modify_template["Resources"][key]["Properties"]
           service = autoscaling_group["Tags"][0]["Value"]
-          autoscaling_group_properties = get_autoscaling_group_properties(clients, service.split("-")[0], "-".join(service.split("-")[1:]))
-          new_max_batch_size = calculate_max_batch_size(clients, service, context.percent)
+          autoscaling_group_properties = get_autoscaling_group_properties(clients["autoscaling"], service.split("-")[0], "-".join(service.split("-")[1:]))
+          new_max_batch_size = calculate_max_batch_size(clients["autoscaling"], service, context.percent)
           modify_template["Resources"][key]["UpdatePolicy"]["AutoScalingRollingUpdate"]["MaxBatchSize"] = new_max_batch_size
           print("Service {} [current desired: {}, calculated max batch size: {}]".format(
                 service, autoscaling_group_properties[0]["DesiredCapacity"], new_max_batch_size))
@@ -348,7 +348,7 @@ def main():
     fail('Failed to decode JSON', e)
 
   print("Template passed validation")
-  
+
   # DO IT
   try:
     if context.changeset:
