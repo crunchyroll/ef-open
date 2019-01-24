@@ -20,6 +20,7 @@ from __future__ import print_function
 
 import argparse
 import json
+import math
 import os
 import re
 import subprocess
@@ -170,8 +171,10 @@ def enable_stack_termination_protection(clients, stack_name):
   )
 
 def calculate_max_batch_size(clients, service, percent):
-  autoscaling_group_properties = get_autoscaling_group_properties(clients, service.split("-")[0], service.split("-")[1])
-  print(autoscaling_group_properties)
+  autoscaling_group_properties = get_autoscaling_group_properties(clients, service.split("-")[0], "-".join(service.split("-")[1:]))
+  current_desired = autoscaling_group_properties[0]["DesiredCapacity"]
+  new_batch_size = int(math.ceil(current_desired * (percent * 0.01)))
+  return new_batch_size
 
 class CFTemplateLinter(object):
 
@@ -252,7 +255,7 @@ def main():
     fail("Invalid environment: {} for service_name: {}\nValid environments are: {}" \
          .format(context.env_full, service_name, ", ".join(context.service_registry.valid_envs(service_name))))
 
-  if context.percent <= 0 or context.percent > 100:
+  if context.percent and (context.percent <= 0 or context.percent > 100):
     fail("Percent value cannot be less than 0 and greater than 100")
 
   # Set the region found in the service_registry. Default is EFConfig.DEFAULT_REGION if region key not found
@@ -309,6 +312,21 @@ def main():
   else:
     parameters = []
 
+  if context.percent:
+    print("Modifying deploy rate to {}%".format(context.percent))
+    modify_template = json.loads(template)
+    for key in modify_template["Resources"]:
+      if modify_template["Resources"][key]["Type"] == "AWS::AutoScaling::AutoScalingGroup":
+        if modify_template["Resources"][key]["UpdatePolicy"]:
+          autoscaling_group = modify_template["Resources"][key]["Properties"]
+          service = autoscaling_group["Tags"][0]["Value"]
+          autoscaling_group_properties = get_autoscaling_group_properties(clients, service.split("-")[0], "-".join(service.split("-")[1:]))
+          new_max_batch_size = calculate_max_batch_size(clients, service, context.percent)
+          modify_template["Resources"][key]["UpdatePolicy"]["AutoScalingRollingUpdate"]["MaxBatchSize"] = new_max_batch_size
+          print("Service {} [current desired: {}, calculated max batch size: {}]".format(
+                service, autoscaling_group_properties[0]["DesiredCapacity"], new_max_batch_size))
+    template = json.dumps(modify_template)
+
   # Detect if the template exceeds the maximum size that is allowed by Cloudformation
   if len(template) > CLOUDFORMATION_SIZE_LIMIT:
     # Compress the generated template by removing whitespaces
@@ -331,18 +349,6 @@ def main():
 
   print("Template passed validation")
   
-  if context.percent:
-    print("Modifying deploy rate to {}%".format(context.percent))
-    modify_template = json.loads(template)
-    for key in modify_template["Resources"]:
-      if modify_template["Resources"][key]["Type"] == "AWS::AutoScaling::AutoScalingGroup":
-        if modify_template["Resources"][key]["UpdatePolicy"]:
-          autoscaling_group = modify_template["Resources"][key]["Properties"]
-          service = autoscaling_group["Tags"][0]["Value"]
-          autoscaling_group_properties = get_autoscaling_group_properties(clients, service.split("-")[0], service.split("-")[1])
-          new_max_batch_size = calculate_max_batch_size(clients, service, context.percent)
-
-
   # DO IT
   try:
     if context.changeset:
