@@ -148,7 +148,11 @@ def merge_files(context):
       lint_level = 'error'
       lint_errors = [issue for issue in lint_output if issue.level == lint_level]
       if lint_errors:
-        print("\n".join(map(str, lint_errors)))
+        split_body = rendered_body.splitlines()
+        for error in lint_errors:
+          print(error)
+          # printing line - 1 because lists start at 0, but files at 1
+          print("\t", split_body[error.line - 1])
         fail("YAML failed linting process.")
       else:
         print("YAML passed linting process.")
