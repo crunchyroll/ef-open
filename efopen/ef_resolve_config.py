@@ -154,10 +154,6 @@ def merge_files(context):
           # printing line - 1 because lists start at 0, but files at 1
           print("\t", split_body[error.line - 1])
         fail("YAML failed linting process.")
-      else:
-        print("YAML passed linting process.")
-    else:
-      print("Template is not a yaml or json, skipping lint.")
 
   if context.verbose:
     print(context)
@@ -176,7 +172,6 @@ def merge_files(context):
   elif context.silent:
     print("Config template rendered successfully.")
   else:
-    print("Config template rendered successfully.")
     print(rendered_body)
 
 
