@@ -190,7 +190,7 @@ class CFTemplateLinter(object):
 
   def cfn_lint(self):
     print("=== CLOUDFORMATION LINTING ===")
-    cmd = 'cfn-lint --ignore-checks E2506 W3010 --template {}'.format(self.local_template_path)
+    cmd = 'cfn-lint --template {}'.format(self.local_template_path)
     cfn = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     stdout, stderr = cfn.communicate()
     print(stdout, stderr)
