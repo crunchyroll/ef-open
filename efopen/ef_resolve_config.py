@@ -144,7 +144,9 @@ def merge_files(context):
         fail("JSON failed linting process.", e)
     elif context.template_path.endswith((".yml", ".yaml")):
       conf = yamllint_config.YamlLintConfig(content='extends: relaxed')
-      lint_errors = list(yamllinter.run(rendered_body, conf))
+      lint_output = yamllinter.run(rendered_body, conf)
+      lint_level = 'error'
+      lint_errors = [issue for issue in lint_output if issue.level == lint_level]
       if lint_errors:
         print("\n".join(map(str, lint_errors)))
         fail("YAML failed linting process.")
