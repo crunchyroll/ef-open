@@ -117,7 +117,7 @@ def handle_args_and_set_context(args):
                       action="store_true", default=False)
   group.add_argument("--lint", help="Execute cfn-lint on the rendered template", action="store_true",
                       default=False)
-  parser.add_argument("--percent", help="Specifies an override to the percentage of instances in an Auto Scaling rolling update",
+  parser.add_argument("--percent", help="Specifies an override to the percentage of instances in an Auto Scaling rolling update (e.g. 10 for 10%%)",
                       type=int, default=False)
   parser.add_argument("--poll", help="Poll Cloudformation to check status of stack creation/updates",
                       action="store_true", default=False)
@@ -256,7 +256,7 @@ def main():
          .format(context.env_full, service_name, ", ".join(context.service_registry.valid_envs(service_name))))
 
   if context.percent and (context.percent <= 0 or context.percent > 100):
-    fail("Percent value cannot be less than 0 and greater than 100")
+    fail("Percent value cannot be less than or equal to 0 and greater than 100")
 
   # Set the region found in the service_registry. Default is EFConfig.DEFAULT_REGION if region key not found
   region = context.service_registry.service_region(service_name)
