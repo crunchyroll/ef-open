@@ -910,6 +910,57 @@ class TestEFUtils(unittest.TestCase):
     test_parameters = ef_utils.get_template_parameters_s3(test_template, mock_s3_resource)
     self.assertEquals(test_parameters, target_parameters)
 
+  def test_get_autoscaling_group_properties_valid_asg_name(self):
+    """Test method returns valid parameters file"""
+    mock_asg_resource = Mock(name="Mock Autoscaling Client")
+    mock_asg_resource.describe_auto_scaling_groups.return_value = \
+    {
+      "AutoScalingGroups": [
+        {
+          "DesiredCapacity": 2,
+          "Tags": [
+            {
+              "ResourceType": "auto-scaling-group",
+              "ResourceId": "alpha0-test-instance-ServerGroup",
+              "PropagateAtLaunch": "true",
+              "Value": "alpha0-test-instance",
+              "Key": "Name"
+            }
+          ],
+          "AutoScalingGroupName": "alpha0-test-instance-ServerGroup"
+        }
+      ]
+    }
+    result = ef_utils.get_autoscaling_group_properties(mock_asg_resource, "alpha0", "test-instance")
+    self.assertEquals(result[0]["DesiredCapacity"], 2)
+    self.assertEquals(result[0]["AutoScalingGroupName"], "alpha0-test-instance-ServerGroup")
+    self.assertEquals(result[0]["Tags"][0]["ResourceId"], "alpha0-test-instance-ServerGroup")
+
+  def test_get_autoscaling_group_properties_valid_tag_name(self):
+    """Test method returns valid parameters file"""
+    mock_asg_resource = Mock(name="Mock Autoscaling Client")
+    mock_asg_resource.describe_auto_scaling_groups.return_value = \
+    {
+      "AutoScalingGroups": [
+      ]
+    }
+    mock_asg_resource.describe_tags.return_value = \
+    {
+      "Tags": [
+        {
+          "ResourceType": "auto-scaling-group",
+          "ResourceId": "alpha0-test-instance-ServerGroup",
+          "PropagateAtLaunch": "true",
+          "Value": "alpha0-test-instance",
+          "Key": "Name"
+        }
+      ]
+    }
+    result = ef_utils.get_autoscaling_group_properties(mock_asg_resource, "alpha0", "test-instance")
+    mock_asg_resource.describe_tags.assert_called_once_with(
+      Filters=[{ "Name": "Key", "Values": ["Name"] }, { "Name": "Value", "Values": ["alpha0-test-instance"]}])
+    mock_asg_resource.describe_auto_scaling_groups.assert_called_with(
+      AutoScalingGroupNames=["alpha0-test-instance-ServerGroup"])
 
 class TestEFUtilsKMS(unittest.TestCase):
   """Test cases for functions using kms"""

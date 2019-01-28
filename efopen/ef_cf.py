@@ -20,6 +20,7 @@ from __future__ import print_function
 
 import argparse
 import json
+import math
 import os
 import re
 import subprocess
@@ -32,7 +33,7 @@ from ef_config import EFConfig
 from ef_context import EFContext
 from ef_service_registry import EFServiceRegistry
 from ef_template_resolver import EFTemplateResolver
-from ef_utils import create_aws_clients, fail, pull_repo
+from ef_utils import create_aws_clients, get_autoscaling_group_properties, fail, pull_repo
 
 # CONSTANTS
 # Cloudformation template size limit in bytes (which translates to the length of the template)
@@ -116,6 +117,8 @@ def handle_args_and_set_context(args):
                       action="store_true", default=False)
   group.add_argument("--lint", help="Execute cfn-lint on the rendered template", action="store_true",
                       default=False)
+  parser.add_argument("--percent", help="Specifies an override to the percentage of instances in an Auto Scaling rolling update (e.g. 10 for 10%%)",
+                      type=int, default=False)
   parser.add_argument("--poll", help="Poll Cloudformation to check status of stack creation/updates",
                       action="store_true", default=False)
   parsed_args = vars(parser.parse_args(args))
@@ -129,6 +132,7 @@ def handle_args_and_set_context(args):
   context.commit = parsed_args["commit"]
   context.devel = parsed_args["devel"]
   context.lint = parsed_args["lint"]
+  context.percent = parsed_args["percent"]
   context.poll_status = parsed_args["poll"]
   context.verbose = parsed_args["verbose"]
   # Set up service registry and policy template path which depends on it
@@ -166,6 +170,11 @@ def enable_stack_termination_protection(clients, stack_name):
     StackName=stack_name
   )
 
+def calculate_max_batch_size(asg_client, service, percent):
+  autoscaling_group_properties = get_autoscaling_group_properties(asg_client, service.split("-")[0], "-".join(service.split("-")[1:]))
+  current_desired = autoscaling_group_properties[0]["DesiredCapacity"]
+  new_batch_size = int(math.ceil(current_desired * (percent * 0.01)))
+  return new_batch_size
 
 class CFTemplateLinter(object):
 
@@ -246,6 +255,9 @@ def main():
     fail("Invalid environment: {} for service_name: {}\nValid environments are: {}" \
          .format(context.env_full, service_name, ", ".join(context.service_registry.valid_envs(service_name))))
 
+  if context.percent and (context.percent <= 0 or context.percent > 100):
+    fail("Percent value cannot be less than or equal to 0 and greater than 100")
+
   # Set the region found in the service_registry. Default is EFConfig.DEFAULT_REGION if region key not found
   region = context.service_registry.service_region(service_name)
 
@@ -273,7 +285,7 @@ def main():
 
   # Create clients - if accessing by role, profile should be None
   try:
-    clients = create_aws_clients(region, profile, "cloudformation")
+    clients = create_aws_clients(region, profile, "cloudformation", "autoscaling")
   except RuntimeError as error:
     fail("Exception creating clients in region {} with profile {}".format(region, profile), error)
 
@@ -299,6 +311,21 @@ def main():
       fail("JSON error in parameter file: {}".format(parameter_file, error))
   else:
     parameters = []
+
+  if context.percent:
+    print("Modifying deploy rate to {}%".format(context.percent))
+    modify_template = json.loads(template)
+    for key in modify_template["Resources"]:
+      if modify_template["Resources"][key]["Type"] == "AWS::AutoScaling::AutoScalingGroup":
+        if modify_template["Resources"][key]["UpdatePolicy"]:
+          autoscaling_group = modify_template["Resources"][key]["Properties"]
+          service = autoscaling_group["Tags"][0]["Value"]
+          autoscaling_group_properties = get_autoscaling_group_properties(clients["autoscaling"], service.split("-")[0], "-".join(service.split("-")[1:]))
+          new_max_batch_size = calculate_max_batch_size(clients["autoscaling"], service, context.percent)
+          modify_template["Resources"][key]["UpdatePolicy"]["AutoScalingRollingUpdate"]["MaxBatchSize"] = new_max_batch_size
+          print("Service {} [current desired: {}, calculated max batch size: {}]".format(
+                service, autoscaling_group_properties[0]["DesiredCapacity"], new_max_batch_size))
+    template = json.dumps(modify_template)
 
   # Detect if the template exceeds the maximum size that is allowed by Cloudformation
   if len(template) > CLOUDFORMATION_SIZE_LIMIT:
