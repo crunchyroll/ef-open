@@ -117,6 +117,45 @@ def get_cloudformation_client(service_name, environment_name):
     return clients['cloudformation']
 
 
+def diff_sevice_by_changeset(service_name, service, environment, repo_root):
+    global ret_code
+
+    cf_client = get_cloudformation_client(service_name, environment)
+
+    delete_any_existing_changesets(cf_client, service_name, environment)
+
+    try:
+        changeset = generate_changeset(service_name, environment,
+                                       repo_root, service['template_file'])
+    except Exception as e:
+        ret_code = 2
+        logger.error(e)
+        return
+
+    logger.info('Investigating changeset for `%s`:`%s` '
+                'in environment `%s`\n       Changeset ID: `%s`',
+                service['type'], service_name, environment, changeset['Id'])
+
+    wait_for_changeset_creation(cf_client, changeset['Id'], changeset['StackId'])
+
+    desc = cf_client.describe_change_set(
+        ChangeSetName=changeset['Id'], StackName=changeset['StackId'])
+
+    cf_client.delete_change_set(
+        ChangeSetName=changeset['Id'], StackName=changeset['StackId'])
+
+    if changeset_is_empty(desc):
+        logger.info('Deployed service `%s` in environment `%s` matches '
+                    'the local template.', service_name, environment)
+    else:
+        ret_code = 1
+        logger.error('Service `%s` in environment `%s` differs from '
+                     'the local template.',
+                     service_name, environment)
+        details = json.dumps(desc['Changes'], indent=2, sort_keys=True).replace('\n', '\n        ')
+        logger.info('Change details: %s', details)
+
+
 def generate_test_environment_name(env_name):
     """
     Some environments, like proto, need a numerical index, while others, like
@@ -137,11 +176,11 @@ def get_env_categories(envs):
     return [re.match(r'^(.*?)\d*$', name).group(1) for name in envs]
 
 
-def evaluate_changesets(services, repo_root, include_env):
+def evaluate_service_changes(services, repo_root, include_env, func):
     """
     Given a dict of services, use ef-cf to render the cloudformation
-    templates and then generate changesets for each one.
-    These can then be evaluated for emptiness in a later step.
+    templates and then apply the diff function to evaluate the differences
+    between the target environments and the rendered templates.
 
     Sub-services (names with '.' in them) are skipped.
 
@@ -149,8 +188,6 @@ def evaluate_changesets(services, repo_root, include_env):
     the function will run to completion and return the list of non-error
     results.
     """
-    global ret_code
-
     for service_name, service in services.iteritems():
 
         for env_category in service['environments']:
@@ -161,40 +198,7 @@ def evaluate_changesets(services, repo_root, include_env):
 
             environment = generate_test_environment_name(env_category)
 
-            cf_client = get_cloudformation_client(service_name, environment)
-
-            delete_any_existing_changesets(cf_client, service_name, environment)
-
-            try:
-                changeset = generate_changeset(service_name, environment,
-                                               repo_root, service['template_file'])
-            except Exception as e:
-                ret_code = 2
-                logger.error(e)
-                continue
-
-            logger.info('Investigating changeset for `%s`:`%s` '
-                        'in environment `%s`\n       Changeset ID: `%s`',
-                        service['type'], service_name, environment, changeset['Id'])
-
-            wait_for_changeset_creation(cf_client, changeset['Id'], changeset['StackId'])
-
-            desc = cf_client.describe_change_set(
-                ChangeSetName=changeset['Id'], StackName=changeset['StackId'])
-
-            cf_client.delete_change_set(
-                ChangeSetName=changeset['Id'], StackName=changeset['StackId'])
-
-            if changeset_is_empty(desc):
-                logger.info('Deployed service `%s` in environment `%s` matches '
-                            'the local template.', service_name, environment)
-            else:
-                ret_code = 1
-                logger.error('Service `%s` in environment `%s` differs from '
-                             'the local template.',
-                             service_name, environment)
-                details = json.dumps(desc['Changes'], indent=2, sort_keys=True).replace('\n', '\n        ')
-                logger.info('Change details: %s', details)
+            func(service_name, service, environment, repo_root)
 
 
 def test_for_unused_template_files(template_files, services):
@@ -323,6 +327,6 @@ def main(repo_root, sr, env, template_file):
 
     test_for_unused_template_files(template_files, services)
 
-    evaluate_changesets(services, repo_root, env)
+    evaluate_service_changes(services, repo_root, env, diff_sevice_by_changeset)
 
     exit(ret_code)
