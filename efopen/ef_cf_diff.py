@@ -58,7 +58,7 @@ def diff_string_templates(template_a, template_b):
             f2.write(template_b)
             f1.flush()
             f2.flush()
-            cmd = 'diff -u --strip-trailing-cr {} {}'.format(f1.name, f2.name)
+            cmd = 'diff -u --strip-trailing-cr {} {}'.format(f2.name, f1.name)
             p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             stdout, stderr = p.communicate()
     if p.returncode == 0:
