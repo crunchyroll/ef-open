@@ -116,6 +116,7 @@ def handle_args_and_set_context(args):
   parser = argparse.ArgumentParser()
   parser.add_argument("env", help=", ".join(EFConfig.ENV_LIST))
   parser.add_argument("--sr", help="optional /path/to/service_registry_file.json", default=None)
+  parser.add_argument("--service", help="optional /path/to/service_template.json", default=None)
   parser.add_argument("--commit", help="Make changes in AWS (dry run if omitted)", action="store_true", default=False)
   parser.add_argument("--verbose", help="Print additional info", action="store_true", default=False)
   parser.add_argument("--devel", help="Allow running from branch; don't refresh from origin", action="store_true",
@@ -124,6 +125,7 @@ def handle_args_and_set_context(args):
   context = EFContext()
   context.commit = parsed_args["commit"]
   context.devel = parsed_args["devel"]
+  context.service = parsed_args["service"]
   try:
     context.env = parsed_args["env"]
   except ValueError as e:
@@ -551,7 +553,7 @@ def main():
   print("aws account number: {}".format(CONTEXT.account_id))
 
   # Step through all services in the service registry
-  for CONTEXT.service in CONTEXT.service_registry.iter_services():
+  for CONTEXT.service in CONTEXT.service_registry.iter_services(CONTEXT.service):
     service_name = CONTEXT.service[0]
     target_name = "{}-{}".format(CONTEXT.env, service_name)
     sr_entry = CONTEXT.service[1]
