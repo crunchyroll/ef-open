@@ -47,16 +47,16 @@ ret_code = 0
 service_registry = None
 
 
-def diff_string_templates(template_a, template_b):
+def diff_string_templates(string_a, string_b):
     """
-    print the diff of two templates.  Return true if the templates are identical
-    and false if they are not.
+    print the diff of two strings.  Return true if the templates are identical
+    and the diff string if they are not.
     """
     with tempfile.NamedTemporaryFile() as f1:
+        f1.write(string_a)
+        f1.flush()
         with tempfile.NamedTemporaryFile() as f2:
-            f1.write(template_a)
-            f2.write(template_b)
-            f1.flush()
+            f2.write(string_b)
             f2.flush()
             cmd = 'diff -u --strip-trailing-cr {} {}'.format(f2.name, f1.name)
             p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -68,6 +68,9 @@ def diff_string_templates(template_a, template_b):
 
 
 def render_local_template(service_name, environment, repo_root, template_file):
+    """
+    Render a given service's template for a given environment and return it
+    """
     cmd = 'cd {} && ef-cf {} {} --devel --verbose'.format(repo_root, template_file, environment)
     p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     stdout, stderr = p.communicate()
@@ -85,6 +88,10 @@ def render_local_template(service_name, environment, repo_root, template_file):
 
 
 def fetch_current_cloudformation_template(service_name, environment, cf_client):
+    """
+    Fetch the currently-deployed template for the given service in the given
+    environment and return it.
+    """
     stack_name = '{}-{}'.format(environment, service_name)
     logger.debug('Fetching template for `%s`', stack_name)
     result = cf_client.get_template(StackName=stack_name)
