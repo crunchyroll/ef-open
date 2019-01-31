@@ -31,6 +31,8 @@ import sys
 from os.path import abspath, dirname, normpath
 
 import yaml
+from yamllint import linter as yamllinter
+from yamllint import config as yamllint_config
 
 import ef_utils
 from ef_config import EFConfig
@@ -141,16 +143,17 @@ def merge_files(context):
       except ValueError as e:
         fail("JSON failed linting process.", e)
     elif context.template_path.endswith((".yml", ".yaml")):
-      cmd = "yamllint -d relaxed {}".format(context.template_path)
-      yamllint = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-      stdout, stderr = yamllint.communicate()
-      print(stdout, stderr)
-      if yamllint.returncode != 0:
+      conf = yamllint_config.YamlLintConfig(content='extends: relaxed')
+      lint_output = yamllinter.run(rendered_body, conf)
+      lint_level = 'error'
+      lint_errors = [issue for issue in lint_output if issue.level == lint_level]
+      if lint_errors:
+        split_body = rendered_body.splitlines()
+        for error in lint_errors:
+          print(error)
+          # printing line - 1 because lists start at 0, but files at 1
+          print("\t", split_body[error.line - 1])
         fail("YAML failed linting process.")
-      else:
-        print("YAML passed linting process.")
-    else:
-      print("Template is not a yaml or json, skipping lint.")
 
   if context.verbose:
     print(context)
@@ -169,7 +172,6 @@ def merge_files(context):
   elif context.silent:
     print("Config template rendered successfully.")
   else:
-    print("Config template rendered successfully.")
     print(rendered_body)
 
 
