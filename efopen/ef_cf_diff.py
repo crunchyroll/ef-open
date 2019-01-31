@@ -23,6 +23,7 @@ import os.path
 import re
 import subprocess
 import sys
+import tempfile
 import time
 
 import click
@@ -44,6 +45,92 @@ logging.getLogger('botocore').setLevel(logging.CRITICAL)
 
 ret_code = 0
 service_registry = None
+
+
+def diff_string_templates(template_a, template_b):
+    """
+    print the diff of two templates.  Return true if the templates are identical
+    and false if they are not.
+    """
+    with tempfile.NamedTemporaryFile() as f1:
+        with tempfile.NamedTemporaryFile() as f2:
+            f1.write(template_a)
+            f2.write(template_b)
+            f1.flush()
+            f2.flush()
+            cmd = 'diff -u --strip-trailing-cr {} {}'.format(f1.name, f2.name)
+            p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            stdout, stderr = p.communicate()
+    if p.returncode == 0:
+        return True
+    else:
+        return stdout
+
+
+def render_local_template(service_name, environment, repo_root, template_file):
+    cmd = 'cd {} && ef-cf {} {} --devel --verbose'.format(repo_root, template_file, environment)
+    p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    stdout, stderr = p.communicate()
+
+    if p.returncode != 0:
+        stderr = '\n{}'.format(stderr).replace('\n', '\n        ')
+        stdout = '\n{}'.format(stdout).replace('\n', '\n        ')
+        raise Exception('Service: `{}`, Env: `{}`, Msg: `{}{}`'
+                        .format(service_name, environment, stderr, stdout))
+
+    logger.debug('Rendered template for `%s` in `%s`', template_file, environment)
+
+    r = re.match(r".*(^{.*^})$", stdout, re.MULTILINE | re.DOTALL)
+    return jsonify(json.loads(r.group(1)))
+
+
+def fetch_current_cloudformation_template(service_name, environment, cf_client):
+    stack_name = '{}-{}'.format(environment, service_name)
+    logger.debug('Fetching template for `%s`', stack_name)
+    result = cf_client.get_template(StackName=stack_name)
+    return jsonify(result['TemplateBody'])
+
+
+def diff_sevice_by_text(service_name, service, environment, cf_client, repo_root):
+    """
+    Render the local template and compare it to the template that was last
+    applied in the target environment.
+    """
+    global ret_code
+
+    logger.info('Investigating textual diff for `%s`:`%s` in environment `%s`',
+                service['type'], service_name, environment)
+
+    try:
+        local_template = render_local_template(service_name, environment,
+                                               repo_root, service['template_file'])
+
+        current_template = fetch_current_cloudformation_template(
+            service_name, environment, cf_client)
+
+    except Exception as e:
+        ret_code = 2
+        logger.error(e)
+        return
+
+    ret = diff_string_templates(local_template, current_template)
+    if ret is True:
+        logger.info('Deployed service `%s` in environment `%s` matches '
+                    'the local template.', service_name, environment)
+    else:
+        ret_code = 1
+        logger.error('Service `%s` in environment `%s` differs from '
+                     'the local template.',
+                     service_name, environment)
+        logger.info('Change details:\n        %s', indentify(ret))
+
+
+def jsonify(dict):
+    return json.dumps(dict, indent=2, sort_keys=True)
+
+
+def indentify(str):
+    return str.replace('\n', '\n        ')
 
 
 def changeset_is_empty(response):
@@ -101,26 +188,16 @@ def delete_any_existing_changesets(cf_client, service_name, environment):
         cf_client.delete_change_set(ChangeSetName=changeset['ChangeSetId'], StackName=changeset['StackId'])
 
 
-def get_cloudformation_client(service_name, environment_name):
+def diff_sevice_by_changeset(service_name, service, environment, cf_client, repo_root):
     """
-    Given a service name and an environment name, return a boto CloudFormation
-    client object.
+    If an ef-cf call fails, the error will be logged, the retcode set to 2, but
+    the function will run to completion and return the list of non-error
+    results.
     """
-    region = service_registry.service_region(service_name)
-
-    if whereami() == 'ec2':
-        profile = None
-    else:
-        profile = get_account_alias(environment_name)
-
-    clients = create_aws_clients(region, profile, 'cloudformation')
-    return clients['cloudformation']
-
-
-def diff_sevice_by_changeset(service_name, service, environment, repo_root):
     global ret_code
 
-    cf_client = get_cloudformation_client(service_name, environment)
+    logger.info('Investigating changeset for `%s`:`%s` in environment `%s`',
+                service['type'], service_name, environment)
 
     delete_any_existing_changesets(cf_client, service_name, environment)
 
@@ -132,11 +209,9 @@ def diff_sevice_by_changeset(service_name, service, environment, repo_root):
         logger.error(e)
         return
 
-    logger.info('Investigating changeset for `%s`:`%s` '
-                'in environment `%s`\n       Changeset ID: `%s`',
-                service['type'], service_name, environment, changeset['Id'])
-
     wait_for_changeset_creation(cf_client, changeset['Id'], changeset['StackId'])
+
+    logger.info('Created Changeset ID: `%s`', changeset['Id'])
 
     desc = cf_client.describe_change_set(
         ChangeSetName=changeset['Id'], StackName=changeset['StackId'])
@@ -152,8 +227,24 @@ def diff_sevice_by_changeset(service_name, service, environment, repo_root):
         logger.error('Service `%s` in environment `%s` differs from '
                      'the local template.',
                      service_name, environment)
-        details = json.dumps(desc['Changes'], indent=2, sort_keys=True).replace('\n', '\n        ')
-        logger.info('Change details: %s', details)
+        details = jsonify(desc['Changes'])
+        logger.info('Change details:\n        %s', indentify(details))
+
+
+def get_cloudformation_client(service_name, environment_name):
+    """
+    Given a service name and an environment name, return a boto CloudFormation
+    client object.
+    """
+    region = service_registry.service_region(service_name)
+
+    if whereami() == 'ec2':
+        profile = None
+    else:
+        profile = get_account_alias(environment_name)
+
+    clients = create_aws_clients(region, profile, 'cloudformation')
+    return clients['cloudformation']
 
 
 def generate_test_environment_name(env_name):
@@ -176,29 +267,27 @@ def get_env_categories(envs):
     return [re.match(r'^(.*?)\d*$', name).group(1) for name in envs]
 
 
-def evaluate_service_changes(services, repo_root, include_env, func):
+def evaluate_service_changes(services, envs, repo_root, func):
     """
-    Given a dict of services, use ef-cf to render the cloudformation
-    templates and then apply the diff function to evaluate the differences
-    between the target environments and the rendered templates.
+    Given a dict of services, and a list of environments, apply the diff
+    function to evaluate the differences between the target environments
+    and the rendered templates.
 
     Sub-services (names with '.' in them) are skipped.
-
-    If an ef-cf call fails, the error will be logged, the retcode set to 2, but
-    the function will run to completion and return the list of non-error
-    results.
     """
     for service_name, service in services.iteritems():
 
         for env_category in service['environments']:
-            if env_category not in get_env_categories(include_env):
+            if env_category not in get_env_categories(envs):
                 logger.debug('Skipping not-included environment `%s` for service `%s`',
                              env_category, service_name)
                 continue
 
             environment = generate_test_environment_name(env_category)
 
-            func(service_name, service, environment, repo_root)
+            cf_client = get_cloudformation_client(service_name, environment)
+
+            func(service_name, service, environment, cf_client, repo_root)
 
 
 def test_for_unused_template_files(template_files, services):
@@ -307,8 +396,12 @@ def scan_dir_for_template_files(search_dir):
                               readable=True, resolve_path=True),
               help="A specific template to process.  Can be passed multiple "
                    "times.  If excluded, all templates will be run.")
+@click.option('--raw_text', '-r',
+              is_flag=True,
+              help="Instead of checking changesets, compare the current text of "
+                   "the template(s) with the last pushed version.")
 @click.version_option()
-def main(repo_root, sr, env, template_file):
+def main(repo_root, sr, env, template_file, raw_text):
     global service_registry
     service_registry = EFServiceRegistry(sr)
 
@@ -327,6 +420,9 @@ def main(repo_root, sr, env, template_file):
 
     test_for_unused_template_files(template_files, services)
 
-    evaluate_service_changes(services, repo_root, env, diff_sevice_by_changeset)
+    if raw_text:
+        evaluate_service_changes(services, env, repo_root, diff_sevice_by_text)
+    else:
+        evaluate_service_changes(services, env, repo_root, diff_sevice_by_changeset)
 
     exit(ret_code)
