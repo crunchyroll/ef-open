@@ -76,8 +76,8 @@ def render_local_template(service_name, environment, repo_root, template_file):
     stdout, stderr = p.communicate()
 
     if p.returncode != 0:
-        stderr = '\n{}'.format(stderr).replace('\n', '\n        ')
-        stdout = '\n{}'.format(stdout).replace('\n', '\n        ')
+        stderr = indentify('\n{}'.format(stderr))
+        stdout = indentify('\n{}'.format(stdout))
         raise Exception('Service: `{}`, Env: `{}`, Msg: `{}{}`'
                         .format(service_name, environment, stderr, stdout))
 
@@ -169,8 +169,8 @@ def generate_changeset(service_name, environment, repo_root, template_file):
     stdout, stderr = p.communicate()
 
     if p.returncode != 0:
-        stderr = '\n{}'.format(stderr).replace('\n', '\n        ')
-        stdout = '\n{}'.format(stdout).replace('\n', '\n        ')
+        stderr = indentify('\n{}'.format(stderr))
+        stdout = indentify('\n{}'.format(stdout))
         raise Exception('Service: `{}`, Env: `{}`, Msg: `{}{}`'
                         .format(service_name, environment, stderr, stdout))
 
