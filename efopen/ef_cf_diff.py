@@ -92,7 +92,7 @@ def fetch_current_cloudformation_template(service_name, environment, cf_client):
     Fetch the currently-deployed template for the given service in the given
     environment and return it.
     """
-    stack_name = '{}-{}'.format(environment, service_name)
+    stack_name = get_stack_name(environment, service_name)
     logger.debug('Fetching template for `%s`', stack_name)
     result = cf_client.get_template(StackName=stack_name)
     return jsonify(result['TemplateBody'])
@@ -180,8 +180,17 @@ def generate_changeset(service_name, environment, repo_root, template_file):
     return json.loads(r.group(1))
 
 
+def get_stack_name(environment, service_name):
+    """
+    This should be what ef-open templates call "ENV", that is, the short
+    name for the environment.
+    """
+    environment = environment.split('.', 1)[0]
+    return '{}-{}'.format(environment, service_name)
+
+
 def delete_any_existing_changesets(cf_client, service_name, environment):
-    stack_name = '{}-{}'.format(environment, service_name)
+    stack_name = get_stack_name(environment, service_name)
     logger.debug('Deleting existing changesets for `%s`', stack_name)
 
     try:
