@@ -23,8 +23,8 @@ import os.path
 import re
 import subprocess
 import sys
-import tempfile
 import time
+from difflib import unified_diff
 
 import click
 from botocore.exceptions import ClientError
@@ -49,22 +49,17 @@ service_registry = None
 
 def diff_string_templates(string_a, string_b):
     """
-    print the diff of two strings.  Return true if the templates are identical
-    and the diff string if they are not.
+    Determine the diff of two strings.  Return True if the strings are identical
+    and the diff output string if they are not.
     """
-    with tempfile.NamedTemporaryFile() as f1:
-        f1.write(string_a)
-        f1.flush()
-        with tempfile.NamedTemporaryFile() as f2:
-            f2.write(string_b)
-            f2.flush()
-            cmd = 'diff -u --strip-trailing-cr {} {}'.format(f2.name, f1.name)
-            p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            stdout, stderr = p.communicate()
-    if p.returncode == 0:
-        return True
+    s1 = string_a.strip().splitlines()
+    s2 = string_b.strip().splitlines()
+    diffs = unified_diff(s2, s1, fromfile='deployed', tofile='local', lineterm='')
+    diff = '\n'.join(diffs)
+    if diff:
+        return diff
     else:
-        return stdout
+        return True
 
 
 def render_local_template(service_name, environment, repo_root, template_file):
