@@ -293,3 +293,40 @@ class TestEFVersionModule(unittest.TestCase):
 
     get_versions.assert_called_once_with(context, return_stable=True)
     cmd_set.assert_called_once_with(context)
+
+  @patch('ef_version.cmd_set')
+  @patch('ef_version.get_versions')
+  def test_cmd_rollback_to_ami(self, get_versions, cmd_set):
+    '''Test cmd_rollback to the latest stable version'''
+    ami_id = "ami-abcdefgh12345678"
+    desired_version = ef_version.Version({
+        u'Body': StringIO.StringIO(ami_id),
+        u'LastModified': datetime.datetime(2019, 1, 30, 5, 33, 24),
+        u'VersionId': 'b0tRbmuz7HsSMzrPaDxwUORqdQMisi9h',
+        u'Metadata': {
+            'ef-buildnumber': '256',
+            'ef-commithash': '338432d7e23e93dcf957e62598800468a17ff6d1',
+            'ef-location': '',
+            'ef-modifiedby': 'arn:aws:iam::097710525421:user/ci',
+            'ef-version-status': 'stable'}
+    })
+
+    context = Mock(ef_version.EFVersionContext)
+    context.env = "alpha0"
+    context.key = "ami-id"
+    context.limit = 10
+    context.service_name = "playheads"
+    context.rollback = ami_id
+
+    # inserting at the end so the code doesn't take the first one
+    get_versions.return_value = self.versions + [desired_version]
+
+    ef_version.cmd_rollback(context)
+    self.assertEqual(context.stable, True)
+    self.assertEqual(context.value, desired_version.value)
+    self.assertEqual(context.build_number, desired_version.build_number)
+    self.assertEqual(context.commit_hash, desired_version.commit_hash)
+    self.assertEqual(context.location, desired_version.location)
+
+    get_versions.assert_called_once_with(context)
+    cmd_set.assert_called_once_with(context)
