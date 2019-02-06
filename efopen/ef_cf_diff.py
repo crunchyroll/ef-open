@@ -49,8 +49,8 @@ service_registry = None
 
 def diff_string_templates(string_a, string_b):
     """
-    Determine the diff of two strings.  Return True if the strings are identical
-    and the diff output string if they are not.
+    Determine the diff of two strings.  Return an empty string if the strings
+    are identical, and the diff output string if they are not.
     """
     s1 = string_a.strip().splitlines()
     s2 = string_b.strip().splitlines()
@@ -59,7 +59,7 @@ def diff_string_templates(string_a, string_b):
     if diff:
         return diff
     else:
-        return True
+        return ""
 
 
 def render_local_template(service_name, environment, repo_root, template_file):
@@ -116,7 +116,7 @@ def diff_sevice_by_text(service_name, service, environment, cf_client, repo_root
         return
 
     ret = diff_string_templates(local_template, current_template)
-    if ret is True:
+    if not ret:
         logger.info('Deployed service `%s` in environment `%s` matches '
                     'the local template.', service_name, environment)
     else:
