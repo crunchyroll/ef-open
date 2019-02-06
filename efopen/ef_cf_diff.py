@@ -55,11 +55,7 @@ def diff_string_templates(string_a, string_b):
     s1 = string_a.strip().splitlines()
     s2 = string_b.strip().splitlines()
     diffs = unified_diff(s2, s1, fromfile='deployed', tofile='local', lineterm='')
-    diff = '\n'.join(diffs)
-    if diff:
-        return diff
-    else:
-        return ""
+    return '\n'.join(diffs)
 
 
 def render_local_template(service_name, environment, repo_root, template_file):
