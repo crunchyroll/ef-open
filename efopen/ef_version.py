@@ -571,7 +571,15 @@ def cmd_rollback(context):
     versions = get_versions(context)
     for version in versions:
       if version.value == context.rollback:
+        # hacky way to change less code
         last_stable = [version]
+        break
+    else:
+      fail("Didn't find a version matching ami-id for: "
+        "{}:{} in env/service: {}/{}".format(
+            context.key, context.rollback,
+            context.env, context.service_name))
+
   context.value = last_stable[0].value
   context.commit_hash = last_stable[0].commit_hash
   context.build_number = last_stable[0].build_number
