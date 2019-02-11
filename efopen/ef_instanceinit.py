@@ -206,7 +206,7 @@ def main():
   log_info("platform: {} service: {}".format(WHERE, service))
 
   merge_files("all")
-  merge_files("ssh", True)
+  merge_files("ssh", skip_on_user_group_error=True)
   merge_files(service)
 
   log_info("exit: success")
