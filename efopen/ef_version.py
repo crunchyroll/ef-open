@@ -561,10 +561,17 @@ def cmd_rollback(context):
   Args:
     context: a populated EFVersionContext object
   """
-  last_stable = get_versions(context, return_stable=True)
-  if len(last_stable) != 1:
-    fail("Didn't find a version marked stable for key: {} in env/service: {}/{}".format(
-         context.key, context.env, context.service_name))
+  if isinstance(context.rollback, bool):
+    last_stable = get_versions(context, return_stable=True)
+    if len(last_stable) != 1:
+      fail("Didn't find a version marked stable for key: "
+        "{} in env/service: {}/{}".format(
+            context.key, context.env, context.service_name))
+  else:
+    versions = get_versions(context)
+    for version in versions:
+      if version.value == context.rollback:
+        last_stable = [version]
   context.value = last_stable[0].value
   context.commit_hash = last_stable[0].commit_hash
   context.build_number = last_stable[0].build_number
