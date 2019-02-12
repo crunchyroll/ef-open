@@ -122,6 +122,22 @@ class TestEFVersion(unittest.TestCase):
     self.assertEqual(context.service_name, self.service_name)
     self.assertEqual(context.service_registry.filespec, self.service_registry_file)
 
+  def test_args_rollback(self):
+    """Test parsing args with all valid values for --rollback"""
+    args = [self.service, self.key, self.env, "--rollback", "--sr", "{}".format(self.service_registry_file)]
+    context = ef_version.handle_args_and_set_context(args)
+    self.assertEqual(context.rollback, True)
+    self.assertEqual(context.env, self.env)
+    self.assertEqual(context.service_name, self.service_name)
+
+  def test_args_rollback_to(self):
+    """Test parsing args with all valid values for --rollback-to"""
+    args = [self.service, self.key, self.env, "--rollback-to", self.value, "--sr", "{}".format(self.service_registry_file)]
+    context = ef_version.handle_args_and_set_context(args)
+    self.assertEqual(context.rollback, self.value)
+    self.assertEqual(context.env, self.env)
+    self.assertEqual(context.service_name, self.service_name)
+
   def test_args_set(self):
     """Test parsing args with all valid values for set"""
     args = [self.service, self.key, self.env, "--set", self.value, "--location", self.location, "--build",
