@@ -554,6 +554,36 @@ def cmd_history(context):
     print(json.dumps(versions, cls=VersionEncoder))
 
 
+def get_latest_stable_version(context):
+    """
+    Get the latest stable version from the version registry
+    Args:
+      context: a populated EFVersionContext object
+    """
+    last_stable = get_versions(context, return_stable=True)
+    if len(last_stable) != 1:
+      fail("Didn't find a version marked stable for key: "
+           "{} in env/service: {}/{}".format(
+              context.key, context.env, context.service_name))
+    return last_stable[0]
+
+
+def get_version_by_ami(context):
+  """
+  Get the latest version that matches the provided ami-id
+  Args:
+    context: a populated EFVersionContext object with rollback as string
+  """
+  versions = get_versions(context)
+  for version in versions:
+    if version.value == context.rollback:
+      return version
+  fail("Didn't find a version matching ami-id for: "
+       "{}:{} in env/service: {}/{}".format(
+          context.key, context.rollback,
+          context.env, context.service_name))
+
+
 def cmd_rollback(context):
   """
   Roll back by finding the most recent "stable" tagged version, and putting it again, so that
@@ -562,28 +592,14 @@ def cmd_rollback(context):
     context: a populated EFVersionContext object
   """
   if isinstance(context.rollback, bool):
-    last_stable = get_versions(context, return_stable=True)
-    if len(last_stable) != 1:
-      fail("Didn't find a version marked stable for key: "
-           "{} in env/service: {}/{}".format(
-             context.key, context.env, context.service_name))
+    version = get_latest_stable_version(context)
   else:
-    versions = get_versions(context)
-    for version in versions:
-      if version.value == context.rollback:
-        # hacky way to change less code
-        last_stable = [version]
-        break
-    else:
-      fail("Didn't find a version matching ami-id for: "
-           "{}:{} in env/service: {}/{}".format(
-             context.key, context.rollback,
-             context.env, context.service_name))
+    version = get_version_by_ami(context)
 
-  context.value = last_stable[0].value
-  context.commit_hash = last_stable[0].commit_hash
-  context.build_number = last_stable[0].build_number
-  context.location = last_stable[0].location
+  context.value = version.value
+  context.commit_hash = version.commit_hash
+  context.build_number = version.build_number
+  context.location = version.location
   context.stable = True
   cmd_set(context)
 
