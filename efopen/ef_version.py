@@ -276,6 +276,8 @@ def handle_args_and_set_context(args):
   group.add_argument("--set", help="set current version of <key> to <value> for <service_name>")
   group.add_argument("--rollback", help="set current version to most recent 'stable' version in history",
                      action="store_true")
+  group.add_argument("--rollback-to", help="rollback current version to <ami-id> in history",
+                     action="store", metavar='<ami-id>')
   group.add_argument("--history", help="Show version history for env/service/key", choices=['json', 'text'])
   group.add_argument("--show", help="Show keys and values. '*' allowed for <key> and <env>",
                      action="store_true", default=False)
@@ -322,7 +324,7 @@ def handle_args_and_set_context(args):
     fail("Error in --limit. Valid range: 1..1000")
   context._limit = parsed_args["limit"]
   context._location = parsed_args["location"]
-  context._rollback = parsed_args["rollback"]
+  context._rollback = parsed_args["rollback"] or parsed_args["rollback_to"]
   context._service_name = parsed_args["service_name"]
   context._show = parsed_args["show"]
   context._stable = parsed_args["stable"]
