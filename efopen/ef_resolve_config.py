@@ -138,7 +138,7 @@ def merge_files(context):
   if context.lint:
     if context.template_path.endswith(".json"):
       try:
-        json.loads(rendered_body)
+        json.loads(rendered_body, strict=False)
         print("JSON passed linting process.")
       except ValueError as e:
         fail("JSON failed linting process.", e)
