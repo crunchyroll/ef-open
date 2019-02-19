@@ -570,19 +570,20 @@ def get_latest_stable_version(context):
     return last_stable[0]
 
 
-def get_version_by_ami(context):
+def get_version_by_value(context, value):
   """
   Get the latest version that matches the provided ami-id
   Args:
-    context: a populated EFVersionContext object with rollback as string
+    context: a populated EFVersionContext object
+    value: the value of the version to look for
   """
   versions = get_versions(context)
   for version in versions:
-    if version.value == context.rollback:
+    if version.value == value:
       return version
-  fail("Didn't find a version matching ami-id for: "
+  fail("Didn't find a matching version for: "
        "{}:{} in env/service: {}/{}".format(
-          context.key, context.rollback,
+          context.key, value,
           context.env, context.service_name))
 
 
@@ -596,7 +597,7 @@ def cmd_rollback(context):
   if isinstance(context.rollback, bool):
     version = get_latest_stable_version(context)
   else:
-    version = get_version_by_ami(context)
+    version = get_version_by_value(context, context.rollback)
 
   context.value = version.value
   context.commit_hash = version.commit_hash
