@@ -329,7 +329,8 @@ def handle_args_and_set_context(args):
     fail("Error in --limit. Valid range: 1..1000")
   context._limit = parsed_args["limit"]
   context._location = parsed_args["location"]
-  context._rollback = parsed_args["rollback"] or parsed_args["rollback_to"]
+  context._rollback = parsed_args["rollback"]
+  context._rollback_to = parsed_args["rollback_to"]
   context._service_name = parsed_args["service_name"]
   context._show = parsed_args["show"]
   context._stable = parsed_args["stable"]
@@ -762,6 +763,8 @@ def main():
     cmd_history(context)
   elif context.rollback:
     cmd_rollback(context)
+  elif context.rollback_to:
+    cmd_rollback_to(context)
   elif context.show:
     cmd_show(context)
   elif context.value:

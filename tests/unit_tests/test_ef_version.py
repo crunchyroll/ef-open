@@ -134,7 +134,7 @@ class TestEFVersion(unittest.TestCase):
     """Test parsing args with all valid values for --rollback-to"""
     args = [self.service, self.key, self.env, "--rollback-to", self.value, "--sr", "{}".format(self.service_registry_file)]
     context = ef_version.handle_args_and_set_context(args)
-    self.assertEqual(context.rollback, self.value)
+    self.assertEqual(context.rollback_to, self.value)
     self.assertEqual(context.env, self.env)
     self.assertEqual(context.service_name, self.service_name)
 
