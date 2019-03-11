@@ -56,6 +56,7 @@ class EFVersionContext(EFContext):
     self._limit = None
     self._noprecheck = None
     self._rollback = None
+    self._rollback_to = ""
     self._service_name = None # Cheating - we don't care about the full service record so don't use context.service
     self._show = None
     self._stable = None
@@ -130,6 +131,10 @@ class EFVersionContext(EFContext):
   @property
   def rollback(self):
     return self._rollback
+
+  @property
+  def rollback_to(self):
+    return self._rollback_to
 
   @property
   def service_name(self):
@@ -602,6 +607,22 @@ def cmd_rollback(context):
   context.commit_hash = last_stable[0].commit_hash
   context.build_number = last_stable[0].build_number
   context.location = last_stable[0].location
+  context.stable = True
+  cmd_set(context)
+
+
+def cmd_rollback_to(context):
+  """
+  Roll back by finding a specific version in the history of the service and
+  putting it as the new current version.
+  Args:
+    context: a populated EFVersionContext object
+  """
+  version = get_version_by_value(context, context.rollback_to)
+  context.value = version.value
+  context.commit_hash = version.commit_hash
+  context.build_number = version.build_number
+  context.location = version.location
   context.stable = True
   cmd_set(context)
 
