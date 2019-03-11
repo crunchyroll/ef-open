@@ -351,19 +351,19 @@ class TestEFVersionModule(unittest.TestCase):
   @patch('ef_version.cmd_set')
   @patch('ef_version.get_versions')
   def test_cmd_rollback_to_unknown_ami(self, get_versions, cmd_set):
-    '''Test cmd_rollback fails on missing ami_id in history'''
+    '''Test cmd_rollback_to fails on missing ami_id in history'''
     ami_id = "ami-abcdefgh12345678"
     context = Mock(ef_version.EFVersionContext)
     context.env = "alpha0"
     context.key = "ami-id"
     context.limit = 10
     context.service_name = "playheads"
-    context.rollback = ami_id
+    context.rollback_to = ami_id
 
     get_versions.return_value = self.versions
 
     with self.assertRaises(SystemExit) as e:
-      ef_version.cmd_rollback(context)
+      ef_version.cmd_rollback_to(context)
       self.assertIn(ami_id, e.message)
 
     get_versions.assert_called_once_with(context)
