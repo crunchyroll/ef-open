@@ -562,20 +562,6 @@ def cmd_history(context):
     print(json.dumps(versions, cls=VersionEncoder))
 
 
-def get_latest_stable_version(context):
-    """
-    Get the latest stable version from the version registry
-    Args:
-      context: a populated EFVersionContext object
-    """
-    last_stable = get_versions(context, return_stable=True)
-    if len(last_stable) != 1:
-      fail("Didn't find a version marked stable for key: "
-           "{} in env/service: {}/{}".format(
-              context.key, context.env, context.service_name))
-    return last_stable[0]
-
-
 def get_version_by_value(context, value):
   """
   Get the latest version that matches the provided ami-id
