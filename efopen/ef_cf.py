@@ -172,6 +172,9 @@ def enable_stack_termination_protection(clients, stack_name):
 
 def calculate_max_batch_size(asg_client, service, percent):
   autoscaling_group_properties = get_autoscaling_group_properties(asg_client, service.split("-")[0], "-".join(service.split("-")[1:]))
+  if not autoscaling_group_properties:
+      # safe default
+      return 1
   current_desired = autoscaling_group_properties[0]["DesiredCapacity"]
   new_batch_size = int(math.ceil(current_desired * (percent * 0.01)))
   return new_batch_size
