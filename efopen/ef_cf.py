@@ -326,8 +326,9 @@ def main():
           autoscaling_group_properties = get_autoscaling_group_properties(clients["autoscaling"], service.split("-")[0], "-".join(service.split("-")[1:]))
           new_max_batch_size = calculate_max_batch_size(clients["autoscaling"], service, context.percent)
           modify_template["Resources"][key]["UpdatePolicy"]["AutoScalingRollingUpdate"]["MaxBatchSize"] = new_max_batch_size
+          current_desired = autoscaling_group_properties[0]["DesiredCapacity"] if autoscaling_group_properties else "missing"
           print("Service {} [current desired: {}, calculated max batch size: {}]".format(
-                service, autoscaling_group_properties[0]["DesiredCapacity"], new_max_batch_size))
+                service, current_desired, new_max_batch_size))
     template = json.dumps(modify_template)
 
   # Detect if the template exceeds the maximum size that is allowed by Cloudformation
