@@ -244,3 +244,62 @@ class TestEFConfUtils(unittest.TestCase):
     with self.assertRaises(RuntimeError) as exception:
       ef_conf_utils.pull_repo()
     self.assertIn("Must be on branch:", exception.exception.message)
+
+  def test_get_account_alias(self):
+    """
+    Checks if get_account_alias returns the correct account based on valid environments
+
+    Returns:
+      None
+
+    Raises:
+      AssertionError if any of the assert checks fail
+    """
+    for env, account_alias in EFConfig.ENV_ACCOUNT_MAP.items():
+      # Attach a numeric value to environments that are ephemeral
+      if env in EFConfig.EPHEMERAL_ENVS:
+        env += '0'
+      self.assertEquals(ef_conf_utils.get_account_alias(env), account_alias)
+
+    # Do tests for global and mgmt envs, which have a special mapping, Example: global.account_alias
+    if "global" in EFConfig.ENV_ACCOUNT_MAP:
+      for account_alias in EFConfig.ENV_ACCOUNT_MAP.values():
+        self.assertEquals(ef_conf_utils.get_account_alias("global." + account_alias), account_alias)
+    if "mgmt" in EFConfig.ENV_ACCOUNT_MAP:
+      for account_alias in EFConfig.ENV_ACCOUNT_MAP.values():
+        self.assertEquals(ef_conf_utils.get_account_alias("mgmt." + account_alias), account_alias)
+
+  def test_get_account_alias_invalid_env(self):
+    """
+    Tests if get_account_alias raises exceptions when given invalid environments
+
+    Returns:
+      None
+
+    Raises:
+      AssertionError if any of the assert checks fail
+    """
+    # Create junk environment values by attaching numbers to non-ephemeral environments and not attaching numbers
+    # to ephemeral environments
+    for env, account_alias in EFConfig.ENV_ACCOUNT_MAP.items():
+      if env not in EFConfig.EPHEMERAL_ENVS:
+        env += '0'
+      with self.assertRaises(ValueError) as exception:
+        ef_conf_utils.get_account_alias(env)
+      self.assertTrue("unknown env" in exception.exception.message)
+
+    # Hard coded junk values
+    with self.assertRaises(ValueError) as exception:
+      ef_conf_utils.get_account_alias("non-existent-env")
+    self.assertTrue("unknown env" in exception.exception.message)
+    with patch('ef_conf_utils.env_valid') as mock_env_valid:
+      with self.assertRaises(ValueError) as exception:
+        mock_env_valid.return_value = True
+        ef_conf_utils.get_account_alias("non-existent-env")
+    self.assertTrue("has no entry in ENV_ACCOUNT_MAP" in exception.exception.message)
+    with self.assertRaises(ValueError) as exception:
+      ef_conf_utils.get_account_alias("")
+    self.assertTrue("unknown env" in exception.exception.message)
+    with self.assertRaises(ValueError) as exception:
+      ef_conf_utils.get_account_alias(None)
+    self.assertTrue("unknown env" in exception.exception.message)

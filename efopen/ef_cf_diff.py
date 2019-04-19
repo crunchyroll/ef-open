@@ -31,7 +31,8 @@ from botocore.exceptions import ClientError
 
 from .ef_config import EFConfig
 from .ef_service_registry import EFServiceRegistry
-from .ef_utils import create_aws_clients, get_account_alias, whereami
+from .ef_utils import create_aws_clients, whereami
+from .ef_conf_utils import get_account_alias
 
 logger = logging.getLogger()
 logger.setLevel(logging.DEBUG)

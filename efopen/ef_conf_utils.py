@@ -76,3 +76,25 @@ def pull_repo():
     subprocess.check_call(["git", "pull", "-q", "origin", EFConfig.EF_REPO_BRANCH])
   except subprocess.CalledProcessError as error:
     raise RuntimeError("Exception running 'git pull': " + repr(error))
+
+def get_account_alias(env):
+  """
+  Given an env, return <account_alias> if env is valid
+  Args:
+    env: an environment, such as "prod", "staging", "proto<N>", "mgmt.<account_alias>"
+  Returns:
+    the alias of the AWS account that holds the env
+  Raises:
+    ValueError if env is misformatted or doesn't name a known environment
+  """
+  env_valid(env)
+  # Env is a global env of the form "env.<account_alias>" (e.g. "mgmt.<account_alias>")
+  if env.find(".") > -1:
+    base, ext = env.split(".")
+    return ext
+  # Ordinary env, possibly a proto env ending with a digit that is stripped to look up the alias
+  else:
+    env_short = env.strip(".0123456789")
+    if env_short not in EFConfig.ENV_ACCOUNT_MAP:
+      raise ValueError("generic env: {} has no entry in ENV_ACCOUNT_MAP of ef_site_config.py".format(env_short))
+    return EFConfig.ENV_ACCOUNT_MAP[env_short]

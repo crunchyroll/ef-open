@@ -38,7 +38,8 @@ import ef_utils
 import ef_conf_utils
 from ef_config import EFConfig
 from ef_template_resolver import EFTemplateResolver
-from ef_utils import fail, get_account_alias
+from ef_utils import fail
+from ef_conf_utils import get_account_alias
 
 
 class Context:
