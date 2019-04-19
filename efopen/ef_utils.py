@@ -332,11 +332,5 @@ def get_instance_aws_context(ec2_client): # marked, not used
   result["account"] = instance_desc["Reservations"][0]["OwnerId"]
   arn = instance_desc["Reservations"][0]["Instances"][0]["IamInstanceProfile"]["Arn"]
   result["role"] = arn.split(":")[5].split("/")[1]
-  # TODO get rid of EFConfig
-  env = re.search("^(" + EFConfig.VALID_ENV_REGEX + ")-", result["role"])
-  if not env:
-    raise IOError("Did not find environment in role name: " + result["role"])
-  result["env"] = env.group(1)
-  result["env_short"] = result["env"].strip(".0123456789")
   result["service"] = "-".join(result["role"].split("-")[1:])
   return result
