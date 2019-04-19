@@ -96,7 +96,7 @@ class EFInstanceinitConfigReader:
   @property
   def parameters(self):
     if self.service == "s3":
-      key = ef_utils.get_template_parameters_s3(self.current.key, self.s3_resource)
+      key = ef_conf_utils.get_template_parameters_s3(self.current.key, self.s3_resource)
       self.logger("Loading parameters object: {}".format(key))
       try:
         obj = self.s3_resource.Object(EFConfig.S3_CONFIG_BUCKET, key)

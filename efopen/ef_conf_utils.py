@@ -6,6 +6,8 @@ import subprocess
 
 from os.path import exists
 
+from botocore.exceptions import ClientError
+
 from ef_config import EFConfig
 
 def get_template_parameters_file(template_full_path):
@@ -98,3 +100,22 @@ def get_account_alias(env):
     if env_short not in EFConfig.ENV_ACCOUNT_MAP:
       raise ValueError("generic env: {} has no entry in ENV_ACCOUNT_MAP of ef_site_config.py".format(env_short))
     return EFConfig.ENV_ACCOUNT_MAP[env_short]
+
+def get_template_parameters_s3(template_key, s3_resource):
+  """
+  Checks for existance of parameters object in S3 against supported suffixes and returns parameters file key if found
+  Args:
+    template_key: S3 key for template file. omit bucket.
+    s3_resource: a boto3 s3 resource
+  Returns:
+    filename of parameters file if it exists
+  """
+  for suffix in EFConfig.PARAMETER_FILE_SUFFIXES:
+    parameters_key = template_key.replace("/templates", "/parameters") + suffix
+    try:
+      obj = s3_resource.Object(EFConfig.S3_CONFIG_BUCKET, parameters_key)
+      obj.get()
+      return parameters_key
+    except ClientError:
+      continue
+  return None

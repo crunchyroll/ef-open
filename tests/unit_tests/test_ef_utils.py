@@ -641,17 +641,6 @@ class TestEFUtils(unittest.TestCase):
       ef_utils.get_env_short(None)
     self.assertTrue("unknown env" in exception.exception.message)
 
-
-  def test_get_template_parameters_s3(self):
-    """Test method returns valid parameters file"""
-    mock_s3_resource = Mock(name="Mock S3 Client")
-    response = {"Error": {"Code": "NoSuchKey"}}
-    mock_s3_resource.Object.return_value.get.side_effect = [ClientError(response, "Get Object"), None]
-    test_template = os.path.join('test-instance/templates/test.cnf')
-    target_parameters = os.path.join('test-instance/parameters/test.cnf.parameters.yml')
-    test_parameters = ef_utils.get_template_parameters_s3(test_template, mock_s3_resource)
-    self.assertEquals(test_parameters, target_parameters)
-
   def test_get_autoscaling_group_properties_valid_asg_name(self):
     """Test method returns valid parameters file"""
     mock_asg_resource = Mock(name="Mock Autoscaling Client")

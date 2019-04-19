@@ -303,3 +303,13 @@ class TestEFConfUtils(unittest.TestCase):
     with self.assertRaises(ValueError) as exception:
       ef_conf_utils.get_account_alias(None)
     self.assertTrue("unknown env" in exception.exception.message)
+
+  def test_get_template_parameters_s3(self):
+    """Test method returns valid parameters file"""
+    mock_s3_resource = Mock(name="Mock S3 Client")
+    response = {"Error": {"Code": "NoSuchKey"}}
+    mock_s3_resource.Object.return_value.get.side_effect = [ClientError(response, "Get Object"), None]
+    test_template = os.path.join('test-instance/templates/test.cnf')
+    target_parameters = os.path.join('test-instance/parameters/test.cnf.parameters.yml')
+    test_parameters = ef_conf_utils.get_template_parameters_s3(test_template, mock_s3_resource)
+    self.assertEquals(test_parameters, target_parameters)

@@ -340,22 +340,3 @@ def get_instance_aws_context(ec2_client): # marked, not used
   result["env_short"] = result["env"].strip(".0123456789")
   result["service"] = "-".join(result["role"].split("-")[1:])
   return result
-
-def get_template_parameters_s3(template_key, s3_resource): # marked, replace ef_utils
-  """
-  Checks for existance of parameters object in S3 against supported suffixes and returns parameters file key if found
-  Args:
-    template_key: S3 key for template file. omit bucket.
-    s3_resource: a boto3 s3 resource
-  Returns:
-    filename of parameters file if it exists
-  """
-  for suffix in EFConfig.PARAMETER_FILE_SUFFIXES:
-    parameters_key = template_key.replace("/templates", "/parameters") + suffix
-    try:
-      obj = s3_resource.Object(EFConfig.S3_CONFIG_BUCKET, parameters_key)
-      obj.get()
-      return parameters_key
-    except ClientError:
-      continue
-  return None
