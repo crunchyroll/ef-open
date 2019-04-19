@@ -30,6 +30,8 @@ import urllib2
 import boto3
 from botocore.exceptions import ClientError
 
+import ef_conf_utils
+
 from ef_config import EFConfig
 
 __HTTP_DEFAULT_TIMEOUT_SEC = 5
@@ -188,7 +190,7 @@ def get_account_id(sts_client):
   """
   return sts_client.get_caller_identity().get('Account')
 
-def get_env_short(env):
+def get_env_short(env): # marked, uses env_valid
   """
   Given an env, return <env_short> if env is valid
   Args:
@@ -198,7 +200,7 @@ def get_env_short(env):
   Raises:
     ValueError if env is misformatted or doesn't name a known environment
   """
-  env_valid(env)
+  ef_conf_utils.env_valid(env)
   if env.find(".") > -1:
     env_short, ext = env.split(".")
   else:
@@ -368,7 +370,7 @@ def get_account_alias(env): # marked, mixed imports
   Raises:
     ValueError if env is misformatted or doesn't name a known environment
   """
-  env_valid(env)
+  ef_conf_utils.env_valid(env)
   # Env is a global env of the form "env.<account_alias>" (e.g. "mgmt.<account_alias>")
   if env.find(".") > -1:
     base, ext = env.split(".")
@@ -404,17 +406,3 @@ def pull_repo(): # marked, from imports
     subprocess.check_call(["git", "pull", "-q", "origin", EFConfig.EF_REPO_BRANCH])
   except subprocess.CalledProcessError as error:
     raise RuntimeError("Exception running 'git pull': " + repr(error))
-
-def env_valid(env): # marked, from import
-  """
-  Given an env, determine if it's valid
-  Args:
-    env: the env to check
-  Returns:
-    True if the env is valid
-  Raises:
-    ValueError with message if the env is not valid
-  """
-  if env not in EFConfig.ENV_LIST:
-    raise ValueError("unknown env: {}; env must be one of: ".format(env) + ", ".join(EFConfig.ENV_LIST))
-  return True

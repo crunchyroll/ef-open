@@ -27,7 +27,6 @@ import context_paths
 
 from ef_config import EFConfig
 import ef_utils
-import ef_conf_utils
 
 
 class TestEFUtils(unittest.TestCase):
@@ -723,7 +722,7 @@ class TestEFUtils(unittest.TestCase):
     with self.assertRaises(ValueError) as exception:
       ef_utils.get_account_alias("non-existent-env")
     self.assertTrue("unknown env" in exception.exception.message)
-    with patch('ef_utils.env_valid') as mock_env_valid:
+    with patch('ef_conf_utils.env_valid') as mock_env_valid:
       with self.assertRaises(ValueError) as exception:
         mock_env_valid.return_value = True
         ef_utils.get_account_alias("non-existent-env")
@@ -797,55 +796,6 @@ class TestEFUtils(unittest.TestCase):
       ef_utils.get_env_short(None)
     self.assertTrue("unknown env" in exception.exception.message)
 
-  def test_env_valid(self):
-    """
-    Checks if env_valid returns true for correctly named environments
-
-    Returns:
-      None
-
-    Raises:
-      AssertionError if any of the assert checks fail
-    """
-    for env in EFConfig.ENV_ACCOUNT_MAP:
-      # Attach a numeric value to environments that are ephemeral
-      if env in EFConfig.EPHEMERAL_ENVS:
-         env += '0'
-      self.assertTrue(ef_utils.env_valid(env))
-
-    # Do tests for global and mgmt envs, which have a special mapping, Example: global.account_alias
-    if "global" in EFConfig.ENV_ACCOUNT_MAP:
-      for account_alias in EFConfig.ENV_ACCOUNT_MAP.values():
-        self.assertTrue(ef_utils.env_valid("global." + account_alias))
-    if "mgmt" in EFConfig.ENV_ACCOUNT_MAP:
-      for account_alias in EFConfig.ENV_ACCOUNT_MAP.values():
-        self.assertTrue(ef_utils.env_valid("mgmt." + account_alias))
-
-  def test_env_valid_invalid_envs(self):
-    """
-    Checks if env_valid returns ValueError for incorrectly name environments
-
-    Returns:
-      None
-
-    Raises:
-      AssertionError if any of the assert checks fail
-    """
-    # Create junk environment values by attaching numbers to non-ephemeral environments and not attaching numbers
-    # to ephemeral environments
-    for env in EFConfig.ENV_ACCOUNT_MAP:
-      if env not in EFConfig.EPHEMERAL_ENVS:
-        env += '0'
-      with self.assertRaises(ValueError):
-        ef_utils.env_valid(env)
-
-    # Hard coded junk values
-    with self.assertRaises(ValueError):
-      ef_utils.env_valid("invalid_env")
-    with self.assertRaises(ValueError):
-      ef_utils.env_valid("")
-    with self.assertRaises(ValueError):
-      ef_utils.env_valid(None)
 
   def test_get_template_parameters_s3(self):
     """Test method returns valid parameters file"""
