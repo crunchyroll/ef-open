@@ -381,28 +381,3 @@ def get_account_alias(env): # marked, mixed imports
     if env_short not in EFConfig.ENV_ACCOUNT_MAP:
       raise ValueError("generic env: {} has no entry in ENV_ACCOUNT_MAP of ef_site_config.py".format(env_short))
     return EFConfig.ENV_ACCOUNT_MAP[env_short]
-
-def pull_repo(): # marked, from imports
-  """
-  Pulls latest version of EF_REPO_BRANCH from EF_REPO (as set in ef_config.py) if client is in EF_REPO
-  and on the branch EF_REPO_BRANCH
-  Raises:
-    RuntimeError with message if not in the correct repo on the correct branch
-  """
-  try:
-    current_repo = subprocess.check_output(["git", "remote", "-v", "show"])
-  except subprocess.CalledProcessError as error:
-    raise RuntimeError("Exception checking current repo", error)
-  current_repo = re.findall("(https://|@)(.*?)(.git|[ ])", current_repo)[0][1].replace(":", "/")
-  if current_repo != EFConfig.EF_REPO:
-    raise RuntimeError("Must be in " + EFConfig.EF_REPO + " repo. Current repo is: " + current_repo)
-  try:
-    current_branch = subprocess.check_output(["git", "rev-parse", "--abbrev-ref", "HEAD"]).rstrip()
-  except subprocess.CalledProcessError as error:
-    raise RuntimeError("Exception checking current branch: " + repr(error))
-  if current_branch != EFConfig.EF_REPO_BRANCH:
-    raise RuntimeError("Must be on branch: " + EFConfig.EF_REPO_BRANCH + ". Current branch is: " + current_branch)
-  try:
-    subprocess.check_call(["git", "pull", "-q", "origin", EFConfig.EF_REPO_BRANCH])
-  except subprocess.CalledProcessError as error:
-    raise RuntimeError("Exception running 'git pull': " + repr(error))

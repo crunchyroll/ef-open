@@ -1,6 +1,9 @@
 """
 Configurable utility functions for ef. Configurable via EFConfig
 """
+import re
+import subprocess
+
 from os.path import exists
 
 from ef_config import EFConfig
@@ -48,3 +51,28 @@ def env_valid(env):
   if env not in EFConfig.ENV_LIST:
     raise ValueError("unknown env: {}; env must be one of: ".format(env) + ", ".join(EFConfig.ENV_LIST))
   return True
+
+def pull_repo():
+  """
+  Pulls latest version of EF_REPO_BRANCH from EF_REPO (as set in ef_config.py) if client is in EF_REPO
+  and on the branch EF_REPO_BRANCH
+  Raises:
+    RuntimeError with message if not in the correct repo on the correct branch
+  """
+  try:
+    current_repo = subprocess.check_output(["git", "remote", "-v", "show"])
+  except subprocess.CalledProcessError as error:
+    raise RuntimeError("Exception checking current repo", error)
+  current_repo = re.findall("(https://|@)(.*?)(.git|[ ])", current_repo)[0][1].replace(":", "/")
+  if current_repo != EFConfig.EF_REPO:
+    raise RuntimeError("Must be in " + EFConfig.EF_REPO + " repo. Current repo is: " + current_repo)
+  try:
+    current_branch = subprocess.check_output(["git", "rev-parse", "--abbrev-ref", "HEAD"]).rstrip()
+  except subprocess.CalledProcessError as error:
+    raise RuntimeError("Exception checking current branch: " + repr(error))
+  if current_branch != EFConfig.EF_REPO_BRANCH:
+    raise RuntimeError("Must be on branch: " + EFConfig.EF_REPO_BRANCH + ". Current branch is: " + current_branch)
+  try:
+    subprocess.check_call(["git", "pull", "-q", "origin", EFConfig.EF_REPO_BRANCH])
+  except subprocess.CalledProcessError as error:
+    raise RuntimeError("Exception running 'git pull': " + repr(error))
