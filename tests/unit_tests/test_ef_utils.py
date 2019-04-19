@@ -847,53 +847,6 @@ class TestEFUtils(unittest.TestCase):
     with self.assertRaises(ValueError):
       ef_utils.env_valid(None)
 
-  def test_global_env_valid(self):
-    """
-    Checks global_env_valid returns true for account scoped envs.
-
-    Returns:
-      None
-
-    Raises:
-      AssertionError if any of the assert checks fail
-    """
-    if "global" in EFConfig.ENV_ACCOUNT_MAP:
-      self.assertTrue(ef_utils.global_env_valid("global"))
-    if "mgmt" in EFConfig.ENV_ACCOUNT_MAP:
-      self.assertTrue(ef_utils.global_env_valid("mgmt"))
-
-  def test_global_env_valid_non_scoped_envs(self):
-    """
-    Checks global_env_valid returns false for non account scoped envs.
-
-    Returns:
-      None
-
-    Raises:
-      AssertionError if any of the assert checks fail
-    """
-    # Loop through all environments that are not mgmt or global
-    for env in EFConfig.ENV_ACCOUNT_MAP:
-      if env == "mgmt" or env == "global":
-        continue
-      with self.assertRaises(ValueError) as exception:
-        ef_utils.global_env_valid(env)
-      self.assertTrue("Invalid global env" in exception.exception.message)
-
-    # Hard coded junk values
-    with self.assertRaises(ValueError) as exception:
-      ef_utils.global_env_valid("not_global")
-    self.assertTrue("Invalid global env" in exception.exception.message)
-    with self.assertRaises(ValueError) as exception:
-      ef_utils.global_env_valid("not_mgmt")
-    self.assertTrue("Invalid global env" in exception.exception.message)
-    with self.assertRaises(ValueError) as exception:
-      ef_utils.global_env_valid("")
-    self.assertTrue("Invalid global env" in exception.exception.message)
-    with self.assertRaises(ValueError) as exception:
-      ef_utils.global_env_valid(None)
-    self.assertTrue("Invalid global env" in exception.exception.message)
-
   def test_get_template_parameters_s3(self):
     """Test method returns valid parameters file"""
     mock_s3_resource = Mock(name="Mock S3 Client")

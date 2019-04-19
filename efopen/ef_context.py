@@ -17,7 +17,8 @@ limitations under the License.
 """
 
 from ef_service_registry import EFServiceRegistry
-from ef_utils import env_valid, get_account_alias, get_env_short, global_env_valid, whereami
+from ef_utils import env_valid, get_account_alias, get_env_short, whereami
+from ef_conf_utils import global_env_valid
 
 class EFContext(object):
   """

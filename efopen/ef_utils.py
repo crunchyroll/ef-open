@@ -418,17 +418,3 @@ def env_valid(env): # marked, from import
   if env not in EFConfig.ENV_LIST:
     raise ValueError("unknown env: {}; env must be one of: ".format(env) + ", ".join(EFConfig.ENV_LIST))
   return True
-
-def global_env_valid(env): # marked
-  """
-  Given an env, determine if it's a valid "global" or "mgmt" env as listed in EFConfig
-  Args:
-    env: the env to check
-  Returns:
-    True if the env is a valid global env in EFConfig
-  Raises:
-    ValueError with message if the env is not valid
-  """
-  if env not in EFConfig.ACCOUNT_SCOPED_ENVS:
-    raise ValueError("Invalid global env: {}; global envs are: {}".format(env, EFConfig.ACCOUNT_SCOPED_ENVS))
-  return True
