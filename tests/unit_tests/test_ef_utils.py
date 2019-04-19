@@ -27,6 +27,7 @@ import context_paths
 
 from ef_config import EFConfig
 import ef_utils
+import ef_conf_utils
 
 
 class TestEFUtils(unittest.TestCase):
@@ -892,13 +893,6 @@ class TestEFUtils(unittest.TestCase):
     with self.assertRaises(ValueError) as exception:
       ef_utils.global_env_valid(None)
     self.assertTrue("Invalid global env" in exception.exception.message)
-
-  def test_get_template_parameters_file(self):
-    """Test method returns valid parameters file"""
-    test_template = os.path.join(os.path.dirname(__file__), '../test_data/templates/test.cnf')
-    target_parameters = os.path.join(os.path.dirname(__file__), '../test_data/parameters/test.cnf.parameters.yml')
-    test_parameters = ef_utils.get_template_parameters_file(test_template)
-    self.assertEquals(test_parameters, target_parameters)
 
   def test_get_template_parameters_s3(self):
     """Test method returns valid parameters file"""

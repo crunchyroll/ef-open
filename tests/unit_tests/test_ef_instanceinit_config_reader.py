@@ -34,7 +34,7 @@ class TestEFInstanceInitConfigReader(unittest.TestCase):
     self.mock_s3_resource = Mock(name="mocked S3 resource")
     self.mock_logger = Mock(name="mocked logger object")
 
-  @patch('ef_utils.get_template_parameters_file')
+  @patch('ef_conf_utils.get_template_parameters_file')
   def test_config_parameters_from_file(self, mock_params_file):
     """Test basic function"""
     base_path = os.path.join(os.path.dirname(__file__), "../test_data")

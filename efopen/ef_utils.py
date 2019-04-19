@@ -20,7 +20,7 @@ from __future__ import print_function
 import base64
 import json
 from os import access, X_OK
-from os.path import isfile, exists
+from os.path import isfile
 import re
 from socket import gethostname
 import subprocess
@@ -432,19 +432,3 @@ def global_env_valid(env): # marked
   if env not in EFConfig.ACCOUNT_SCOPED_ENVS:
     raise ValueError("Invalid global env: {}; global envs are: {}".format(env, EFConfig.ACCOUNT_SCOPED_ENVS))
   return True
-
-def get_template_parameters_file(template_full_path): # marked, replace ef_utils
-    """
-    Checks for existance of parameters file against supported suffixes and returns parameters file path if found
-    Args:
-      template_full_path: full filepath for template file
-    Returns:
-      filename of parameters file if it exists
-    """
-    for suffix in EFConfig.PARAMETER_FILE_SUFFIXES:
-      parameters_file = template_full_path.replace("/templates", "/parameters") + suffix
-      if exists(parameters_file):
-        return parameters_file
-      else:
-        continue
-    return None

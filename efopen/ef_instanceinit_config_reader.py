@@ -21,6 +21,7 @@ import botocore.exceptions
 
 from ef_config import EFConfig
 import ef_utils
+import ef_conf_utils
 
 
 class EFInstanceinitConfigReader:
@@ -104,7 +105,7 @@ class EFInstanceinitConfigReader:
       except botocore.exceptions.ClientError as error:
         raise IOError("Error loading parameters from: {} {}".format(key, repr(error)))
     elif self.service == "file":
-      parameters_file = ef_utils.get_template_parameters_file(self.current)
+      parameters_file = ef_conf_utils.get_template_parameters_file(self.current)
       self.logger("Loading parameters file: {}".format(self.current))
       try:
         return yaml.safe_load(file(parameters_file))

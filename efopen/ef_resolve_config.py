@@ -35,6 +35,7 @@ from yamllint import linter as yamllinter
 from yamllint import config as yamllint_config
 
 import ef_utils
+import ef_conf_utils
 from ef_config import EFConfig
 from ef_template_resolver import EFTemplateResolver
 from ef_utils import fail, get_account_alias
@@ -48,7 +49,7 @@ class Context:
     self.service = service
     self.template_path = template_path
     self.no_params = no_params
-    self.param_path = ef_utils.get_template_parameters_file(self.template_path)
+    self.param_path = ef_conf_utils.get_template_parameters_file(self.template_path)
     self.verbose = verbose
     self.lint = lint
     self.silent = silent
