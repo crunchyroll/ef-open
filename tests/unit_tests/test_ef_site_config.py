@@ -29,5 +29,5 @@ class TestEFSiteConfig(unittest.TestCase):
 
   def test_site_config_parse(self):
     """Test parsing a site config"""
-    test_config = ef_site_config.EFSiteConfig().load
+    test_config = ef_site_config.EFSiteConfig().load()
     self.assertEqual(test_config["ENV_ACCOUNT_MAP"]["test"], "testaccount")

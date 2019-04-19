@@ -26,7 +26,7 @@ class EFConfig(object):
   All supported site-specific customizations are found in ef_site_config.py
   """
 
-  _ef_site_config = EFSiteConfig().load
+  _ef_site_config = EFSiteConfig().load()
 
   # Initialize config constants
   ALLOW_EF_VERSION_SKIP_PRECHECK = _ef_site_config["ALLOW_EF_VERSION_SKIP_PRECHECK"]
