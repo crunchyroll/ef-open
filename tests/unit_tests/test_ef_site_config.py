@@ -14,12 +14,12 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
+import os
 import unittest
 
-from mock import Mock, patch
+from mock import Mock, patch, mock_open
 
-import context_paths
-import ef_site_config
+from efopen import ef_site_config
 
 
 class TestEFSiteConfig(unittest.TestCase):
@@ -29,5 +29,8 @@ class TestEFSiteConfig(unittest.TestCase):
 
   def test_site_config_parse(self):
     """Test parsing a site config"""
-    test_config = ef_site_config.EFSiteConfig().load()
-    self.assertEqual(test_config["ENV_ACCOUNT_MAP"]["test"], "testaccount")
+    mock_ef_site_config_file = os.path.join(os.path.dirname(__file__), '../test_data/ef_site_config.yml')
+    mock_data = open(mock_ef_site_config_file).read()
+    with patch('__builtin__.open', mock_open(read_data=mock_data)) as mock_file:
+      test_config = ef_site_config.EFSiteConfig().load()
+      self.assertEqual(test_config["ENV_ACCOUNT_MAP"]["test"], "testaccount")
