@@ -313,3 +313,50 @@ class TestEFConfUtils(unittest.TestCase):
     target_parameters = os.path.join('test-instance/parameters/test.cnf.parameters.yml')
     test_parameters = ef_conf_utils.get_template_parameters_s3(test_template, mock_s3_resource)
     self.assertEquals(test_parameters, target_parameters)
+
+  def test_get_env_short(self):
+    """
+    Checks if get_env_short returns the correct environment shortname when given valid environments
+
+    Returns:
+      None
+
+    Raises:
+      AssertionError if any of the assert checks fail
+    """
+    for env in EFConfig.ENV_ACCOUNT_MAP:
+      expected_env_value = env
+      # Attach a numeric value to environments that are ephemeral
+      if env in EFConfig.EPHEMERAL_ENVS:
+         env += '0'
+      self.assertEquals(ef_conf_utils.get_env_short(env), expected_env_value)
+
+  def test_get_env_short_invalid_envs(self):
+    """
+    Tests if get_env_short raises exceptions when given invalid environments
+
+    Returns:
+      None
+
+    Raises:
+      AssertionError if any of the assert checks fail
+    """
+    # Create junk environment values by attaching numbers to non-ephemeral environments and not attaching numbers
+    # to ephemeral environments
+    for env in EFConfig.ENV_ACCOUNT_MAP:
+      if env not in EFConfig.EPHEMERAL_ENVS:
+        env += '0'
+      with self.assertRaises(ValueError) as exception:
+        ef_conf_utils.get_env_short(env)
+      self.assertTrue("unknown env" in exception.exception.message)
+
+    # Hard coded junk values
+    with self.assertRaises(ValueError) as exception:
+      ef_conf_utils.get_env_short("non-existent-env")
+    self.assertTrue("unknown env" in exception.exception.message)
+    with self.assertRaises(ValueError) as exception:
+      ef_conf_utils.get_env_short("")
+    self.assertTrue("unknown env" in exception.exception.message)
+    with self.assertRaises(ValueError) as exception:
+      ef_conf_utils.get_env_short(None)
+    self.assertTrue("unknown env" in exception.exception.message)

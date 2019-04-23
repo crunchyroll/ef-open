@@ -119,3 +119,20 @@ def get_template_parameters_s3(template_key, s3_resource):
     except ClientError:
       continue
   return None
+
+def get_env_short(env):
+  """
+  Given an env, return <env_short> if env is valid
+  Args:
+    env: an environment, such as "prod", "staging", "proto<N>", "mgmt.<account_alias>"
+  Returns:
+    the shortname of the env, such as "prod", "staging", "proto", "mgmt"
+  Raises:
+    ValueError if env is misformatted or doesn't name a known environment
+  """
+  env_valid(env)
+  if env.find(".") > -1:
+    env_short, ext = env.split(".")
+  else:
+    env_short = env.strip(".0123456789")
+  return env_short

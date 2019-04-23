@@ -30,10 +30,6 @@ import urllib2
 import boto3
 from botocore.exceptions import ClientError
 
-import ef_conf_utils
-
-from ef_config import EFConfig
-
 __HTTP_DEFAULT_TIMEOUT_SEC = 5
 __METADATA_PREFIX = "http://169.254.169.254/latest/meta-data/"
 __VIRT_WHAT = "/sbin/virt-what"
@@ -189,23 +185,6 @@ def get_account_id(sts_client):
     sts_client (boto3 sts client object): Instantiated sts client object. Usually created through create_aws_clients
   """
   return sts_client.get_caller_identity().get('Account')
-
-def get_env_short(env): # marked, uses env_valid
-  """
-  Given an env, return <env_short> if env is valid
-  Args:
-    env: an environment, such as "prod", "staging", "proto<N>", "mgmt.<account_alias>"
-  Returns:
-    the shortname of the env, such as "prod", "staging", "proto", "mgmt"
-  Raises:
-    ValueError if env is misformatted or doesn't name a known environment
-  """
-  ef_conf_utils.env_valid(env)
-  if env.find(".") > -1:
-    env_short, ext = env.split(".")
-  else:
-    env_short = env.strip(".0123456789")
-  return env_short
 
 def kms_encrypt(kms_client, service, env, secret):
   """
