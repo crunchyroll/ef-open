@@ -44,7 +44,7 @@ class EFConfig(object):
   SPECIAL_VERSION_ENVS = _ef_site_config["SPECIAL_VERSION_ENVS"]
   STACK_TERMINATION_PROTECTED_ENVS = _ef_site_config["STACK_TERMINATION_PROTECTED_ENVS"]
   VAGRANT_ENV = _ef_site_config["VAGRANT_ENV"]
-  PLUGINS = _ef_site_config["PLUGINS"]
+  PLUGINS = _ef_site_config.get("PLUGINS", {})
 
   # Default service registry file name
   DEFAULT_SERVICE_REGISTRY_FILE = "service_registry.json"
