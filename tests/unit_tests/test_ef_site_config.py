@@ -17,7 +17,7 @@ limitations under the License.
 import os
 import unittest
 
-from mock import Mock, patch, mock_open
+from mock import MagicMock, Mock, patch, mock_open
 
 from efopen import ef_site_config
 
@@ -27,10 +27,51 @@ class TestEFSiteConfig(unittest.TestCase):
   TestEFSiteConfig class for ef_site_config testing.
   """
 
-  def test_site_config_parse(self):
+  def setUp(self):
+    test_ef_site_config_file = os.path.join(os.path.dirname(__file__), '../test_data/ef_site_config.yml')
+    self.test_config = open(test_ef_site_config_file).read()
+
+  def test_site_load_local_file(self):
     """Test parsing a site config"""
-    mock_ef_site_config_file = os.path.join(os.path.dirname(__file__), '../test_data/ef_site_config.yml')
-    mock_data = open(mock_ef_site_config_file).read()
-    with patch('__builtin__.open', mock_open(read_data=mock_data)) as mock_file:
-      test_config = ef_site_config.EFSiteConfig().load()
+    with patch('__builtin__.open', mock_open(read_data=self.test_config)) as mock_file:
+      test_config = ef_site_config.EFSiteConfig().load_from_local_file()
       self.assertEqual(test_config["ENV_ACCOUNT_MAP"]["test"], "testaccount")
+
+  def test_site_config_load_local_on_non_ec2(self):
+    with patch('efopen.ef_utils.whereami') as whereami,\
+         patch.object(ef_site_config.EFSiteConfig,
+                      'load_from_local_file') as mock_file_load:
+
+        mock_file_load.return_value = {"Configuration": "file"}
+        test_config = ef_site_config.EFSiteConfig().load()
+        # whereami return value doesn't matter
+        whereami.assert_called_once()
+        mock_file_load.assert_called_once()
+        self.assertDictEqual(test_config, mock_file_load.return_value)
+
+  def test_site_config_load_from_ssm_on_ec2(self):
+    with patch('efopen.ef_utils.whereami') as whereami,\
+         patch.object(ef_site_config.EFSiteConfig,
+                      'load_from_ssm') as mock_ssm_load:
+
+      mock_ssm_load.return_value = {"Configuration": "file"}
+      whereami.return_value = 'ec2'
+      test_config = ef_site_config.EFSiteConfig().load()
+      whereami.assert_called_once()
+      mock_ssm_load.assert_called_once()
+      self.assertDictEqual(test_config, mock_ssm_load.return_value)
+
+  def test_load_from_ssm(self):
+    with patch('boto3.client') as boto3_client_func:
+      config_value = 'Hello world'
+      ssm_client_mock = Mock(name='ssm_client_mock')
+      boto3_client_func.return_value = ssm_client_mock
+      ssm_parameter =  {'Parameter': {'Value': config_value}}
+      get_parameter_mock = ssm_client_mock.get_parameter
+      get_parameter_mock.return_value = ssm_parameter
+
+      test_config = ef_site_config.EFSiteConfig().load_from_ssm()
+
+      self.assertEqual(test_config, config_value)
+      boto3_client_func.assert_called_once_with('ssm', region_name='us-west-2')
+      get_parameter_mock.assert_called_once_with(Name='/efopen/ef_site_config')
