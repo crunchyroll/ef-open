@@ -19,6 +19,7 @@ import os
 import sys
 
 import boto3
+from botocore.exceptions import ClientError
 import yaml
 
 import ef_utils
@@ -38,7 +39,12 @@ class EFSiteConfig(object):
     """Loads the config"""
     whereami = ef_utils.whereami()
     if whereami == 'ec2':
-      return self.load_from_ssm()
+      try:
+        return self.load_from_ssm()
+      except ClientError as e:
+        print("Could not load parameter {} from SSM@{}".format(self.ssm_parameter_name, self.ssm_region))
+        print(e.message)
+        print("falling back to local file")
     return self.load_from_local_file()
 
   def load_from_ssm(self):
