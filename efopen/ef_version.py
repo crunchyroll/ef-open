@@ -56,6 +56,7 @@ class EFVersionContext(EFContext):
     self._limit = None
     self._noprecheck = None
     self._rollback = None
+    self._rollback_to = ""
     self._service_name = None # Cheating - we don't care about the full service record so don't use context.service
     self._show = None
     self._stable = None
@@ -130,6 +131,10 @@ class EFVersionContext(EFContext):
   @property
   def rollback(self):
     return self._rollback
+
+  @property
+  def rollback_to(self):
+    return self._rollback_to
 
   @property
   def service_name(self):
@@ -263,6 +268,8 @@ def handle_args_and_set_context(args):
   group.add_argument("--set", help="set current version of <key> to <value> for <service_name>")
   group.add_argument("--rollback", help="set current version to most recent 'stable' version in history",
                      action="store_true")
+  group.add_argument("--rollback-to", help="rollback current version to <ami-id> in history",
+                     action="store", metavar='<ami-id>')
   group.add_argument("--history", help="Show version history for env/service/key", choices=['json', 'text'])
   group.add_argument("--show", help="Show keys and values. '*' allowed for <key> and <env>",
                      action="store_true", default=False)
@@ -310,6 +317,7 @@ def handle_args_and_set_context(args):
   context._limit = parsed_args["limit"]
   context._location = parsed_args["location"]
   context._rollback = parsed_args["rollback"]
+  context._rollback_to = parsed_args["rollback_to"]
   context._service_name = parsed_args["service_name"]
   context._show = parsed_args["show"]
   context._stable = parsed_args["stable"]
@@ -545,6 +553,23 @@ def cmd_history(context):
     print(json.dumps(versions, cls=VersionEncoder))
 
 
+def get_version_by_value(context, value):
+  """
+  Get the latest version that matches the provided ami-id
+  Args:
+    context: a populated EFVersionContext object
+    value: the value of the version to look for
+  """
+  versions = get_versions(context)
+  for version in versions:
+    if version.value == value:
+      return version
+  fail("Didn't find a matching version for: "
+       "{}:{} in env/service: {}/{}".format(
+          context.key, value,
+          context.env, context.service_name))
+
+
 def cmd_rollback(context):
   """
   Roll back by finding the most recent "stable" tagged version, and putting it again, so that
@@ -560,6 +585,22 @@ def cmd_rollback(context):
   context.commit_hash = last_stable[0].commit_hash
   context.build_number = last_stable[0].build_number
   context.location = last_stable[0].location
+  context.stable = True
+  cmd_set(context)
+
+
+def cmd_rollback_to(context):
+  """
+  Roll back by finding a specific version in the history of the service and
+  putting it as the new current version.
+  Args:
+    context: a populated EFVersionContext object
+  """
+  version = get_version_by_value(context, context.rollback_to)
+  context.value = version.value
+  context.commit_hash = version.commit_hash
+  context.build_number = version.build_number
+  context.location = version.location
   context.stable = True
   cmd_set(context)
 
@@ -699,6 +740,8 @@ def main():
     cmd_history(context)
   elif context.rollback:
     cmd_rollback(context)
+  elif context.rollback_to:
+    cmd_rollback_to(context)
   elif context.show:
     cmd_show(context)
   elif context.value:

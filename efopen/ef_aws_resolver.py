@@ -355,6 +355,39 @@ class EFAwsResolver(object):
     except ClientError:
       return default
 
+  def elbv2_load_balancer_arn_suffix(self, lookup, default=None):
+    """
+    Args:
+      lookup: the friendly name of the v2 elb to look up
+      default: value to return in case of no match
+    Returns:
+      The shorthand fragment of the ALB's ARN, of the form `app/*/*`
+    """
+    try:
+      elb = self._elbv2_load_balancer(lookup)
+      m = re.search(r'.+?(app\/[^\/]+\/[^\/]+)$', elb['LoadBalancerArn'])
+      return m.group(1)
+    except ClientError:
+      return default
+
+  def elbv2_target_group_arn_suffix(self, lookup, default=None):
+    """
+    Args:
+      lookup: the friendly name of the v2 elb target group
+      default: value to return in case of no match
+    Returns:
+      The shorthand fragment of the target group's ARN, of the form
+      `targetgroup/*/*`
+    """
+    try:
+      client = EFAwsResolver.__CLIENTS['elbv2']
+      elbs = client.describe_target_groups(Names=[lookup])
+      elb = elbs['TargetGroups'][0]
+      m = re.search(r'.+?(targetgroup\/[^\/]+\/[^\/]+)$', elb['TargetGroupArn'])
+      return m.group(1)
+    except ClientError:
+      return default
+
   def waf_rule_id(self, lookup, default=None):
     """
     Args:
@@ -556,6 +589,100 @@ class EFAwsResolver(object):
       else:
         return default
 
+  def cognito_identity_identity_pool_arn(self, lookup, default=None):
+    """
+    Args:
+        lookup: Cognito Federated Identity name, proto0-cms-identity-pool
+        default: the optional value to return if lookup failed; returns None if not set
+
+    Returns:
+        the constructed ARN for the cognito identity pool, else default/None
+    """
+    identity_pool_id = self.cognito_identity_identity_pool_id(lookup, default)
+
+    if identity_pool_id == default:
+      return default
+
+    # The ARN has to be constructed because there is no boto3 call that returns the full ARN for a cognito identity pool
+    return "arn:aws:cognito-identity:{{{{REGION}}}}:{{{{ACCOUNT}}}}:identitypool/{}".format(identity_pool_id)
+
+  def cognito_identity_identity_pool_id(self, lookup, default=None):
+    """
+    Args:
+        lookup: Cognito Federated Identity name, proto0-cms-identity-pool
+        default: the optional value to return if lookup failed; returns None if not set
+
+    Returns:
+        the Cognito Identity Pool ID corresponding to the given lookup, else default/None
+    """
+    # List size cannot be greater than 60
+    list_limit = 60
+    client = EFAwsResolver.__CLIENTS["cognito-identity"]
+    response = client.list_identity_pools(MaxResults=list_limit)
+
+    while "IdentityPools" in response:
+      # Loop through all the identity pools
+      for pool in response["IdentityPools"]:
+        if pool["IdentityPoolName"] == lookup:
+          return pool["IdentityPoolId"]
+
+      # No match found on this page, but there are more pages
+      if response.has_key("NextToken"):
+        response = client.list_identity_pools(MaxResults=list_limit, NextToken=response["NextToken"])
+      else:
+        break
+
+    return default
+
+  def cognito_idp_user_pool_arn(self, lookup, default=None):
+    """
+    Args:
+        lookup: Cognito User Pool name, proto0-cms-user-pool
+        default: the optional value to return if lookup failed; returns None if not set
+
+    Returns:
+        the User Pool ARN corresponding to the given lookup, else default/None
+    """
+    client = EFAwsResolver.__CLIENTS["cognito-idp"]
+    user_pool_id = self.cognito_idp_user_pool_id(lookup, default)
+    if user_pool_id == default:
+      return default
+
+    response = client.describe_user_pool(UserPoolId=user_pool_id)
+
+    if not response.has_key("UserPool"):
+      return default
+
+    return response["UserPool"]["Arn"]
+
+  def cognito_idp_user_pool_id(self, lookup, default=None):
+    """
+    Args:
+        lookup: Cognito User Pool name, proto0-cms-user-pool
+        default: the optional value to return if lookup failed; returns None if not set
+
+    Returns:
+        the User Pool ID corresponding to the given lookup, else default/None
+    """
+    # List size cannot be greater than 60
+    list_limit = 60
+    client = EFAwsResolver.__CLIENTS["cognito-idp"]
+    response = client.list_user_pools(MaxResults=list_limit)
+
+    while "UserPools" in response:
+      # Loop through all user pools
+      for pool in response["UserPools"]:
+        if pool["Name"] == lookup:
+          return pool["Id"]
+
+      # No match found on this page, but there are more pages
+      if response.has_key("NextToken"):
+        response = client.list_identity_pools(MaxResults=list_limit, NextToken=response["NextToken"])
+      else:
+        break
+
+    return default
+
   def kms_decrypt_value(self, lookup):
     """
     Args:
@@ -589,6 +716,14 @@ class EFAwsResolver(object):
       return self.cloudfront_origin_access_identity_oai_canonical_user_id(*kv[1:])
     elif kv[0] == "cloudfront:origin-access-identity/oai-id":
       return self.cloudfront_origin_access_identity_oai_id(*kv[1:])
+    elif kv[0] == "cognito-identity:identity-pool-arn":
+      return self.cognito_identity_identity_pool_arn(*kv[1:])
+    elif kv[0] == "cognito-identity:identity-pool-id":
+      return self.cognito_identity_identity_pool_id(*kv[1:])
+    elif kv[0] == "cognito-idp:user-pool-arn":
+      return self.cognito_idp_user_pool_arn(*kv[1:])
+    elif kv[0] == "cognito-idp:user-pool-id":
+      return self.cognito_idp_user_pool_id(*kv[1:])
     elif kv[0] == "ec2:elasticip/elasticip-id":
       return self.ec2_elasticip_elasticip_id(*kv[1:])
     elif kv[0] == "ec2:elasticip/elasticip-ipaddress":
@@ -619,6 +754,10 @@ class EFAwsResolver(object):
       return self.elbv2_load_balancer_dns_name(*kv[1:])
     elif kv[0] == "elbv2:load-balancer/hosted-zone":
       return self.elbv2_load_balancer_hosted_zone(*kv[1:])
+    elif kv[0] == "elbv2:load-balancer/arn-suffix":
+      return self.elbv2_load_balancer_arn_suffix(*kv[1:])
+    elif kv[0] == "elbv2:target-group/arn-suffix":
+      return self.elbv2_target_group_arn_suffix(*kv[1:])
     elif kv[0] == "kms:decrypt":
       return self.kms_decrypt_value(*kv[1:])
     elif kv[0] == "kms:key_arn":

@@ -218,92 +218,95 @@ class EFTemplateResolver(object):
     if (target_other or where == "virtualbox-kvm") and (env is None or service is None):
       fail("'env' and 'service' must be set when target is 'other' or running in " + where)
 
-    # login to AWS and capture AWS context unless running in localvm (we can't hook up with AWS from localvm)
-    if whereami() == "virtualbox-kvm":
+    if target_other or profile:
+      self.resolved["REGION"] = region
+    # lambda initializing self
+    elif lambda_context:
+      self.resolved["REGION"] = lambda_context.invoked_function_arn.split(":")[3]
+    # ec2 initializing self
+    else:
+      self.resolved["REGION"] = get_metadata_or_fail("placement/availability-zone/")[:-1]
+
+    # Create clients - if accessing by role, profile should be None
+    clients = [
+      "cloudformation",
+      "cloudfront",
+      "cognito-identity",
+      "cognito-idp",
+      "ec2",
+      "elbv2",
+      "iam",
+      "kms",
+      "lambda",
+      "route53",
+      "s3",
+      "sts",
+      "waf"
+    ]
+    try:
+      EFTemplateResolver.__CLIENTS = create_aws_clients(self.resolved["REGION"], profile, *clients)
+    except RuntimeError as error:
+      fail("Exception logging in with Session()", error)
+
+    # Create EFAwsResolver object for interactive lookups
+    EFTemplateResolver.__AWSR = EFAwsResolver(EFTemplateResolver.__CLIENTS)
+    # Create EFConfigResolver object for ef tooling config lookups
+    EFTemplateResolver.__EFCR = EFConfigResolver()
+    # Create EFVersionResolver object for version lookups
+    EFTemplateResolver.__VR = EFVersionResolver(EFTemplateResolver.__CLIENTS)
+
+    # Set the internal parameter values for aws
+    # self-configuring lambda
+    if (not target_other) and lambda_context:
+      arn_split = lambda_context.invoked_function_arn.split(":")
+      self.resolved["ACCOUNT"] = arn_split[4]
+      self.resolved["FUNCTION_NAME"] = arn_split[6]
+      try:
+        lambda_desc = EFTemplateResolver.__CLIENTS["lambda"].get_function()
+      except:
+        fail("Exception in get_function: ", sys.exc_info())
+      self.resolved["ROLE"] = lambda_desc["Configuration"]["Role"]
+      env = re.search("^({})-".format(EFConfig.VALID_ENV_REGEX), self.resolved["ROLE"])
+      if not env:
+        fail("Did not find environment in lambda function name.")
+      self.resolved["ENV"] = env.group(1)
+      parsed_service = re.search(self.resolved["ENV"] + "-(.*?)-lambda", self.resolved["ROLE"])
+      if parsed_service:
+        self.resolved["SERVICE"] = parsed_service.group(1)
+
+    # self-configuring EC2
+    elif (not target_other) and (not lambda_context):
+      self.resolved["INSTANCE_ID"] = get_metadata_or_fail('instance-id')
+      try:
+        instance_desc = EFTemplateResolver.__CLIENTS["ec2"].describe_instances(InstanceIds=[self.resolved["INSTANCE_ID"]])
+      except:
+        fail("Exception in describe_instances: ", sys.exc_info())
+      self.resolved["ACCOUNT"] = instance_desc["Reservations"][0]["OwnerId"]
+      arn = instance_desc["Reservations"][0]["Instances"][0]["IamInstanceProfile"]["Arn"]
+      self.resolved["ROLE"] = arn.split(":")[5].split("/")[1]
+      env = re.search("^({})-".format(EFConfig.VALID_ENV_REGEX), self.resolved["ROLE"])
+      if not env:
+        fail("Did not find environment in role name")
+      self.resolved["ENV"] = env.group(1)
+      self.resolved["SERVICE"] = "-".join(self.resolved["ROLE"].split("-")[1:])
+
+    # target is "other"
+    else:
+      try:
+        if whereami() == "ec2":
+          self.resolved["ACCOUNT"] = str(json.loads(http_get_metadata('iam/info'))["InstanceProfileArn"].split(":")[4])
+        else:
+          self.resolved["ACCOUNT"] = get_account_id(EFTemplateResolver.__CLIENTS["sts"])
+      except botocore.exceptions.ClientError as error:
+        fail("Exception in get_user()", error)
       self.resolved["ENV"] = env
       self.resolved["SERVICE"] = service
-    else:
-      # look up REGION - different methods needed based on how we are running
-      # user credentials, or ec2 or lambda setting up some other resource
-      if target_other or profile:
-        self.resolved["REGION"] = region
-      # lambda initializing self
-      elif lambda_context:
-        self.resolved["REGION"] = lambda_context.invoked_function_arn.split(":")[3]
-      # ec2 initializing self
-      else:
-        self.resolved["REGION"] = get_metadata_or_fail("placement/availability-zone/")[:-1]
 
-      # Create clients - if accessing by role, profile should be None
-      clients = [
-         "cloudformation", "cloudfront", "ec2",
-         "elbv2", "iam", "kms", "lambda",
-         "route53", "s3", "sts", "waf",
-      ]
-      try:
-        EFTemplateResolver.__CLIENTS = create_aws_clients(self.resolved["REGION"], profile, *clients)
-      except RuntimeError as error:
-        fail("Exception logging in with Session()", error)
-
-      # Create EFAwsResolver object for interactive lookups
-      EFTemplateResolver.__AWSR = EFAwsResolver(EFTemplateResolver.__CLIENTS)
-      # Create EFConfigResolver object for ef tooling config lookups
-      EFTemplateResolver.__EFCR = EFConfigResolver()
-      # Create EFVersionResolver object for version lookups
-      EFTemplateResolver.__VR = EFVersionResolver(EFTemplateResolver.__CLIENTS)
-
-      # Set the internal parameter values for aws
-      # self-configuring lambda
-      if (not target_other) and lambda_context:
-        arn_split = lambda_context.invoked_function_arn.split(":")
-        self.resolved["ACCOUNT"] = arn_split[4]
-        self.resolved["FUNCTION_NAME"] = arn_split[6]
-        try:
-          lambda_desc = EFTemplateResolver.__CLIENTS["lambda"].get_function()
-        except:
-          fail("Exception in get_function: ", sys.exc_info())
-        self.resolved["ROLE"] = lambda_desc["Configuration"]["Role"]
-        env = re.search("^({})-".format(EFConfig.VALID_ENV_REGEX), self.resolved["ROLE"])
-        if not env:
-          fail("Did not find environment in lambda function name.")
-        self.resolved["ENV"] = env.group(1)
-        parsed_service = re.search(self.resolved["ENV"] + "-(.*?)-lambda", self.resolved["ROLE"])
-        if parsed_service:
-          self.resolved["SERVICE"] = parsed_service.group(1)
-
-      # self-configuring EC2
-      elif (not target_other) and (not lambda_context):
-        self.resolved["INSTANCE_ID"] = get_metadata_or_fail('instance-id')
-        try:
-          instance_desc = EFTemplateResolver.__CLIENTS["ec2"].describe_instances(InstanceIds=[self.resolved["INSTANCE_ID"]])
-        except:
-          fail("Exception in describe_instances: ", sys.exc_info())
-        self.resolved["ACCOUNT"] = instance_desc["Reservations"][0]["OwnerId"]
-        arn = instance_desc["Reservations"][0]["Instances"][0]["IamInstanceProfile"]["Arn"]
-        self.resolved["ROLE"] = arn.split(":")[5].split("/")[1]
-        env = re.search("^({})-".format(EFConfig.VALID_ENV_REGEX), self.resolved["ROLE"])
-        if not env:
-          fail("Did not find environment in role name")
-        self.resolved["ENV"] = env.group(1)
-        self.resolved["SERVICE"] = "-".join(self.resolved["ROLE"].split("-")[1:])
-
-      # target is "other"
-      else:
-        try:
-          if whereami() == "ec2":
-            self.resolved["ACCOUNT"] = str(json.loads(http_get_metadata('iam/info'))["InstanceProfileArn"].split(":")[4])
-          else:
-            self.resolved["ACCOUNT"] = get_account_id(EFTemplateResolver.__CLIENTS["sts"])
-        except botocore.exceptions.ClientError as error:
-          fail("Exception in get_user()", error)
-        self.resolved["ENV"] = env
-        self.resolved["SERVICE"] = service
-
-      # ACCOUNT_ALIAS is resolved consistently for access modes and targets other than virtualbox
-      try:
-        self.resolved["ACCOUNT_ALIAS"] = EFTemplateResolver.__CLIENTS["iam"].list_account_aliases()["AccountAliases"][0]
-      except botocore.exceptions.ClientError as error:
-        fail("Exception in list_account_aliases", error)
+    # ACCOUNT_ALIAS is resolved consistently for access modes and targets other than virtualbox
+    try:
+      self.resolved["ACCOUNT_ALIAS"] = EFTemplateResolver.__CLIENTS["iam"].list_account_aliases()["AccountAliases"][0]
+    except botocore.exceptions.ClientError as error:
+      fail("Exception in list_account_aliases", error)
 
     # ENV_SHORT is resolved the same way for all access modes and targets
     self.resolved["ENV_SHORT"] = self.resolved["ENV"].strip(".0123456789")
@@ -426,6 +429,9 @@ class EFTemplateResolver(object):
           resolved_symbol = EFTemplateResolver.__EFCR.lookup(symbol[9:])
         elif symbol[:8] == "version:":
           resolved_symbol = EFTemplateResolver.__VR.lookup(symbol[8:])
+          if not resolved_symbol:
+            print("WARNING: Lookup failed for {{%s}} - placeholder value of 'NONE' used in rendered template" % symbol)
+            resolved_symbol = "NONE"
         else:
           # 1. context - these are already in the resolved table
           # self.resolved[symbol] may have value=None; use has_key tell "resolved w/value=None" from "not resolved"

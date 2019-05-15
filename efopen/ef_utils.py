@@ -415,3 +415,35 @@ def get_template_parameters_s3(template_key, s3_resource):
     except ClientError:
       continue
   return None
+
+def get_autoscaling_group_properties(asg_client, env, service):
+  """
+  Gets the autoscaling group properties based on the service name that is provided. This function will attempt the find
+  the autoscaling group base on the following logic:
+    1. If the service name provided matches the autoscaling group name
+    2. If the service name provided matches the Name tag of the autoscaling group
+    3. If the service name provided does not match the above, return None
+  Args:
+    clients: Instantiated boto3 autoscaling client
+    env: Name of the environment to search for the autoscaling group
+    service: Name of the service
+  Returns:
+    JSON object of the autoscaling group properties if it exists
+  """
+  try:
+    # See if {{ENV}}-{{SERVICE}} matches ASG name
+    response = asg_client.describe_auto_scaling_groups(AutoScalingGroupNames=["{}-{}".format(env, service)])
+    if len(response["AutoScalingGroups"]) == 0:
+      # See if {{ENV}}-{{SERVICE}} matches ASG tag name
+      response = asg_client.describe_tags(Filters=[{ "Name": "Key", "Values": ["Name"] }, { "Name": "Value", "Values": ["{}-{}".format(env, service)]}])
+      if len(response["Tags"]) == 0:
+        # Query does not match either of the above, return None
+        return None
+      else:
+         asg_name = response["Tags"][0]["ResourceId"]
+         response = asg_client.describe_auto_scaling_groups(AutoScalingGroupNames=[asg_name])
+         return response["AutoScalingGroups"]
+    else:
+      return response["AutoScalingGroups"]
+  except ClientError as error:
+    raise RuntimeError("Error in finding autoscaling group {} {}".format(env, service), error)

@@ -17,11 +17,13 @@ limitations under the License.
 """
 
 from __future__ import print_function
+
 import argparse
 import json
-from os import getenv
-from os.path import basename, dirname, isfile, splitext
+import math
+import os
 import re
+import subprocess
 import sys
 import time
 
@@ -31,7 +33,7 @@ from ef_config import EFConfig
 from ef_context import EFContext
 from ef_service_registry import EFServiceRegistry
 from ef_template_resolver import EFTemplateResolver
-from ef_utils import create_aws_clients, fail, pull_repo
+from ef_utils import create_aws_clients, get_autoscaling_group_properties, fail, pull_repo
 
 # CONSTANTS
 # Cloudformation template size limit in bytes (which translates to the length of the template)
@@ -41,6 +43,7 @@ class EFCFContext(EFContext):
   def __init__(self):
     super(EFCFContext, self).__init__()
     self._changeset = None
+    self._lint = None
     self._poll_status = None
     self._template_file = None
 
@@ -54,6 +57,17 @@ class EFCFContext(EFContext):
     if type(value) is not bool:
       raise TypeError("changeset value must be bool")
     self._changeset = value
+
+  @property
+  def lint(self):
+    """True if the tool should lint the rendered template rather than uploading to cloudformation"""
+    return self._lint
+
+  @lint.setter
+  def lint(self, value):
+    if type(value) is not bool:
+      raise TypeError("lint value must be bool")
+    self._lint = value
 
   @property
   def poll_status(self):
@@ -92,16 +106,21 @@ def handle_args_and_set_context(args):
   parser = argparse.ArgumentParser()
   parser.add_argument("template_file", help="/path/to/template_file.json")
   parser.add_argument("env", help=", ".join(EFConfig.ENV_LIST))
-  parser.add_argument("--changeset", help="create a changeset; cannot be combined with --commit",
-                      action="store_true", default=False)
-  parser.add_argument("--commit", help="Make changes in AWS (dry run if omitted); cannot be combined with --changeset",
-                      action="store_true", default=False)
-  parser.add_argument("--poll", help="Poll Cloudformation to check status of stack creation/updates",
-                      action="store_true", default=False)
   parser.add_argument("--sr", help="optional /path/to/service_registry_file.json", default=None)
   parser.add_argument("--verbose", help="Print additional info + resolved template", action="store_true", default=False)
   parser.add_argument("--devel", help="Allow running from branch; don't refresh from origin", action="store_true",
                       default=False)
+  group = parser.add_mutually_exclusive_group()
+  group.add_argument("--changeset", help="create a changeset; cannot be combined with --commit",
+                      action="store_true", default=False)
+  group.add_argument("--commit", help="Make changes in AWS (dry run if omitted); cannot be combined with --changeset",
+                      action="store_true", default=False)
+  group.add_argument("--lint", help="Execute cfn-lint on the rendered template", action="store_true",
+                      default=False)
+  parser.add_argument("--percent", help="Specifies an override to the percentage of instances in an Auto Scaling rolling update (e.g. 10 for 10%%)",
+                      type=int, default=False)
+  parser.add_argument("--poll", help="Poll Cloudformation to check status of stack creation/updates",
+                      action="store_true", default=False)
   parsed_args = vars(parser.parse_args(args))
   context = EFCFContext()
   try:
@@ -112,6 +131,8 @@ def handle_args_and_set_context(args):
   context.changeset = parsed_args["changeset"]
   context.commit = parsed_args["commit"]
   context.devel = parsed_args["devel"]
+  context.lint = parsed_args["lint"]
+  context.percent = parsed_args["percent"]
   context.poll_status = parsed_args["poll"]
   context.verbose = parsed_args["verbose"]
   # Set up service registry and policy template path which depends on it
@@ -120,7 +141,7 @@ def handle_args_and_set_context(args):
 
 def resolve_template(template, profile, env, region, service, verbose):
   # resolve {{SYMBOLS}} in the passed template file
-  isfile(template) or fail("Not a file: {}".format(template))
+  os.path.isfile(template) or fail("Not a file: {}".format(template))
   resolver = EFTemplateResolver(profile=profile, target_other=True, env=env,
                                 region=region, service=service, verbose=verbose)
   with open(template) as template_file:
@@ -138,34 +159,91 @@ def resolve_template(template, profile, env, region, service, verbose):
   else:
     return resolver.template
 
+
+def is_stack_termination_protected_env(env):
+  return env in EFConfig.STACK_TERMINATION_PROTECTED_ENVS
+
+
+def enable_stack_termination_protection(clients, stack_name):
+  clients["cloudformation"].update_termination_protection(
+    EnableTerminationProtection=True,
+    StackName=stack_name
+  )
+
+def calculate_max_batch_size(asg_client, service, percent):
+  autoscaling_group_properties = get_autoscaling_group_properties(asg_client, service.split("-")[0], "-".join(service.split("-")[1:]))
+  if not autoscaling_group_properties:
+      # safe default
+      return 1
+  current_desired = autoscaling_group_properties[0]["DesiredCapacity"]
+  new_batch_size = int(math.ceil(current_desired * (percent * 0.01)))
+  return new_batch_size
+
+class CFTemplateLinter(object):
+
+  def __init__(self, template):
+    self.template = template
+    self.work_dir = '.lint'
+    self.local_template_path = os.path.join(self.work_dir, 'template.json')
+    self.cfn_exit_code = None
+    self.exit_code = None
+    self.setup()
+
+  def setup(self):
+    if not os.path.exists(self.work_dir):
+      os.mkdir(self.work_dir)
+
+    with open(self.local_template_path, 'w') as f:
+      f.write(self.template)
+
+  def run_tests(self):
+    self.cfn_lint()
+    self.teardown()
+
+  def cfn_lint(self):
+    print("=== CLOUDFORMATION LINTING ===")
+    cmd = 'cfn-lint --template {}'.format(self.local_template_path)
+    cfn = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    stdout, stderr = cfn.communicate()
+    print(stdout, stderr)
+    if cfn.returncode in [0, 4]:
+      print("Template passed CFN linting")
+    self.cfn_exit_code = cfn.returncode
+
+  def teardown(self):
+    try:
+      os.remove(self.local_template_path)
+      os.rmdir(self.work_dir)
+    except OSError as e:
+      print("WARNING: Unable to remove local workdir or test-copy of template")
+      print(e)
+    self.exit_code = 1 if self.cfn_exit_code not in [0, 4] else 0  # Ignore cfn-lint warnings
+
+
 def main():
   context = handle_args_and_set_context(sys.argv[1:])
-
-  # argument sanity checks and contextual messages
-  if context.commit and context.changeset:
-    fail("Cannot use --changeset and --commit together")
 
   if context.changeset:
     print("=== CHANGESET ===\nCreating changeset only. See AWS GUI for changeset\n=== CHANGESET ===")
   elif not context.commit:
     print("=== DRY RUN ===\nValidation only. Use --commit to push template to CF\n=== DRY RUN ===")
 
-  service_name = basename(splitext(context.template_file)[0])
-  template_file_dir = dirname(context.template_file)
+  service_name = os.path.basename(os.path.splitext(context.template_file)[0])
+  template_file_dir = os.path.dirname(context.template_file)
   # parameter file may not exist, but compute the name it would have if it did
   parameter_file_dir = template_file_dir + "/../parameters"
   parameter_file = parameter_file_dir + "/" + service_name + ".parameters." + context.env_full + ".json"
 
   # If running in EC2, use instance credentials (i.e. profile = None)
   # otherwise, use local credentials with profile name in .aws/credentials == account alias name
-  if context.whereami == "ec2":
+  if context.whereami == "ec2" and not os.getenv("JENKINS_URL", False):
     profile = None
   else:
     profile = context.account_alias
 
   # Get service registry and refresh repo if appropriate
   try:
-    if not (context.devel or getenv("JENKINS_URL", False)):
+    if not (context.devel or os.getenv("JENKINS_URL", False)):
       pull_repo()
     else:
       print("not refreshing repo because --devel was set or running on Jenkins")
@@ -179,6 +257,9 @@ def main():
   if not context.env_full in context.service_registry.valid_envs(service_name):
     fail("Invalid environment: {} for service_name: {}\nValid environments are: {}" \
          .format(context.env_full, service_name, ", ".join(context.service_registry.valid_envs(service_name))))
+
+  if context.percent and (context.percent <= 0 or context.percent > 100):
+    fail("Percent value cannot be less than or equal to 0 and greater than 100")
 
   # Set the region found in the service_registry. Default is EFConfig.DEFAULT_REGION if region key not found
   region = context.service_registry.service_region(service_name)
@@ -207,7 +288,7 @@ def main():
 
   # Create clients - if accessing by role, profile should be None
   try:
-    clients = create_aws_clients(region, profile, "cloudformation")
+    clients = create_aws_clients(region, profile, "cloudformation", "autoscaling")
   except RuntimeError as error:
     fail("Exception creating clients in region {} with profile {}".format(region, profile), error)
 
@@ -218,7 +299,7 @@ def main():
     stack_exists = False
 
   # Load parameters from file
-  if isfile(parameter_file):
+  if os.path.isfile(parameter_file):
     parameters_template = resolve_template(
       template=parameter_file,
       profile=profile,
@@ -234,6 +315,22 @@ def main():
   else:
     parameters = []
 
+  if context.percent:
+    print("Modifying deploy rate to {}%".format(context.percent))
+    modify_template = json.loads(template)
+    for key in modify_template["Resources"]:
+      if modify_template["Resources"][key]["Type"] == "AWS::AutoScaling::AutoScalingGroup":
+        if modify_template["Resources"][key]["UpdatePolicy"]:
+          autoscaling_group = modify_template["Resources"][key]["Properties"]
+          service = autoscaling_group["Tags"][0]["Value"]
+          autoscaling_group_properties = get_autoscaling_group_properties(clients["autoscaling"], service.split("-")[0], "-".join(service.split("-")[1:]))
+          new_max_batch_size = calculate_max_batch_size(clients["autoscaling"], service, context.percent)
+          modify_template["Resources"][key]["UpdatePolicy"]["AutoScalingRollingUpdate"]["MaxBatchSize"] = new_max_batch_size
+          current_desired = autoscaling_group_properties[0]["DesiredCapacity"] if autoscaling_group_properties else "missing"
+          print("Service {} [current desired: {}, calculated max batch size: {}]".format(
+                service, current_desired, new_max_batch_size))
+    template = json.dumps(modify_template)
+
   # Detect if the template exceeds the maximum size that is allowed by Cloudformation
   if len(template) > CLOUDFORMATION_SIZE_LIMIT:
     # Compress the generated template by removing whitespaces
@@ -248,8 +345,11 @@ def main():
     print("Validating template")
   try:
     clients["cloudformation"].validate_template(TemplateBody=template)
+    json.loads(template)  # Tests for valid JSON syntax, oddly not handled above
   except botocore.exceptions.ClientError as error:
     fail("Template did not pass validation", error)
+  except ValueError as e:  # includes simplejson.decoder.JSONDecodeError
+    fail('Failed to decode JSON', e)
 
   print("Template passed validation")
 
@@ -257,14 +357,19 @@ def main():
   try:
     if context.changeset:
       print("Creating changeset: {}".format(stack_name))
-      clients["cloudformation"].create_change_set(
+      results = clients["cloudformation"].create_change_set(
         StackName=stack_name,
         TemplateBody=template,
         Parameters=parameters,
-        Capabilities=['CAPABILITY_IAM'],
+        Capabilities=['CAPABILITY_AUTO_EXPAND', 'CAPABILITY_IAM', 'CAPABILITY_NAMED_IAM'],
         ChangeSetName=stack_name,
         ClientToken=stack_name
       )
+      if is_stack_termination_protected_env(context.env):
+        enable_stack_termination_protection(clients, stack_name)
+      results_ids = {key: value for key, value in results.iteritems()
+                     if key in ('Id', 'StackId')}
+      print("Changeset Info: {}".format(json.dumps(results_ids)))
     elif context.commit:
       if stack_exists:
         print("Updating stack: {}".format(stack_name))
@@ -272,16 +377,20 @@ def main():
           StackName=stack_name,
           TemplateBody=template,
           Parameters=parameters,
-          Capabilities=['CAPABILITY_IAM']
+          Capabilities=['CAPABILITY_AUTO_EXPAND', 'CAPABILITY_IAM', 'CAPABILITY_NAMED_IAM']
         )
+        if is_stack_termination_protected_env(context.env):
+          enable_stack_termination_protection(clients, stack_name)
       else:
         print("Creating stack: {}".format(stack_name))
         clients["cloudformation"].create_stack(
           StackName=stack_name,
           TemplateBody=template,
           Parameters=parameters,
-          Capabilities=['CAPABILITY_IAM']
+          Capabilities=['CAPABILITY_AUTO_EXPAND', 'CAPABILITY_IAM', 'CAPABILITY_NAMED_IAM']
         )
+        if is_stack_termination_protected_env(context.env):
+          enable_stack_termination_protection(clients, stack_name)
       if context.poll_status:
         while True:
           stack_status = clients["cloudformation"].describe_stacks(StackName=stack_name)["Stacks"][0]["StackStatus"]
@@ -297,6 +406,11 @@ def main():
             sys.exit(1)
           elif re.match(r".*_IN_PROGRESS(?!.)", stack_status) is not None:
             time.sleep(EFConfig.EF_CF_POLL_PERIOD)
+    elif context.lint:
+      tester = CFTemplateLinter(template)
+      tester.run_tests()
+      exit(tester.exit_code)
+
   except botocore.exceptions.ClientError as error:
     if error.response["Error"]["Message"] in "No updates are to be performed.":
       # Don't fail when there is no update to the stack

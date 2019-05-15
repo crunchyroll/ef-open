@@ -25,18 +25,23 @@ limitations under the License.
 from __future__ import print_function
 
 import argparse
-from ef_config import EFConfig
-import ef_utils
-import yaml
-from os.path import abspath, dirname, normpath
+import json
+import subprocess
 import sys
+from os.path import abspath, dirname, normpath
 
+import yaml
+from yamllint import linter as yamllinter
+from yamllint import config as yamllint_config
+
+import ef_utils
+from ef_config import EFConfig
 from ef_template_resolver import EFTemplateResolver
-from ef_utils import get_account_alias
+from ef_utils import fail, get_account_alias
 
 
 class Context:
-  def __init__(self, profile, region, env, service, template_path, no_params, verbose):
+  def __init__(self, profile, region, env, service, template_path, no_params, verbose, lint, silent):
     self.profile = profile
     self.region = region
     self.env = env
@@ -45,10 +50,12 @@ class Context:
     self.no_params = no_params
     self.param_path = ef_utils.get_template_parameters_file(self.template_path)
     self.verbose = verbose
+    self.lint = lint
+    self.silent = silent
 
   def __str__(self):
-    return("profile: {}\nregion: {}\nenv: {}\nservice: {}\ntemplate_path: {}\nparam_path: {}\n".format(
-           self.profile, self.region, self.env, self.service, self.template_path, self.param_path, self.verbose))
+    return("profile: {}\nregion: {}\nenv: {}\nservice: {}\ntemplate_path: {}\nparam_path: {}\nlint: {}".format(
+      self.profile, self.region, self.env, self.service, self.template_path, self.param_path, self.lint))
 
 
 def handle_args_and_set_context(args):
@@ -63,6 +70,8 @@ def handle_args_and_set_context(args):
   parser.add_argument("path_to_template", help="path to the config template to process")
   parser.add_argument("--no_params", help="disable loading values from params file", action="store_true", default=False)
   parser.add_argument("--verbose", help="Output extra info", action="store_true", default=False)
+  parser.add_argument("--lint", help="Test configs for valid JSON/YAML syntax", action="store_true", default=False)
+  parser.add_argument("--silent", help="Suppress output of rendered template", action="store_true", default=False)
   parsed = vars(parser.parse_args(args))
   path_to_template = abspath(parsed["path_to_template"])
   service = path_to_template.split('/')[-3]
@@ -74,7 +83,9 @@ def handle_args_and_set_context(args):
       service,
       path_to_template,
       parsed["no_params"],
-      parsed["verbose"]
+      parsed["verbose"],
+      parsed["lint"],
+      parsed["silent"]
   )
 
 
@@ -124,6 +135,26 @@ def merge_files(context):
   if not resolver.resolved_ok():
     raise RuntimeError("Couldn't resolve all symbols; template has leftover {{ or }}: {}".format(resolver.unresolved_symbols()))
 
+  if context.lint:
+    if context.template_path.endswith(".json"):
+      try:
+        json.loads(rendered_body, strict=False)
+        print("JSON passed linting process.")
+      except ValueError as e:
+        fail("JSON failed linting process.", e)
+    elif context.template_path.endswith((".yml", ".yaml")):
+      conf = yamllint_config.YamlLintConfig(content='extends: relaxed')
+      lint_output = yamllinter.run(rendered_body, conf)
+      lint_level = 'error'
+      lint_errors = [issue for issue in lint_output if issue.level == lint_level]
+      if lint_errors:
+        split_body = rendered_body.splitlines()
+        for error in lint_errors:
+          print(error)
+          # printing line - 1 because lists start at 0, but files at 1
+          print("\t", split_body[error.line - 1])
+        fail("YAML failed linting process.")
+
   if context.verbose:
     print(context)
     if context.no_params:
@@ -138,17 +169,15 @@ def merge_files(context):
       print("chown file to user: {}, group: {}\n".format(user, group))
 
     print("template body:\n{}\nrendered body:\n{}\n".format(template_body, rendered_body))
+  elif context.silent:
+    print("Config template rendered successfully.")
   else:
     print(rendered_body)
 
 
 def main():
   context = handle_args_and_set_context(sys.argv[1:])
-  try:
-    merge_files(context)
-  except Exception as e:
-    print("error {}".format(e))
-
+  merge_files(context)
 
 if __name__ == "__main__":
   main()

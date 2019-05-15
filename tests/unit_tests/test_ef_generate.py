@@ -120,6 +120,19 @@ class TestEFGenerate(unittest.TestCase):
     self.mock_kms.create_key.assert_not_called()
     self.mock_kms.create_alias.assert_not_called()
 
+  def test_kms_service_type_fixture(self):
+    """
+    Verify that a KMS key is created when of service_type "aws_fixture"
+    """
+    self.service_type = "aws_fixture"
+    ef_generate.conditionally_create_kms_key(self.service_name, self.service_type)
+
+    self.mock_kms.create_key.assert_called()
+    self.mock_kms.create_alias.assert_called_with(
+      AliasName='alias/{}'.format(self.service_name),
+      TargetKeyId='1234'
+    )
+
   def test_not_kms_service_type(self):
     """
     Validates that a key/alias is not created for unsupported service types

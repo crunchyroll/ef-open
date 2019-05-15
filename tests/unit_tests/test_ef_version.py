@@ -18,6 +18,7 @@ import datetime
 import os
 import StringIO
 import unittest
+import StringIO
 
 from dateutil.tz import tzutc
 
@@ -123,6 +124,22 @@ class TestEFVersion(unittest.TestCase):
     self.assertEqual(context.env, self.env)
     self.assertEqual(context.service_name, self.service_name)
     self.assertEqual(context.service_registry.filespec, self.service_registry_file)
+
+  def test_args_rollback(self):
+    """Test parsing args with all valid values for --rollback"""
+    args = [self.service, self.key, self.env, "--rollback", "--sr", "{}".format(self.service_registry_file)]
+    context = ef_version.handle_args_and_set_context(args)
+    self.assertEqual(context.rollback, True)
+    self.assertEqual(context.env, self.env)
+    self.assertEqual(context.service_name, self.service_name)
+
+  def test_args_rollback_to(self):
+    """Test parsing args with all valid values for --rollback-to"""
+    args = [self.service, self.key, self.env, "--rollback-to", self.value, "--sr", "{}".format(self.service_registry_file)]
+    context = ef_version.handle_args_and_set_context(args)
+    self.assertEqual(context.rollback_to, self.value)
+    self.assertEqual(context.env, self.env)
+    self.assertEqual(context.service_name, self.service_name)
 
   def test_args_set(self):
     """Test parsing args with all valid values for set"""
@@ -275,3 +292,154 @@ class TestVersion(unittest.TestCase):
             self.assertEqual(
                 expected, actual,
                 msg="{attr}: expecting {expected!r}, got {actual!r}".format(**locals()))
+
+
+class TestEFVersionModule(unittest.TestCase):
+
+  def setUp(self):
+    self.versions = map(
+        ef_version.Version, [
+            {
+                u'Body': StringIO.StringIO("ami-0f85b8e7ca0788951"),
+                u'LastModified': datetime.datetime(2019, 2, 4, 5, 44, 26),
+                u'VersionId': 'CZmfHynYjwlH92LlOa1Oc7EurAfT_ZaM',
+                u'Metadata': {
+                    'ef-buildnumber': '258',
+                    'ef-commithash': '338432d7e23e93dcf957e62598800468a17ff6d1',
+                    'ef-location': '',
+                    'ef-modifiedby': 'arn:aws:iam::097710525421:user/ci',
+                    'ef-version-status': 'stable'}},
+            {
+                u'Body': StringIO.StringIO("ami-0f85b8e7ca0788951"),
+                u'LastModified': datetime.datetime(2019, 2, 4, 5, 35, 6),
+                u'VersionId': '2WndwRGdS.nolumBcURZFZsMLhSKvfYi',
+                u'Metadata': {
+                    'ef-buildnumber': '258',
+                    'ef-commithash': '338432d7e23e93dcf957e62598800468a17ff6d1',
+                    'ef-location': '',
+                    'ef-modifiedby': 'arn:aws:iam::097710525421:user/ci',
+                    'ef-version-status': 'undefined'}},
+            {
+                u'Body': StringIO.StringIO("ami-07106419da94f1568"),
+                u'LastModified': datetime.datetime(2019, 2, 1, 6, 4, 53),
+                u'VersionId': 'bYdch7nPOWINnzdYPm8lZ9_r_9LTgyFt',
+                u'Metadata': {
+                    'ef-buildnumber': '257',
+                    'ef-commithash': '338432d7e23e93dcf957e62598800468a17ff6d1',
+                    'ef-location': '',
+                    'ef-modifiedby': 'arn:aws:iam::097710525421:user/ci',
+                    'ef-version-status': 'stable'}},
+            {
+                u'Body': StringIO.StringIO("ami-07106419da94f1568"),
+                u'LastModified': datetime.datetime(2019, 2, 1, 5, 54, 37),
+                u'VersionId': 'zgT2aQliuYKqBqbFNme3dl3l_sAzTni8',
+                u'Metadata': {
+                    'ef-buildnumber': '257',
+                    'ef-commithash': '338432d7e23e93dcf957e62598800468a17ff6d1',
+                    'ef-location': '',
+                    'ef-modifiedby': 'arn:aws:iam::097710525421:user/ci',
+                    'ef-version-status': 'undefined'}},
+            {
+                u'Body': StringIO.StringIO("ami-053bd53d8210575aa"),
+                u'LastModified': datetime.datetime(2019, 1, 31, 5, 44, 16),
+                u'VersionId': '1ao3Qo4.jj_CZbidXp9oaP4yOpmpq_Se',
+                u'Metadata': {
+                    'ef-buildnumber': '256',
+                    'ef-commithash': '338432d7e23e93dcf957e62598800468a17ff6d1',
+                    'ef-location': '',
+                    'ef-modifiedby': 'arn:aws:iam::097710525421:user/ci',
+                    'ef-version-status': 'stable'}},
+            {
+                u'Body': StringIO.StringIO("ami-053bd53d8210575aa"),
+                u'LastModified': datetime.datetime(2019, 1, 31, 5, 33, 24),
+                u'VersionId': 'b0tRbmuz7HsSMzrPaDxwUORqdQMisi9h',
+                u'Metadata': {
+                    'ef-buildnumber': '256',
+                    'ef-commithash': '338432d7e23e93dcf957e62598800468a17ff6d1',
+                    'ef-location': '',
+                    'ef-modifiedby': 'arn:aws:iam::097710525421:user/ci',
+                    'ef-version-status': 'undefined'}},
+        ])
+
+  @patch('ef_version.cmd_set')
+  @patch('ef_version.get_versions')
+  def test_cmd_rollback_latest_stable(self, get_versions, cmd_set):
+    '''Test cmd_rollback to the latest stable version'''
+    context = Mock(ef_version.EFVersionContext)
+    context.env = "alpha0"
+    context.key = "ami-id"
+    context.limit = 10
+    context.service_name = "playheads"
+    context.rollback = True
+
+    latest_stable = self.versions[0]
+    get_versions.return_value = [latest_stable]
+
+    ef_version.cmd_rollback(context)
+    self.assertEqual(context.stable, True)
+    self.assertEqual(context.value, latest_stable.value)
+    self.assertEqual(context.build_number, latest_stable.build_number)
+    self.assertEqual(context.commit_hash, latest_stable.commit_hash)
+    self.assertEqual(context.location, latest_stable.location)
+
+    get_versions.assert_called_once_with(context, return_stable=True)
+    cmd_set.assert_called_once_with(context)
+
+  @patch('ef_version.cmd_set')
+  @patch('ef_version.get_versions')
+  def test_cmd_rollback_to_ami(self, get_versions, cmd_set):
+    '''Test cmd_rollback to a specific ami version'''
+    ami_id = "ami-abcdefgh12345678"
+    desired_version = ef_version.Version({
+        u'Body': StringIO.StringIO(ami_id),
+        u'LastModified': datetime.datetime(2019, 1, 30, 5, 33, 24),
+        u'VersionId': 'b0tRbmuz7HsSMzrPaDxwUORqdQMisi9h',
+        u'Metadata': {
+            'ef-buildnumber': '256',
+            'ef-commithash': '338432d7e23e93dcf957e62598800468a17ff6d1',
+            'ef-location': '',
+            'ef-modifiedby': 'arn:aws:iam::097710525421:user/ci',
+            'ef-version-status': 'stable'}
+    })
+
+    context = Mock(ef_version.EFVersionContext)
+    context.env = "alpha0"
+    context.key = "ami-id"
+    context.limit = 10
+    context.service_name = "playheads"
+    context.rollback_to = ami_id
+
+    # inserting at the end so the code doesn't take the first one
+    get_versions.return_value = self.versions + [desired_version]
+
+    ef_version.cmd_rollback_to(context)
+    self.assertEqual(context.stable, True)
+    self.assertEqual(context.value, desired_version.value)
+    self.assertEqual(context.build_number, desired_version.build_number)
+    self.assertEqual(context.commit_hash, desired_version.commit_hash)
+    self.assertEqual(context.location, desired_version.location)
+
+    get_versions.assert_called_once_with(context)
+    cmd_set.assert_called_once_with(context)
+
+
+  @patch('ef_version.cmd_set')
+  @patch('ef_version.get_versions')
+  def test_cmd_rollback_to_unknown_ami(self, get_versions, cmd_set):
+    '''Test cmd_rollback_to fails on missing ami_id in history'''
+    ami_id = "ami-abcdefgh12345678"
+    context = Mock(ef_version.EFVersionContext)
+    context.env = "alpha0"
+    context.key = "ami-id"
+    context.limit = 10
+    context.service_name = "playheads"
+    context.rollback_to = ami_id
+
+    get_versions.return_value = self.versions
+
+    with self.assertRaises(SystemExit) as e:
+      ef_version.cmd_rollback_to(context)
+      self.assertIn(ami_id, e.message)
+
+    get_versions.assert_called_once_with(context)
+    cmd_set.assert_not_called()
