@@ -7,6 +7,7 @@
       "team_email": "email@example.com",
       "environments": ["global.ellationeng"],
       "aws_managed_policies": ["AwsManagedPolicy"],
+      "customer_managed_policies": ["CustomerManagedPolicy"],
       "policies": ["policy_1", "policy_2"],
       "assume_role_policy": "assume_role_policy"
     },
