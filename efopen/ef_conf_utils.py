@@ -21,8 +21,6 @@ def get_template_parameters_file(template_full_path):
       parameters_file = template_full_path.replace("/templates", "/parameters") + suffix
       if exists(parameters_file):
         return parameters_file
-      else:
-        continue
     return None
 
 def global_env_valid(env):
