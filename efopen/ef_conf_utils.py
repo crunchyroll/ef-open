@@ -3,7 +3,6 @@ Configurable utility functions for ef. Configurable via EFConfig
 """
 import re
 import subprocess
-
 from os.path import exists
 
 from botocore.exceptions import ClientError
