@@ -19,7 +19,7 @@ limitations under the License.
 from __future__ import print_function
 
 from ef_template_resolver import EFTemplateResolver
-from ef_utils import get_account_alias
+from ef_conf_utils import get_account_alias
 
 PARAMS = """{
   "params":{

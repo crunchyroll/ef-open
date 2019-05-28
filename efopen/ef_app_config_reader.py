@@ -19,7 +19,7 @@ import yaml
 import botocore.exceptions
 
 from ef_config import EFConfig
-from ef_utils import get_env_short
+from ef_conf_utils import get_env_short
 
 
 class EFAppConfigReader:

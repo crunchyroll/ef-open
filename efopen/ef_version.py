@@ -37,7 +37,8 @@ from botocore.exceptions import ClientError
 from ef_config import EFConfig
 from ef_context import EFContext
 from ef_service_registry import EFServiceRegistry
-from ef_utils import create_aws_clients, fail, pull_repo
+from ef_utils import create_aws_clients, fail
+from ef_conf_utils import pull_repo
 from ef_version_resolver import EFVersionResolver
 
 VERBOSE = False

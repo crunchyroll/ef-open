@@ -24,7 +24,7 @@ import context_paths
 
 from ef_config import EFConfig
 from ef_template_resolver import EFTemplateResolver
-from ef_utils import get_account_alias
+from ef_conf_utils import get_account_alias
 
 TEST_PROFILE = get_account_alias("test")
 TEST_REGION = EFConfig.DEFAULT_REGION

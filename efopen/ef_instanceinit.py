@@ -36,7 +36,8 @@ import botocore.exceptions
 
 from ef_config import EFConfig
 from ef_instanceinit_config_reader import EFInstanceinitConfigReader
-from ef_utils import get_account_alias, http_get_instance_role, http_get_metadata, whereami
+from ef_utils import http_get_instance_role, http_get_metadata, whereami
+from ef_conf_utils import get_account_alias
 from ef_template_resolver import EFTemplateResolver
 
 # constants

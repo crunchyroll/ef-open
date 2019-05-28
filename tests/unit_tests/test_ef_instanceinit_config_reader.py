@@ -34,7 +34,7 @@ class TestEFInstanceInitConfigReader(unittest.TestCase):
     self.mock_s3_resource = Mock(name="mocked S3 resource")
     self.mock_logger = Mock(name="mocked logger object")
 
-  @patch('ef_utils.get_template_parameters_file')
+  @patch('ef_conf_utils.get_template_parameters_file')
   def test_config_parameters_from_file(self, mock_params_file):
     """Test basic function"""
     base_path = os.path.join(os.path.dirname(__file__), "../test_data")
@@ -44,7 +44,7 @@ class TestEFInstanceInitConfigReader(unittest.TestCase):
     config_reader.next()
     self.assertEquals(config_reader.parameters["dest"]["path"], "/srv/test-instance/test.cnf")
 
-  @patch('ef_utils.get_template_parameters_s3')
+  @patch('ef_conf_utils.get_template_parameters_s3')
   def test_config_parameters_from_s3(self, mock_params_key):
     """Test basic function"""
     mock_params_key.return_value = 'test-instance/parameters/test.cnf.parameters.json'
