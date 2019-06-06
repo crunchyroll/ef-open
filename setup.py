@@ -47,5 +47,6 @@ setup(
     author='Ellation, Inc.',
     author_email='ops@ellation.com',
     description='CloudFormation Tools by Ellation',
-    long_description=readme()
+    long_description=readme(),
+    long_description_content_type='text/markdown'
 )
