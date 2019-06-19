@@ -16,8 +16,11 @@ limitations under the License.
 
 import datetime
 import os
+import StringIO
 import unittest
 import StringIO
+
+from dateutil.tz import tzutc
 
 from mock import Mock, patch
 
@@ -218,6 +221,78 @@ class TestEFVersion(unittest.TestCase):
     response = {"Error": {"Code": "NoSuchKey"}}
     mock_version_object.side_effect = ClientError(response, "Get Object")
     self.assertTrue(ef_version.precheck_dist_hash(self))
+
+
+class TestVersion(unittest.TestCase):
+
+    def setUp(self):
+
+        version_body = StringIO.StringIO("ami-0f24a2bf2a5fb4090")
+
+        version_id = "a8Hwa86edlxkc24HLI_FvCp5J4eJZerK"
+        last_modified = datetime.datetime(2018, 11, 6, 6, 10, 4, tzinfo=tzutc())
+
+        self.metadata_fields = {
+            'build_number': "43",
+            'commit_hash': "0f24a2bf2a5fb4090",
+            'location': "in space",
+            'modified_by': "random_dude",
+            'status': "stable",
+        }
+        self.version_attrs = {
+            'last_modified': last_modified.strftime("%Y-%m-%dT%H:%M:%S%Z"),
+            'value': version_body.getvalue()
+            }
+        self.version_attrs.update(self.metadata_fields)
+
+        self.object_version = {
+            "AcceptRanges": "bytes",
+            "ContentType": "binary/octet-stream",
+            "LastModified": last_modified,
+            "ContentLength": 21,
+            "ContentEncoding": "utf-8",
+            "VersionId": version_id,
+            "ETag": "\"8c6a54dc6a1c907f7664f11a7b369d7b\"",
+            "Metadata": {
+                "ef-location": self.version_attrs["location"],
+                "ef-version-status": self.version_attrs["status"],
+                "ef-buildnumber": self.version_attrs["build_number"],
+                "ef-commithash": self.version_attrs["commit_hash"],
+                "ef-modifiedby": self.version_attrs["modified_by"]
+                },
+            "Body": version_body
+            }
+
+    def test_version_init(self):
+        """
+        Test that a Version object is build correctly
+        """
+
+        version = ef_version.Version(self.object_version)
+
+        for attr, expected in self.version_attrs.items():
+            actual = getattr(version, attr)
+            self.assertEqual(
+                expected, actual,
+                msg="{attr}: expecting {expected!r}, got {actual!r}".format(**locals()))
+
+    def test_version_init_no_metadata(self):
+        """
+        Test that a Version object is build correctly with missing metadata
+        """
+
+        self.object_version["Metadata"] = {}
+        # clear out the metadata fields in version_attrs
+        for field in self.metadata_fields:
+            self.version_attrs[field] = ""
+        version = ef_version.Version(self.object_version)
+
+        for attr, expected in self.version_attrs.items():
+            actual = getattr(version, attr)
+            self.assertEqual(
+                expected, actual,
+                msg="{attr}: expecting {expected!r}, got {actual!r}".format(**locals()))
+
 
 class TestEFVersionModule(unittest.TestCase):
 

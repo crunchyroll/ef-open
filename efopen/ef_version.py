@@ -178,29 +178,16 @@ class Version(object):
   """
 
   def __init__(self, object_version):
-    if EFConfig.S3_VERSION_BUILDNUMBER_KEY in object_version["Metadata"]:
-      self._build_number = object_version["Metadata"][EFConfig.S3_VERSION_BUILDNUMBER_KEY]
-    else:
-      self._build_number = ""
-    if EFConfig.S3_VERSION_COMMITHASH_KEY in object_version["Metadata"]:
-      self._commit_hash = object_version["Metadata"][EFConfig.S3_VERSION_COMMITHASH_KEY]
-    else:
-      self._commit_hash = ""
-    self._last_modified = object_version["LastModified"].strftime("%Y-%m-%dT%H:%M:%S%Z")
-    if EFConfig.S3_VERSION_LOCATION_KEY in object_version["Metadata"]:
-      self._location = object_version["Metadata"][EFConfig.S3_VERSION_LOCATION_KEY]
-    else:
-      self._location = ""
-    if EFConfig.S3_VERSION_MODIFIEDBY_KEY in object_version["Metadata"]:
-      self._modified_by = object_version["Metadata"][EFConfig.S3_VERSION_MODIFIEDBY_KEY]
-    else:
-      self._modified_by = ""
-    if EFConfig.S3_VERSION_STATUS_KEY in object_version["Metadata"]:
-      self._status = object_version["Metadata"][EFConfig.S3_VERSION_STATUS_KEY]
-    else:
-      self._status = ""
     self._value = object_version["Body"].read()
     self._version_id = object_version["VersionId"]
+    self._last_modified = object_version["LastModified"].strftime("%Y-%m-%dT%H:%M:%S%Z")
+
+    metadata = object_version["Metadata"]
+    self._build_number = metadata.get(EFConfig.S3_VERSION_BUILDNUMBER_KEY,"")
+    self._commit_hash = metadata.get(EFConfig.S3_VERSION_COMMITHASH_KEY,"")
+    self._location = metadata.get(EFConfig.S3_VERSION_LOCATION_KEY,"")
+    self._modified_by = metadata.get(EFConfig.S3_VERSION_MODIFIEDBY_KEY,"")
+    self._status = metadata.get(EFConfig.S3_VERSION_STATUS_KEY,"")
 
   def __str__(self):
     return "{} {} {} {} {} {} {} {}".format(self._value, self._build_number, self._commit_hash, self._last_modified,
@@ -354,23 +341,27 @@ def print_if_verbose(message):
 
 def validate_context(context):
   """
-    Set the key for the current context.
+    Validate the context. Fails the process on an invalid context
     Args:
       context: a populated EFVersionContext object
   """
-  # Service must exist in service registry
-  if not context.service_registry.service_record(context.service_name):
-    fail("service: {} not found in service registry: {}".format(
-         context.service_name, context.service_registry.filespec))
-  service_type = context.service_registry.service_record(context.service_name)["type"]
 
   # Key must be valid
-  if context.key not in EFConfig.VERSION_KEYS:
+  key_data = EFConfig.VERSION_KEYS.get(context.key)
+  if not key_data:
     fail("invalid key: {}; see VERSION_KEYS in ef_config for supported keys".format(context.key))
 
+  registry = context.service_registry
+  service = registry.service_record(context.service_name)
+  # Service must exist in service registry
+  if not service:
+    fail("service: {} not found in service registry: {}".format(
+         context.service_name, registry.filespec))
+
   # Lookup allowed key for service type
-  if "allowed_types" in EFConfig.VERSION_KEYS[context.key] and \
-          service_type not in EFConfig.VERSION_KEYS[context.key]["allowed_types"]:
+  service_type = service["type"]
+  allowed_types = key_data.get("allowed_types", [])
+  if service_type not in allowed_types:
     fail("service_type: {} is not allowed for key {}; see VERSION_KEYS[KEY]['allowed_types']"
          "in ef_config and validate service registry entry".format(service_type, context.key))
 
