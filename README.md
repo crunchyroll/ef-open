@@ -18,6 +18,10 @@ If you have the ef-open installed and want to upgrade to the latest version you 
 
     $ pip install --upgrade ef-open
 
+# Python version 
+You may need to use python3 on your local system this may map to: 
+    $ pip3 install ef-open
+
 # Use
 `ef-cf` - Evaluate templatized CloudFormation templates, with the option to generate changesets or apply them
 `ef-cf-diff` - Test some or all templates against a target environment, for differences
