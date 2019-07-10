@@ -390,9 +390,9 @@ class EFTemplateResolver(object):
       result = self.parameters["default"][symbol]
     if self.resolved["ENV_SHORT"] in self.parameters and symbol in self.parameters[self.resolved["ENV_SHORT"]]:
       result = self.parameters[self.resolved["ENV_SHORT"]][symbol]
-    # This lookup is redundant when env_short == env, but it's also cheap
-    if self.resolved["ENV"] in self.parameters and symbol in self.parameters[self.resolved["ENV"]]:
-      result = self.parameters[self.resolved["ENV"]][symbol]
+    # This lookup is redundant when env_short == env_full, but it's also cheap. Also handles the case for mgmt.<account_alias>
+    if self.resolved["ENV_FULL"] in self.parameters and symbol in self.parameters[self.resolved["ENV_FULL"]]:
+      result = self.parameters[self.resolved["ENV_FULL"]][symbol]
     return result
 
   def render(self):
