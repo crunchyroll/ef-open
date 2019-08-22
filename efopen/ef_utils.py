@@ -19,7 +19,7 @@ limitations under the License.
 from __future__ import print_function
 import base64
 import json
-from os import access, X_OK
+from os import access, getenv, X_OK
 from os.path import isfile
 import re
 from socket import gethostname
@@ -88,10 +88,14 @@ def whereami():
   Determine if this is an ec2 instance or "running locally"
   Returns:
     "ec2" - this is an ec2 instance
+    "jenkins" - running inside a Jenkins job
     "virtualbox-kvm" - kernel VM (virtualbox with vagrant)
     "local" - running locally and not in a known VM
     "unknown" - I have no idea where I am
   """
+  if getenv("JENKINS_URL"):
+    return "jenkins"
+
   # If the metadata endpoint responds, this is an EC2 instance
   # If it doesn't, we can safely say this isn't EC2 and try the other options
   try:
