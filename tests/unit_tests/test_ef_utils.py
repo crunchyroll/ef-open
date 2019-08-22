@@ -196,6 +196,29 @@ class TestEFUtils(unittest.TestCase):
     result = ef_utils.whereami()
     self.assertEquals(result, "ec2")
 
+  @patch('ef_utils.http_get_metadata')
+  @patch('ef_utils.getenv')
+  def test_whereami_jenkins(self, mock_http_get_metadata, mock_getenv):
+    """
+    Tests whereami to see if it returns 'jenkins' by mocking an ec2 Jenkins
+    environment
+
+    Args:
+      mock_http_get_metadata: MagicMock, returns "i-somestuff"
+      mock_get_env: MagicMock, mocks the environment variables
+
+    Returns:
+      None
+
+    Raises:
+      AssertionError if any of the assert checks fail
+    """
+    mock_http_get_metadata.return_value = "i-somestuff"
+    mock_getenv.return_value = "not-falsy"
+    result = ef_utils.whereami()
+    self.assertEquals(result, "jenkins")
+
+
   @patch('ef_utils.is_in_virtualbox')
   @patch('ef_utils.gethostname')
   @patch('ef_utils.http_get_metadata')
