@@ -30,7 +30,6 @@ limitations under the License.
 from __future__ import print_function
 import argparse
 import json
-from os import getenv
 from os.path import dirname, normpath
 import sys
 import time
@@ -547,7 +546,7 @@ def main():
   global CONTEXT, CLIENTS, AWS_RESOLVER
 
   CONTEXT = handle_args_and_set_context(sys.argv[1:])
-  if not (CONTEXT.devel or getenv("JENKINS_URL", False)):
+  if not (CONTEXT.devel or CONTEXT.whereami != 'jenkins'):
     try:
       pull_repo()
     except RuntimeError as error:
