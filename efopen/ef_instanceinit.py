@@ -180,6 +180,8 @@ def main():
     critical("Cannot determine whether operating context is ec2 or local. Exiting.")
   elif WHERE == "local":
     critical("local mode not supported: must run under virtualbox-kvm or in ec2")
+  elif WHERE == 'jenkins':
+    critical("will not run inside a Jenkins environment")
   elif WHERE == "ec2":
     # get info needed for logging
     try:
