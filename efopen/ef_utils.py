@@ -94,7 +94,6 @@ def whereami():
     "unknown" - I have no idea where I am
   """
   if getenv("JENKINS_URL"):
-    print(getenv("JENKINS_URL"))
     return "jenkins"
 
   # If the metadata endpoint responds, this is an EC2 instance
