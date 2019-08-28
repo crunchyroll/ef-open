@@ -28,7 +28,6 @@ import argparse
 from inspect import isfunction
 import json
 from operator import itemgetter
-from os import getenv
 import sys
 import urllib2
 
@@ -710,7 +709,7 @@ def main():
   context = handle_args_and_set_context(sys.argv[1:])
 
   # Refresh from repo if necessary and possible (gets don't need service registry, sets do)
-  if (context.rollback or context.value) and not (context.devel or getenv("JENKINS_URL", False)):
+  if (context.rollback or context.value) and not (context.devel or context.whereami != 'jenkins'):
     print("Refreshing repo")
     try:
       pull_repo()
