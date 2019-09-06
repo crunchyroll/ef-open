@@ -521,15 +521,22 @@ def get_versions(context, return_stable=False):
     return []
   object_versions = []
   for version in object_version_list["Versions"]:
+
     object_version = Version(context.aws_client("s3").get_object(
         Bucket=EFConfig.S3_VERSION_BUCKET,
         Key=s3_key,
         VersionId=version["VersionId"]
     ))
-    # Stop if a stable version was found and return_stable was set
+    # If we're looking for stable builds and a stable build has been found
     if return_stable and object_version.status == EFConfig.S3_VERSION_STATUS_STABLE:
-      return [object_version]
-    object_versions.append(object_version)
+      object_versions.append(object_version)
+      # Keep looping until we find two. The first stable one is the one already deployed.
+      # The second stable one would be a rollback target.
+      if (len(object_versions) > 1):
+        return object_versions
+    # If we're not looking for stable builds
+    elif not return_stable:
+      object_versions.append(object_version)
 
   # If caller is looking for a 'stable' version and we made it to here, a stable version was not found
   if return_stable:
@@ -578,13 +585,13 @@ def cmd_rollback(context):
     context: a populated EFVersionContext object
   """
   last_stable = get_versions(context, return_stable=True)
-  if len(last_stable) != 1:
+  if len(last_stable) < 2:
     fail("Didn't find a version marked stable for key: {} in env/service: {}/{}".format(
          context.key, context.env, context.service_name))
-  context.value = last_stable[0].value
-  context.commit_hash = last_stable[0].commit_hash
-  context.build_number = last_stable[0].build_number
-  context.location = last_stable[0].location
+  context.value = last_stable[1].value
+  context.commit_hash = last_stable[1].commit_hash
+  context.build_number = last_stable[1].build_number
+  context.location = last_stable[1].location
   context.stable = True
   cmd_set(context)
 
