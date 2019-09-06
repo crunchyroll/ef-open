@@ -494,21 +494,47 @@ def precheck(context):
     return True
 
 
-def get_versions(context, return_stable=False):
+def _get_stable_versions(context):
+  """
+  Get all stable versions
+  Args:
+    context: a populated EFVersionContext object
+
+  Returns:
+    List of Version objects representing stable versions in this service's history
+  """
+  versions = get_versions(context)
+  stable_versions = []
+  for version in versions:
+    if version.status == EFConfig.S3_VERSION_STATUS_STABLE:
+      stable_versions.append(version)
+  return stable_versions
+
+
+def _get_latest_version(context):
+  """
+  Get latest version in history of service
+  Args:
+    context: a populated EFVersionContext object
+
+  Returns:
+    A Version object representing the latest version in the service's history
+  """
+  original_limit = context.limit
+  context.limit = 1
+  latest_version = get_versions(context)
+  context.limit = original_limit
+  return latest_version[0] if len(latest_version) > 0 else None
+
+
+def get_versions(context):
   """
   Get all versions of a key
   Args:
     context: a populated EFVersionContext object
     return_stable: (default:False) If True, stop fetching if 'stable' version is found; return only that version
   Returns:
-    json list of object data sorted in reverse by last_modified (newest version is first). Each item is a dict:
-    {
-      'value': <value>,
-      'last_modified": <YYYY-MM-DDThh:mm:ssZ>, (ISO8601 date time string)
-      'modified_by': '<arn:aws:...>',
-      'version_id': '<version_id>',
-      'status': See EF_Config.S3_VERSION_STATUS_* for possible values
-    }
+    List of Version objects sorted in reverse by last_modified (newest version is first).
   """
   s3_key = "{}/{}/{}".format(context.service_name, context.env, context.key)
   object_version_list = context.aws_client("s3").list_object_versions(
@@ -517,8 +543,10 @@ def get_versions(context, return_stable=False):
       MaxKeys=context.limit,
       Prefix=s3_key
   )
+
   if "Versions" not in object_version_list:
     return []
+
   object_versions = []
   for version in object_version_list["Versions"]:
     object_version = Version(context.aws_client("s3").get_object(
@@ -526,16 +554,9 @@ def get_versions(context, return_stable=False):
         Key=s3_key,
         VersionId=version["VersionId"]
     ))
-    # Stop if a stable version was found and return_stable was set
-    if return_stable and object_version.status == EFConfig.S3_VERSION_STATUS_STABLE:
-      return [object_version]
     object_versions.append(object_version)
 
-  # If caller is looking for a 'stable' version and we made it to here, a stable version was not found
-  if return_stable:
-    return []
-  else:
-    return sorted(object_versions, key=lambda v: v.last_modified, reverse=True)
+  return sorted(object_versions, key=lambda v: v.last_modified, reverse=True)
 
 
 def cmd_get(context):
@@ -577,16 +598,19 @@ def cmd_rollback(context):
   Args:
     context: a populated EFVersionContext object
   """
-  last_stable = get_versions(context, return_stable=True)
-  if len(last_stable) != 1:
-    fail("Didn't find a version marked stable for key: {} in env/service: {}/{}".format(
-         context.key, context.env, context.service_name))
-  context.value = last_stable[0].value
-  context.commit_hash = last_stable[0].commit_hash
-  context.build_number = last_stable[0].build_number
-  context.location = last_stable[0].location
-  context.stable = True
-  cmd_set(context)
+  stable_versions = _get_stable_versions(context)
+  latest_version = _get_latest_version(context)
+  for version in stable_versions:
+    if latest_version and (version.value != latest_version.value):
+      context.value = version.value
+      context.commit_hash = version.commit_hash
+      context.build_number = version.build_number
+      context.location = version.location
+      context.stable = True
+      cmd_set(context)
+      return
+  fail("Didn't find a version marked stable for key: {} in env/service: {}/{}".format(context.key, context.env,
+                                                                                      context.service_name))
 
 
 def cmd_rollback_to(context):
@@ -605,8 +629,9 @@ def cmd_rollback_to(context):
   cmd_set(context)
 
 
-def _getlatest_ami_id(context):
+def _get_deployed_ami_id(context):
   """
+  NOTE: Currently not used until the future
   Get the most recent AMI ID for a service
   Args:
     context: a populated EFVersionContext object
