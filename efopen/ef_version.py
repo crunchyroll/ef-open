@@ -521,7 +521,6 @@ def get_versions(context, return_stable=False):
     return []
   object_versions = []
   for version in object_version_list["Versions"]:
-
     object_version = Version(context.aws_client("s3").get_object(
         Bucket=EFConfig.S3_VERSION_BUCKET,
         Key=s3_key,
