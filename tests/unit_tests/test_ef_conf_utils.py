@@ -148,9 +148,8 @@ class TestEFConfUtils(unittest.TestCase):
     with self.assertRaises(ValueError):
       ef_conf_utils.env_valid(None)
 
-  @patch('subprocess.check_call')
   @patch('subprocess.check_output')
-  def test_pull_repo_ssh_credentials(self, mock_check_output, mock_check_call):
+  def test_pull_repo_ssh_credentials(self, mock_check_output):
     """
     Tests pull_repo by mocking the subprocess.check_output to return git ssh credentials.
 
@@ -164,18 +163,33 @@ class TestEFConfUtils(unittest.TestCase):
     Raises:
       AssertionError if any of the assert checks fail
     """
-    mock_check_output.side_effect = [
-      "user@" + EFConfig.EF_REPO.replace("/", ":", 1) + ".git",
-      EFConfig.EF_REPO_BRANCH
-    ]
+
     try:
+      mock_check_output.side_effect = [
+        "user@" + EFConfig.EF_REPO.replace("/", ":", 1) + ".git",
+        EFConfig.EF_REPO_BRANCH
+      ]
+      ef_conf_utils.pull_repo()
+      mock_check_output.side_effect = [
+        "origin\tuser@" + EFConfig.EF_REPO.replace("/", ":", 1) + ".git",
+        EFConfig.EF_REPO_BRANCH
+      ]
+      ef_conf_utils.pull_repo()
+      mock_check_output.side_effect = [
+        "origin\tuser@" + EFConfig.EF_REPO.replace("/", ":", 1) + ".git (fetch)",
+        EFConfig.EF_REPO_BRANCH
+      ]
+      ef_conf_utils.pull_repo()
+      mock_check_output.side_effect = [
+        "origin\tuser@" + EFConfig.EF_REPO.replace("/", ":", 1) + ".git (push)",
+        EFConfig.EF_REPO_BRANCH
+      ]
       ef_conf_utils.pull_repo()
     except RuntimeError as exception:
       self.fail("Exception occurred during test_pull_repo_ssh_credentials: " + exception.message)
 
-  @patch('subprocess.check_call')
   @patch('subprocess.check_output')
-  def test_pull_repo_https_credentials(self, mock_check_output, mock_check_call):
+  def test_pull_repo_https_credentials(self, mock_check_output):
     """
     Tests the pull_repo by mocking the subprocess.check_output to return git http credentials.
 
@@ -189,11 +203,37 @@ class TestEFConfUtils(unittest.TestCase):
     Raises:
       AssertionError if any of the assert checks fail
     """
-    mock_check_output.side_effect = [
-      "origin\thttps://" + EFConfig.EF_REPO + ".git",
-      EFConfig.EF_REPO_BRANCH
-    ]
+
     try:
+      mock_check_output.side_effect = [
+        "https://" + EFConfig.EF_REPO + ".git",
+        EFConfig.EF_REPO_BRANCH
+      ]
+      ef_conf_utils.pull_repo()
+      mock_check_output.side_effect = [
+        "origin\thttps://" + EFConfig.EF_REPO + ".git",
+        EFConfig.EF_REPO_BRANCH
+      ]
+      ef_conf_utils.pull_repo()
+      mock_check_output.side_effect = [
+        "https://8c3c99990fd0fa55454634dad85f8a48beaa1916@" + EFConfig.EF_REPO + ".git",
+        EFConfig.EF_REPO_BRANCH
+      ]
+      ef_conf_utils.pull_repo()
+      mock_check_output.side_effect = [
+        "origin\thttps://8c3c99990fd0fa55454634dad85f8a48beaa1916@" + EFConfig.EF_REPO + ".git",
+        EFConfig.EF_REPO_BRANCH
+      ]
+      ef_conf_utils.pull_repo()
+      mock_check_output.side_effect = [
+        "origin\thttps://8c3c99990fd0fa55454634dad85f8a48beaa1916@" + EFConfig.EF_REPO + ".git (fetch)",
+        EFConfig.EF_REPO_BRANCH
+      ]
+      ef_conf_utils.pull_repo()
+      mock_check_output.side_effect = [
+        "origin\thttps://8c3c99990fd0fa55454634dad85f8a48beaa1916@" + EFConfig.EF_REPO + ".git (push)",
+        EFConfig.EF_REPO_BRANCH
+      ]
       ef_conf_utils.pull_repo()
     except RuntimeError as exception:
       self.fail("Exception occurred during test_pull_repo_ssh_credentials: " + exception.message)

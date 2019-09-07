@@ -62,7 +62,7 @@ def pull_repo():
     current_repo = subprocess.check_output(["git", "remote", "-v", "show"])
   except subprocess.CalledProcessError as error:
     raise RuntimeError("Exception checking current repo", error)
-  current_repo = re.findall("(https://|@)(.*?)(.git|[ ])", current_repo)[0][1].replace(":", "/")
+  current_repo = re.findall(r"(.*?https://|.*?@)(.*?@)?(.*?)(\.git.*)", current_repo)[0][2].replace(":", "/")
   if current_repo != EFConfig.EF_REPO:
     raise RuntimeError("Must be in " + EFConfig.EF_REPO + " repo. Current repo is: " + current_repo)
   try:
