@@ -175,6 +175,16 @@ class TestEFConfUtils(unittest.TestCase):
         EFConfig.EF_REPO_BRANCH
       ]
       ef_conf_utils.pull_repo()
+      mock_check_output.side_effect = [
+        "origin\tuser@" + EFConfig.EF_REPO.replace("/", ":", 1) + ".git (fetch)",
+        EFConfig.EF_REPO_BRANCH
+      ]
+      ef_conf_utils.pull_repo()
+      mock_check_output.side_effect = [
+        "origin\tuser@" + EFConfig.EF_REPO.replace("/", ":", 1) + ".git (push)",
+        EFConfig.EF_REPO_BRANCH
+      ]
+      ef_conf_utils.pull_repo()
     except RuntimeError as exception:
       self.fail("Exception occurred during test_pull_repo_ssh_credentials: " + exception.message)
 
@@ -212,6 +222,16 @@ class TestEFConfUtils(unittest.TestCase):
       ef_conf_utils.pull_repo()
       mock_check_output.side_effect = [
         "origin\thttps://8c3c99990fd0fa55454634dad85f8a48beaa1916@" + EFConfig.EF_REPO + ".git",
+        EFConfig.EF_REPO_BRANCH
+      ]
+      ef_conf_utils.pull_repo()
+      mock_check_output.side_effect = [
+        "origin\thttps://8c3c99990fd0fa55454634dad85f8a48beaa1916@" + EFConfig.EF_REPO + ".git (fetch)",
+        EFConfig.EF_REPO_BRANCH
+      ]
+      ef_conf_utils.pull_repo()
+      mock_check_output.side_effect = [
+        "origin\thttps://8c3c99990fd0fa55454634dad85f8a48beaa1916@" + EFConfig.EF_REPO + ".git (push)",
         EFConfig.EF_REPO_BRANCH
       ]
       ef_conf_utils.pull_repo()
