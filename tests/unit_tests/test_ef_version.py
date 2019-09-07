@@ -363,7 +363,7 @@ class TestEFVersionModule(unittest.TestCase):
 
   @patch('ef_version.cmd_set')
   @patch('ef_version.get_versions')
-  def test_cmd_rollback_latest_stable(self, get_versions, cmd_set):
+  def test_cmd_rollback_latest_stable(self, mock_get_versions, mock_cmd_set):
     '''Test cmd_rollback to the latest stable version'''
     context = Mock(ef_version.EFVersionContext)
     context.env = "alpha0"
@@ -372,18 +372,18 @@ class TestEFVersionModule(unittest.TestCase):
     context.service_name = "playheads"
     context.rollback = True
 
-    latest_stable = self.versions[0]
-    get_versions.return_value = [latest_stable]
+    rollback_stable_target = self.versions[3]
+    mock_get_versions.return_value = self.versions
 
     ef_version.cmd_rollback(context)
     self.assertEqual(context.stable, True)
-    self.assertEqual(context.value, latest_stable.value)
-    self.assertEqual(context.build_number, latest_stable.build_number)
-    self.assertEqual(context.commit_hash, latest_stable.commit_hash)
-    self.assertEqual(context.location, latest_stable.location)
+    self.assertEqual(context.value, rollback_stable_target.value)
+    self.assertEqual(context.build_number, rollback_stable_target.build_number)
+    self.assertEqual(context.commit_hash, rollback_stable_target.commit_hash)
+    self.assertEqual(context.location, rollback_stable_target.location)
 
-    get_versions.assert_called_once_with(context, return_stable=True)
-    cmd_set.assert_called_once_with(context)
+    mock_get_versions.assert_called_with(context)
+    mock_cmd_set.assert_called_once_with(context)
 
   @patch('ef_version.cmd_set')
   @patch('ef_version.get_versions')
