@@ -734,12 +734,14 @@ def main():
   context = handle_args_and_set_context(sys.argv[1:])
 
   # Refresh from repo if necessary and possible (gets don't need service registry, sets do)
-  if (context.rollback or context.value) and not (context.devel or context.whereami != 'jenkins'):
+  if (context.rollback or context.value) and (not context.devel and context.whereami != 'jenkins'):
     print("Refreshing repo")
     try:
       pull_repo()
     except RuntimeError as error:
       fail("Error checking or pulling repo", error)
+  else:
+    print("Not refreshing repo because --devel was set or running on Jenkins")
 
   # Sign on to AWS and create clients
   if context.whereami in ["ec2"]:
