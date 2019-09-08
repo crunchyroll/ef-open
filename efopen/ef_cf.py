@@ -236,7 +236,7 @@ def main():
   parameter_file = parameter_file_dir + "/" + service_name + ".parameters." + context.env_full + ".json"
 
   # If running in EC2, use instance credentials (i.e. profile = None)
-  # unless it's a Jenkins environment or non-EC2, which means that we use local
+  # unless it's a non-EC2, which means that we use local
   # credentials with profile name in .aws/credentials == account alias name
   if context.whereami == "ec2":
     profile = None
@@ -245,7 +245,7 @@ def main():
 
   # Get service registry and refresh repo if appropriate
   try:
-    if not (context.devel or context.whereami != 'jenkins'):
+    if not context.devel and context.whereami != 'jenkins':
       pull_repo()
     else:
       print("not refreshing repo because --devel was set or running on Jenkins")

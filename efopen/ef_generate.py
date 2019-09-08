@@ -546,7 +546,8 @@ def main():
   global CONTEXT, CLIENTS, AWS_RESOLVER
 
   CONTEXT = handle_args_and_set_context(sys.argv[1:])
-  if not (CONTEXT.devel or CONTEXT.whereami != 'jenkins'):
+  #if not (CONTEXT.devel or CONTEXT.whereami != 'jenkins'):
+  if not CONTEXT.devel and CONTEXT.whereami != 'jenkins':
     try:
       pull_repo()
     except RuntimeError as error:
