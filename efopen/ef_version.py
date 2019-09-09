@@ -740,8 +740,6 @@ def main():
       pull_repo()
     except RuntimeError as error:
       fail("Error checking or pulling repo", error)
-  else:
-    print("Not refreshing repo because --devel was set or running on Jenkins")
 
   # Sign on to AWS and create clients
   if context.whereami in ["ec2"]:
