@@ -112,7 +112,7 @@ class EFServiceRegistry(object):
           self._service_registry_file, service_group))
       return self.service_registry_json[service_group].iteritems()
     else:
-     return self.services().iteritems()
+      return self.services().iteritems()
 
   def _expand_ephemeral_env_names(self, envlist):
     """
@@ -148,6 +148,39 @@ class EFServiceRegistry(object):
     # Otherwise gather up the envs
     return self._expand_ephemeral_env_names(service_record["environments"])
 
+  def valid_auto_deploy_envs(self, service_name):
+    """
+    Args:
+      service_name: the name of the service in the service registry
+    Returns:
+      List[String]: A list of environments to which it is ok to auto-deploy the given service
+    Raises:
+      RuntimeError if the service wasn't found
+
+    Note that environments in the return are filtered for also being in the service record's
+    'environments' field, so in order to qualify for autodeployment, an environment needs to be
+    in both lists.
+    """
+    service_record = self.service_record(service_name)
+    if service_record is None:
+      raise RuntimeError("service registry doesn't have service: {}".format(service_name))
+
+    if not service_record.has_key("auto_deploy_environments"):
+      return []
+
+    # The list of valid deployment environments, for this service
+    envs = self.valid_envs(service_name)
+
+    #  If the auto_deploy_environments field is a boolean false, return [].
+    if isinstance(service_record["auto_deploy_environments"], bool) and not service_record["auto_deploy_environments"]:
+      return []
+    elif isinstance(service_record["auto_deploy_environments"], bool):
+      #  If the auto_deploy_environments field is a boolean true, return the full list of 'environments' for the service.
+      return envs
+    else:
+      # filter the auto-deploy environments to only include environments that are also in the 'environments' list.
+      auto_dep_envs = self._expand_ephemeral_env_names(service_record["auto_deploy_environments"])
+      return list(set(auto_dep_envs).intersection(envs))
 
   def service_record(self, service_name):
     """
