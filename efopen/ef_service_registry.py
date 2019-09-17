@@ -14,12 +14,13 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-from collections import Counter
 import json
-from os.path import isfile, normpath
 import subprocess
+from collections import Counter
+from os.path import isfile, normpath
 
-from ef_config import EFConfig
+from efopen.ef_config import EFConfig
+
 
 class EFServiceRegistry(object):
   """
