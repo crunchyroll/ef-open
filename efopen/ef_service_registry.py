@@ -114,6 +114,21 @@ class EFServiceRegistry(object):
     else:
      return self.services().iteritems()
 
+  def _expand_ephemeral_env_names(self, envlist):
+    """
+    Args:
+      envlist: a list of environment names, which may be "ephemeral" names which get expanded to specific environment names
+    Returns:
+      List[String]: envlist, with ephemeral environment names expanded into specific environment names
+    """
+    result = []
+    for service_env in envlist:
+      if service_env not in EFConfig.PROTECTED_ENVS and service_env in EFConfig.EPHEMERAL_ENVS:
+        result.extend((lambda env=service_env: [env + str(x) for x in range(EFConfig.EPHEMERAL_ENVS[env])])())
+      else:
+        result.append(service_env)
+    return result
+
   def valid_envs(self, service_name):
     """
     Args:
@@ -128,17 +143,11 @@ class EFServiceRegistry(object):
       raise RuntimeError("service registry doesn't have service: {}".format(service_name))
 
     # Return empty list if service has no "environments" section
-    if not (service_record.has_key("environments")):
+    if not service_record.has_key("environments"):
       return []
     # Otherwise gather up the envs
-    service_record_envs = service_record["environments"]
-    result = []
-    for service_env in service_record_envs:
-      if service_env not in EFConfig.PROTECTED_ENVS and service_env in EFConfig.EPHEMERAL_ENVS:
-        result.extend((lambda env=service_env: [env + str(x) for x in range(EFConfig.EPHEMERAL_ENVS[env])])())
-      else:
-        result.append(service_env)
-    return result
+    return self._expand_ephemeral_env_names(service_record["environments"])
+
 
   def service_record(self, service_name):
     """
