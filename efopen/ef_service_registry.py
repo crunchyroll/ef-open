@@ -153,7 +153,9 @@ class EFServiceRegistry(object):
     Args:
       service_name: the name of the service in the service registry
     Returns:
-      List[String]: A list of environments to which it is ok to auto-deploy the given service
+      List[String]|bool: A list of environments to which it is ok to auto-deploy the given service,
+                         or a boolean flag allowing/denying all the environments in the 'environments'
+                         service record field to be auto-deployed.
     Raises:
       RuntimeError if the service wasn't found
 
