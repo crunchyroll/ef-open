@@ -93,7 +93,11 @@ def whereami():
     "local" - running locally and not in a known VM
     "unknown" - I have no idea where I am
   """
-  if getenv("JENKINS_URL"):
+  if getenv("JENKINS_URL") and getenv("JENKINS_DOCKER") is None:
+    # The addition of the JENKINS_DOCKER is a temporary workaround to have Jenkins Docker machine rely on its instance
+    # role and assume roles vs a credentials file. This is an on-going effort to move everything to code with
+    # https://ellation.atlassian.net/browse/OPS-13637
+    # Regular Jenkins machines will still continue to use their credentials files until we switch over.
     return "jenkins"
 
   # If the metadata endpoint responds, this is an EC2 instance
