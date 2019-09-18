@@ -217,11 +217,12 @@ class TestEFUtils(unittest.TestCase):
     """
     mock_http_get_metadata.return_value = "i-somestuff"
 
-    def getenv_side_effect(*args, **kwargs):
-      if args[0] == "JENKINS_URL":
+    def getenv_side_effect(key, default=None):
+      if key == "JENKINS_URL":
         return True
-      if args[0] == "JENKINS_DOCKER":
+      if key == "JENKINS_DOCKER":
         return None
+      return default
     mock_getenv.side_effect = getenv_side_effect
     result = ef_utils.whereami()
     self.assertEquals(result, "jenkins")
@@ -244,11 +245,12 @@ class TestEFUtils(unittest.TestCase):
       AssertionError if any of the assert checks fail
     """
     mock_http_get_metadata.return_value = "i-somestuff"
-    def getenv_side_effect(*args, **kwargs):
-      if args[0] == "JENKINS_URL":
+    def getenv_side_effect(key, default=None):
+      if key == "JENKINS_URL":
         return True
-      if args[0] == "JENKINS_DOCKER":
+      if key == "JENKINS_DOCKER":
         return True
+      return default
     mock_getenv.side_effect = getenv_side_effect
     result = ef_utils.whereami()
     self.assertEquals(result, "ec2")
