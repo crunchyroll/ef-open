@@ -19,7 +19,7 @@ import subprocess
 from collections import Counter
 from os.path import isfile, normpath
 
-from efopen.ef_config import EFConfig
+from ef_config import EFConfig
 
 
 class EFServiceRegistry(object):
