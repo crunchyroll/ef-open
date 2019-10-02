@@ -16,7 +16,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-from ef_site_config import EFSiteConfig
+from efopen import ef_site_config
 
 
 class EFConfig(object):
@@ -26,7 +26,7 @@ class EFConfig(object):
   All supported site-specific customizations are found in ef_site_config.py
   """
 
-  _ef_site_config = EFSiteConfig().load()
+  _ef_site_config = ef_site_config.EFSiteConfig().load()
 
   # Initialize config constants
   ALLOW_EF_VERSION_SKIP_PRECHECK = _ef_site_config["ALLOW_EF_VERSION_SKIP_PRECHECK"]
