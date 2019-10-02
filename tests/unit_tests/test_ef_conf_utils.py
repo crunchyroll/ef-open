@@ -189,8 +189,9 @@ class TestEFConfUtils(unittest.TestCase):
     except RuntimeError as exception:
       self.fail("Exception occurred during test_pull_repo_ssh_credentials: " + exception.message)
 
+  @patch('subprocess.check_call')
   @patch('subprocess.check_output')
-  def test_pull_repo_https_credentials(self, mock_check_output):
+  def test_pull_repo_https_credentials(self, mock_check_output, mock_check_call):
     """
     Tests the pull_repo by mocking the subprocess.check_output to return git http credentials.
 
@@ -265,7 +266,7 @@ class TestEFConfUtils(unittest.TestCase):
 
   @patch('subprocess.check_call')
   @patch('subprocess.check_output')
-  def test_pull_repo_https_credentials(self, mock_check_output, mock_check_call):
+  def test_pull_repo_incorrect_branch(self, mock_check_output, mock_check_call):
     """
     Tests pull_repo to see if it throws an error when the mocked check_output states it's on a branch
     other than the one specified in ef_site_config.py
