@@ -20,10 +20,10 @@ import unittest
 from mock import Mock, patch
 
 # For local application imports, context_paths must be first despite lexicon ordering
-import context_paths
+from . import context_paths
 
-from ef_config import EFConfig
-from ef_service_registry import EFServiceRegistry
+from efopen.ef_config import EFConfig
+from efopen.ef_service_registry import EFServiceRegistry
 
 
 class TestEFUtils(unittest.TestCase):

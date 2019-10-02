@@ -22,9 +22,9 @@ from mock import call, Mock, patch
 # For local application imports, context_paths must be first despite lexicon ordering
 import context_paths
 
-from ef_config import EFConfig
-from ef_template_resolver import EFTemplateResolver
-from ef_conf_utils import get_account_alias
+from efopen.ef_config import EFConfig
+from efopen.ef_template_resolver import EFTemplateResolver
+from efopen.ef_conf_utils import get_account_alias
 
 TEST_PROFILE = get_account_alias("test")
 TEST_REGION = EFConfig.DEFAULT_REGION
@@ -118,7 +118,7 @@ class TestEFTemplateResolver(unittest.TestCase):
     """
     pass
 
-  @patch('ef_template_resolver.create_aws_clients')
+  @patch('efopen.ef_template_resolver.create_aws_clients')
   def test_resolution(self, mock_create_aws):
     """Do context symbols resolve correctly"""
     mock_create_aws.return_value = self._clients
@@ -127,7 +127,7 @@ class TestEFTemplateResolver(unittest.TestCase):
     resolver.load(test_string, PARAMS)
     self.assertEqual(resolver.render(), "testenv one|testenv two|slashunderscoredashdot|test")
 
-  @patch('ef_template_resolver.create_aws_clients')
+  @patch('efopen.ef_template_resolver.create_aws_clients')
   def test_embedded_symbols(self, mock_create_aws):
     """Does a symbol built from other symbols resolve correctly"""
     mock_create_aws.return_value = self._clients
@@ -136,7 +136,7 @@ class TestEFTemplateResolver(unittest.TestCase):
     resolver.load(test_string, PARAMS)
     self.assertEqual(resolver.render(), "testenv one")
 
-  @patch('ef_template_resolver.create_aws_clients')
+  @patch('efopen.ef_template_resolver.create_aws_clients')
   def test_unresolved_symbols(self, mock_create_aws):
     """Are unresolved symbols stored and reported, and non-symbols ignored"""
     mock_create_aws.return_value = self._clients
@@ -145,7 +145,7 @@ class TestEFTemplateResolver(unittest.TestCase):
     resolver.load(test_string, PARAMS)
     self.assertEqual(resolver.unresolved_symbols(), set(["cannot_resolve"]))
 
-  @patch('ef_template_resolver.create_aws_clients')
+  @patch('efopen.ef_template_resolver.create_aws_clients')
   def test_hierarchical_overlays(self, mock_create_aws):
     """Is the hierarchy of default..env applied correctly"""
     mock_create_aws.return_value = self._clients
@@ -154,7 +154,7 @@ class TestEFTemplateResolver(unittest.TestCase):
     resolver.load(test_string, PARAMS)
     self.assertEqual(resolver.render(), "testenv one|testenv two|my-hyphen-thing")
 
-  @patch('ef_template_resolver.create_aws_clients')
+  @patch('efopen.ef_template_resolver.create_aws_clients')
   def test_context_vars_protected(self, mock_create_aws):
     """Context vars like {{ENV}} are not overridden even if present in template"""
     mock_create_aws.return_value = self._clients
@@ -163,7 +163,7 @@ class TestEFTemplateResolver(unittest.TestCase):
     resolver.load(test_string, PARAMS)
     self.assertEqual(resolver.render(), TEST_ENV)
 
-  @patch('ef_template_resolver.create_aws_clients')
+  @patch('efopen.ef_template_resolver.create_aws_clients')
   def test_fully_qualified_env(self, mock_create_aws):
     """Does {{ENV_FULL}} resolve correctly"""
     mock_create_aws.return_value = self._clients
@@ -184,7 +184,7 @@ class TestEFTemplateResolver(unittest.TestCase):
     resolver.load(test_string, PARAMS)
     self.assertEqual(resolver.render(), "mgmt.testaccount")
 
-  @patch('ef_template_resolver.create_aws_clients')
+  @patch('efopen.ef_template_resolver.create_aws_clients')
   def test_load_json_file(self, mock_create_aws):
     """Does {{one}} resolve correctly from json parameters file"""
     mock_create_aws.return_value = self._clients
@@ -195,7 +195,7 @@ class TestEFTemplateResolver(unittest.TestCase):
       resolver.load(test_string, json_file)
     self.assertEqual(resolver.render(), "alpha one")
 
-  @patch('ef_template_resolver.create_aws_clients')
+  @patch('efopen.ef_template_resolver.create_aws_clients')
   def test_load_yaml_file(self, mock_create_aws):
     """Does {{one}} resolve correctly from yaml parameters file"""
     mock_create_aws.return_value = self._clients
@@ -206,7 +206,7 @@ class TestEFTemplateResolver(unittest.TestCase):
       resolver.load(test_string, yaml_file)
     self.assertEqual(resolver.render(), "alpha one")
 
-  @patch('ef_template_resolver.create_aws_clients')
+  @patch('efopen.ef_template_resolver.create_aws_clients')
   def test_render_multiline_string_from_string(self, mock_create_aws):
     """Does {{multi}} resolve correctly as a multiline string from yaml parameters file"""
     mock_create_aws.return_value = self._clients
@@ -217,7 +217,7 @@ class TestEFTemplateResolver(unittest.TestCase):
       resolver.load(test_string, json_file)
     self.assertEqual(resolver.render(), "thisisareallylongstringthatcoversmultiple\nlinesfortestingmultilinestrings")
 
-  @patch('ef_template_resolver.create_aws_clients')
+  @patch('efopen.ef_template_resolver.create_aws_clients')
   def test_render_multiline_string_from_list(self, mock_create_aws):
     """Does {{multi}} resolve correctly as a multiline string from yaml parameters file"""
     mock_create_aws.return_value = self._clients
@@ -228,7 +228,7 @@ class TestEFTemplateResolver(unittest.TestCase):
       resolver.load(test_string, json_file)
     self.assertEqual(resolver.render(), "one\ntwo\nthree")
 
-  @patch('ef_template_resolver.create_aws_clients')
+  @patch('efopen.ef_template_resolver.create_aws_clients')
   def test_render_multiline_string(self, mock_create_aws):
     """Does {{multi}} resolve correctly as a multiline string from yaml parameters file"""
     mock_create_aws.return_value = self._clients

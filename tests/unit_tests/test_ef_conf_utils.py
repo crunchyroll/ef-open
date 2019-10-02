@@ -23,10 +23,10 @@ from botocore.exceptions import ClientError
 from mock import Mock, patch
 
 # For local application imports, context_paths must be first despite lexicon ordering
-import context_paths
+from . import context_paths
 
-from ef_config import EFConfig
-import ef_conf_utils
+from efopen.ef_config import EFConfig
+from efopen import ef_conf_utils
 
 
 class TestEFConfUtils(unittest.TestCase):
@@ -335,7 +335,7 @@ class TestEFConfUtils(unittest.TestCase):
     with self.assertRaises(ValueError) as exception:
       ef_conf_utils.get_account_alias("non-existent-env")
     self.assertTrue("unknown env" in exception.exception.message)
-    with patch('ef_conf_utils.env_valid') as mock_env_valid:
+    with patch('efopen.ef_conf_utils.env_valid') as mock_env_valid:
       with self.assertRaises(ValueError) as exception:
         mock_env_valid.return_value = True
         ef_conf_utils.get_account_alias("non-existent-env")

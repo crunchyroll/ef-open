@@ -17,10 +17,10 @@ limitations under the License.
 import unittest
 
 # For local application imports, context_paths must be first despite lexicon ordering
-import context_paths
+from . import context_paths
 
-from ef_config import EFConfig
-from ef_config_resolver import EFConfigResolver
+from efopen.ef_config import EFConfig
+from efopen.ef_config_resolver import EFConfigResolver
 
 
 class TestEFConfigResolver(unittest.TestCase):

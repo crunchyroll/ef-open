@@ -22,10 +22,10 @@ from botocore.exceptions import ClientError
 
 # For local application imports, context_paths must be first despite lexicon ordering
 import context_paths
-from ef_aws_resolver import EFAwsResolver
-from ef_config import EFConfig
-from ef_context import EFContext
-from ef_utils import fail, http_get_metadata, whereami
+from efopen.ef_aws_resolver import EFAwsResolver
+from efopen.ef_config import EFConfig
+from efopen.ef_context import EFContext
+from efopen.ef_utils import fail, http_get_metadata, whereami
 
 
 class TestEFAwsResolver(unittest.TestCase):
@@ -375,7 +375,7 @@ class TestEFAwsResolver(unittest.TestCase):
     result_certificate_arn = ef_aws_resolver.lookup("acm:certificate-arn,us-west-2/" + target_domain_name)
     self.assertEquals(result_certificate_arn, target_certificate_arn)
 
-  @patch('ef_aws_resolver.EFAwsResolver.ec2_elasticip_elasticip_ipaddress')
+  @patch('efopen.ef_aws_resolver.EFAwsResolver.ec2_elasticip_elasticip_ipaddress')
   def test_ec2_elasticip_elasticip_id(self, mock_ec2_elasticip_elasticip_ipaddress):
     """
     Tests ec2_elasticip_elasticip_id to see if it returns an id given a valid input.
@@ -663,7 +663,7 @@ class TestEFAwsResolver(unittest.TestCase):
     result = ef_aws_resolver.lookup("ec2:subnet/subnet-id,cant_possibly_match")
     self.assertIsNone(result)
 
-  @patch('ef_aws_resolver.EFAwsResolver.ec2_vpc_vpc_id')
+  @patch('efopen.ef_aws_resolver.EFAwsResolver.ec2_vpc_vpc_id')
   def test_ec2_vpc_availabilityzones(self, mock_ec2_vpc_vpc_id):
     """
     Tests ec2_vpc_availabilityzones to see if it returns the correct availability zone based on matching vpc name
@@ -692,7 +692,7 @@ class TestEFAwsResolver(unittest.TestCase):
     result = ef_aws_resolver.lookup("ec2:vpc/availabilityzones,target_subnet_name")
     self.assertEquals(target_availability_zone, result)
 
-  @patch('ef_aws_resolver.EFAwsResolver.ec2_vpc_vpc_id')
+  @patch('efopen.ef_aws_resolver.EFAwsResolver.ec2_vpc_vpc_id')
   def test_ec2_vpc_availabilityzones_no_vpc_id(self, mock_ec2_vpc_vpc_id):
     """
     Tests ec2_vpc_availabilityzones to see if it returns None when no vpc_id is returned for vpc name in tag
@@ -711,7 +711,7 @@ class TestEFAwsResolver(unittest.TestCase):
     result = ef_aws_resolver.lookup("ec2:vpc/availabilityzones,target_subnet_name")
     self.assertIsNone(result)
 
-  @patch('ef_aws_resolver.EFAwsResolver.ec2_vpc_vpc_id')
+  @patch('efopen.ef_aws_resolver.EFAwsResolver.ec2_vpc_vpc_id')
   def test_ec2_vpc_availabilityzones_no_match(self, mock_ec2_vpc_vpc_id):
     """
     Tests ec2_vpc_availabilityzones to see if it returns None when no match is found
@@ -734,7 +734,7 @@ class TestEFAwsResolver(unittest.TestCase):
     result = ef_aws_resolver.lookup("ec2:vpc/availabilityzones,cant_possibly_match")
     self.assertIsNone(result)
 
-  @patch('ef_aws_resolver.EFAwsResolver.ec2_vpc_vpc_id')
+  @patch('efopen.ef_aws_resolver.EFAwsResolver.ec2_vpc_vpc_id')
   def test_ec2_vpc_subnets(self, mock_ec2_vpc_vpc_id):
     """
     Tests ec2_vpc_subnets to see if it returns the correct subnet id based on matching vpc name in tag
@@ -762,7 +762,7 @@ class TestEFAwsResolver(unittest.TestCase):
     result = ef_aws_resolver.lookup("ec2:vpc/subnets,target_subnet_name")
     self.assertEquals(target_subnet_id, result)
 
-  @patch('ef_aws_resolver.EFAwsResolver.ec2_vpc_vpc_id')
+  @patch('efopen.ef_aws_resolver.EFAwsResolver.ec2_vpc_vpc_id')
   def test_ec2_vpc_subnets_no_match(self, mock_ec2_vpc_vpc_id):
     """
     Tests ec2_vpc_subnets to see if returns None when there are no matches
@@ -1390,7 +1390,7 @@ class TestEFAwsResolver(unittest.TestCase):
     result = ef_aws_resolver.lookup("route53:private-hosted-zone-id,cant_possibly_match.")
     self.assertIsNone(result)
 
-  @patch('ef_aws_resolver.EFAwsResolver.ec2_vpc_vpc_id')
+  @patch('efopen.ef_aws_resolver.EFAwsResolver.ec2_vpc_vpc_id')
   def test_ec2_route_table_main_route_table_id(self, mock_ec2_vpc_vpc_id):
     """
     Tests ec2_route_table_main_route_table_id to see if it returns the correct route table id based on vpc name
@@ -1418,7 +1418,7 @@ class TestEFAwsResolver(unittest.TestCase):
     result = ef_aws_resolver.lookup("ec2:route-table/main-route-table-id,target_vpc_name")
     self.assertEquals(target_route_table_id, result)
 
-  @patch('ef_aws_resolver.EFAwsResolver.ec2_vpc_vpc_id')
+  @patch('efopen.ef_aws_resolver.EFAwsResolver.ec2_vpc_vpc_id')
   def test_ec2_route_table_main_route_table_id_no_single_match(self, mock_ec2_vpc_vpc_id):
     """
     Tests ec2_route_table_main_route_table_id to see if it returns None if no matches or more than one match occurs

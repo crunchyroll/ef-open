@@ -19,9 +19,9 @@ import unittest
 from mock import call, Mock, patch
 
 # For local application imports, context_paths must be first despite lexicon ordering
-import context_paths
+from . import context_paths
 
-from ef_version_resolver import EFVersionResolver
+from efopen.ef_version_resolver import EFVersionResolver
 
 
 class TestEFVersionResolver(unittest.TestCase):
@@ -51,7 +51,7 @@ class TestEFVersionResolver(unittest.TestCase):
     """
     pass
 
-  @patch('ef_version_resolver.EFVersionResolver._s3_get')
+  @patch('efopen.ef_version_resolver.EFVersionResolver._s3_get')
   def test_ami_id(self, mock_s3_get):
     """Does ami-id,proto0/test-instance resolve to an AMI id"""
     mock_s3_get.return_value = 'ami-12345678'

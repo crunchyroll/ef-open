@@ -24,7 +24,7 @@ from mock import Mock, patch
 # For local application imports, context_paths must be first despite lexicon ordering
 import context_paths
 
-from ef_instanceinit_config_reader import EFInstanceinitConfigReader
+from efopen.ef_instanceinit_config_reader import EFInstanceinitConfigReader
 
 
 class TestEFInstanceInitConfigReader(unittest.TestCase):

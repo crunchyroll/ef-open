@@ -23,10 +23,10 @@ from botocore.exceptions import ClientError
 from mock import Mock, patch
 
 # For local application imports, context_paths must be first despite lexicon ordering
-import context_paths
+from . import context_paths
 
-from ef_config import EFConfig
-import ef_utils
+from efopen.ef_config import EFConfig
+from efopen import ef_utils
 
 
 class TestEFUtils(unittest.TestCase):
@@ -178,8 +178,8 @@ class TestEFUtils(unittest.TestCase):
       ef_utils.http_get_metadata("ami-id")
     self.assertIn("Non-200 response", exception.exception.message)
 
-  @patch('ef_utils.getenv')
-  @patch('ef_utils.http_get_metadata')
+  @patch('efopen.ef_utils.getenv')
+  @patch('efopen.ef_utils.http_get_metadata')
   def test_whereami_ec2(self, mock_http_get_metadata, getenv):
     """
     Tests whereami to see if it returns 'ec2' by mocking an ec2 environment
@@ -198,8 +198,8 @@ class TestEFUtils(unittest.TestCase):
     result = ef_utils.whereami()
     self.assertEquals(result, "ec2")
 
-  @patch('ef_utils.getenv')
-  @patch('ef_utils.http_get_metadata')
+  @patch('efopen.ef_utils.getenv')
+  @patch('efopen.ef_utils.http_get_metadata')
   def test_whereami_jenkins(self, mock_http_get_metadata, mock_getenv):
     """
     Tests whereami to see if it returns 'jenkins' by mocking an ec2 Jenkins
@@ -222,10 +222,10 @@ class TestEFUtils(unittest.TestCase):
 
 
 
-  @patch('ef_utils.getenv')
-  @patch('ef_utils.is_in_virtualbox')
-  @patch('ef_utils.gethostname')
-  @patch('ef_utils.http_get_metadata')
+  @patch('efopen.ef_utils.getenv')
+  @patch('efopen.ef_utils.is_in_virtualbox')
+  @patch('efopen.ef_utils.gethostname')
+  @patch('efopen.ef_utils.http_get_metadata')
   def test_whereami_local(self, mock_http_get_metadata, mock_gethostname, mock_is_in_virtualbox, mock_getenv):
     """
     Tests whereami to see if it returns 'local' by mocking a local machine environment
@@ -247,10 +247,10 @@ class TestEFUtils(unittest.TestCase):
     result = ef_utils.whereami()
     self.assertEquals(result, "local")
 
-  @patch('ef_utils.getenv')
-  @patch('ef_utils.is_in_virtualbox')
-  @patch('ef_utils.gethostname')
-  @patch('ef_utils.http_get_metadata')
+  @patch('efopen.ef_utils.getenv')
+  @patch('efopen.ef_utils.is_in_virtualbox')
+  @patch('efopen.ef_utils.gethostname')
+  @patch('efopen.ef_utils.http_get_metadata')
   def test_whereami_unknown(self, mock_http_get_metadata, mock_gethostname, mock_is_in_virtualbox, mock_getenv):
     """
     Tests whereami to see if it returns 'unknown' by mocking the environment to not match anything
@@ -272,7 +272,7 @@ class TestEFUtils(unittest.TestCase):
     result = ef_utils.whereami()
     self.assertEquals(result, "unknown")
 
-  @patch('ef_utils.http_get_metadata')
+  @patch('efopen.ef_utils.http_get_metadata')
   def test_http_get_instance_env(self, mock_http_get_metadata):
     """
     Tests http_get_instance_env to see if it returns 'alpha' by mocking the metadata with a valid IAM instance profile
@@ -290,7 +290,7 @@ class TestEFUtils(unittest.TestCase):
     env = ef_utils.http_get_instance_env()
     self.assertEquals(env, "alpha")
 
-  @patch('ef_utils.http_get_metadata')
+  @patch('efopen.ef_utils.http_get_metadata')
   def test_http_get_instance_env_exception(self, mock_http_get_metadata):
     """
     Tests http_get_instance_env to see if it raises an exception by mocking the metadata to be invalid
@@ -309,7 +309,7 @@ class TestEFUtils(unittest.TestCase):
       ef_utils.http_get_instance_env()
     self.assertIn("Error looking up metadata:iam/info", exception.exception.message)
 
-  @patch('ef_utils.http_get_metadata')
+  @patch('efopen.ef_utils.http_get_metadata')
   def test_http_get_instance_role(self, mock_http_get_metadata):
     """
     Tests http_get_instance_role to return the service name by mocking the metadata
@@ -327,7 +327,7 @@ class TestEFUtils(unittest.TestCase):
     role = ef_utils.http_get_instance_role()
     self.assertEquals(role, "server")
 
-  @patch('ef_utils.http_get_metadata')
+  @patch('efopen.ef_utils.http_get_metadata')
   def test_http_get_instance_role_exception(self, mock_http_get_metadata):
     """
     Tests http_get_instance_role to see if it raises an exception by giving it invalid metadata
@@ -346,7 +346,7 @@ class TestEFUtils(unittest.TestCase):
       ef_utils.http_get_instance_role()
     self.assertIn("Error looking up metadata:iam/info:", exception.exception.message)
 
-  @patch('ef_utils.http_get_metadata')
+  @patch('efopen.ef_utils.http_get_metadata')
   def test_get_instance_aws_context(self, mock_http_get_metadata):
     """
     Tests get_instance_aws_context to see if it produces a dict object with all the
@@ -385,7 +385,7 @@ class TestEFUtils(unittest.TestCase):
     self.assertEquals(result["role"], "alpha0-server-ftp")
     self.assertEquals(result["service"], "server-ftp")
 
-  @patch('ef_utils.http_get_metadata')
+  @patch('efopen.ef_utils.http_get_metadata')
   def test_get_instance_aws_context_metadata_exception(self, mock_http_get_metadata):
     """
     Tests get_instance_aws_context to see if it throws an exception by giving it invalid metadata

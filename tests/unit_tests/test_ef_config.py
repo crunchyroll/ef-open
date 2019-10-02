@@ -18,8 +18,8 @@ import unittest
 
 from mock import Mock, patch
 
-import context_paths
-from ef_config import EFConfig
+from . import context_paths
+from efopen.ef_config import EFConfig
 
 
 class TestEFConfig(unittest.TestCase):

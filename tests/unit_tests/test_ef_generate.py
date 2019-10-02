@@ -21,10 +21,10 @@ import unittest
 from botocore.exceptions import ClientError
 from mock import Mock, patch
 
-import context_paths
-from ef_context import EFContext
+from . import context_paths
+from efopen.ef_context import EFContext
 
-import ef_generate
+from efopen import ef_generate
 
 
 class TestEFGenerate(unittest.TestCase):
