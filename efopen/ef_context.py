@@ -16,12 +16,12 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-from ef_service_registry import EFServiceRegistry
-from ef_utils import whereami
-from ef_conf_utils import env_valid
-from ef_conf_utils import get_account_alias
-from ef_conf_utils import get_env_short
-from ef_conf_utils import global_env_valid
+from .ef_service_registry import EFServiceRegistry
+from .ef_utils import whereami
+from .ef_conf_utils import env_valid
+from .ef_conf_utils import get_account_alias
+from .ef_conf_utils import get_env_short
+from .ef_conf_utils import global_env_valid
 
 class EFContext(object):
   """

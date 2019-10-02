@@ -19,9 +19,9 @@ import yaml
 
 import botocore.exceptions
 
-from ef_config import EFConfig
-import ef_utils
-import ef_conf_utils
+from .ef_config import EFConfig
+from . import ef_utils
+from . import ef_conf_utils
 
 
 class EFInstanceinitConfigReader:

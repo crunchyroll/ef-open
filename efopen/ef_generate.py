@@ -36,13 +36,13 @@ import time
 
 from botocore.exceptions import ClientError
 
-from ef_aws_resolver import EFAwsResolver
-from ef_config import EFConfig
-from ef_context import EFContext
-from ef_service_registry import EFServiceRegistry
-from ef_template_resolver import EFTemplateResolver
-from ef_utils import create_aws_clients, fail, get_account_id, http_get_metadata
-from ef_conf_utils import pull_repo
+from .ef_aws_resolver import EFAwsResolver
+from .ef_config import EFConfig
+from .ef_context import EFContext
+from .ef_service_registry import EFServiceRegistry
+from .ef_template_resolver import EFTemplateResolver
+from .ef_utils import create_aws_clients, fail, get_account_id, http_get_metadata
+from .ef_conf_utils import pull_repo
 
 # Globals
 CLIENTS = None

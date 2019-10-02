@@ -22,7 +22,7 @@ import boto3
 from botocore.exceptions import ClientError
 import yaml
 
-import ef_utils
+from . import ef_utils
 
 
 class EFSiteConfig(object):

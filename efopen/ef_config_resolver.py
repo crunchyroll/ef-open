@@ -16,7 +16,7 @@ limitations under the License.
 
 from __future__ import print_function
 
-from ef_config import EFConfig
+from .ef_config import EFConfig
 
 
 class EFConfigResolver(object):

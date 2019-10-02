@@ -34,12 +34,12 @@ import yaml
 from yamllint import linter as yamllinter
 from yamllint import config as yamllint_config
 
-import ef_utils
-import ef_conf_utils
-from ef_config import EFConfig
-from ef_template_resolver import EFTemplateResolver
-from ef_utils import fail
-from ef_conf_utils import get_account_alias
+from .import ef_utils
+from .import ef_conf_utils
+from .ef_config import EFConfig
+from .ef_template_resolver import EFTemplateResolver
+from .ef_utils import fail
+from .ef_conf_utils import get_account_alias
 
 
 class Context:

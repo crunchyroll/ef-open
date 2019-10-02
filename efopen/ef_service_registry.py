@@ -19,7 +19,7 @@ import json
 from os.path import isfile, normpath
 import subprocess
 
-from ef_config import EFConfig
+from .ef_config import EFConfig
 
 class EFServiceRegistry(object):
   """

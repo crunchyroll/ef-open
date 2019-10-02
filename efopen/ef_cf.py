@@ -29,12 +29,12 @@ import time
 
 import botocore.exceptions
 
-from ef_config import EFConfig
-from ef_context import EFContext
-from ef_service_registry import EFServiceRegistry
-from ef_template_resolver import EFTemplateResolver
-from ef_utils import create_aws_clients, get_autoscaling_group_properties, fail
-from ef_conf_utils import pull_repo
+from .ef_config import EFConfig
+from .ef_context import EFContext
+from .ef_service_registry import EFServiceRegistry
+from .ef_template_resolver import EFTemplateResolver
+from .ef_utils import create_aws_clients, get_autoscaling_group_properties, fail
+from .ef_conf_utils import pull_repo
 
 # CONSTANTS
 # Cloudformation template size limit in bytes (which translates to the length of the template)

@@ -7,7 +7,7 @@ from os.path import exists
 
 from botocore.exceptions import ClientError
 
-from ef_config import EFConfig
+from .ef_config import EFConfig
 
 def get_template_parameters_file(template_full_path):
     """

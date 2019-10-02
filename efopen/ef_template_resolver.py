@@ -22,11 +22,11 @@ import yaml
 
 import botocore.exceptions
 
-from ef_aws_resolver import EFAwsResolver
-from ef_config import EFConfig
-from ef_config_resolver import EFConfigResolver
-from ef_utils import create_aws_clients, fail, get_account_id, http_get_metadata, whereami
-from ef_version_resolver import EFVersionResolver
+from .ef_aws_resolver import EFAwsResolver
+from .ef_config import EFConfig
+from .ef_config_resolver import EFConfigResolver
+from .ef_utils import create_aws_clients, fail, get_account_id, http_get_metadata, whereami
+from .ef_version_resolver import EFVersionResolver
 
 # CONSTANTS
 # pattern to find resolvable symbols - finds innermost nestings
@@ -56,7 +56,7 @@ class EFTemplateResolver(object):
     - 5. parameters from a parameter file / dictionary of params
 
   To use:
-    from ef_template_resolver import EFTemplateResolver
+    from .ef_template_resolver import EFTemplateResolver
     # if local (for testing or configuring something other than "self"):
     a = EFTemplateResolver(profile="proto", env="proto3", region="us-east-1", service="myservice")
     # if in a VM, there is no AWS context available:

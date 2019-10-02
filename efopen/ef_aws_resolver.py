@@ -21,7 +21,7 @@ import re
 
 from botocore.exceptions import ClientError
 
-import ef_utils
+from . import ef_utils
 
 class EFAwsResolver(object):
   """

@@ -8,9 +8,9 @@ import os
 import string
 import sys
 
-from ef_config import EFConfig
-from ef_context import EFContext
-import ef_utils
+from .ef_config import EFConfig
+from .ef_context import EFContext
+from . import ef_utils
 
 
 class EFPWContext(EFContext):

@@ -18,7 +18,7 @@ from __future__ import print_function
 
 from botocore.client import ClientError
 
-from ef_config import EFConfig
+from .ef_config import EFConfig
 
 class EFVersionResolver(object):
   """
