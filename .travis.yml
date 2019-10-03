@@ -3,6 +3,6 @@ python:
     - "2.7"
 
 install:
-    python setup.py test
+    pip install -p
 script:
     python -m unittest discover
