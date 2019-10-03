@@ -439,7 +439,6 @@ class TestEFVersionModule(unittest.TestCase):
 
     with self.assertRaises(SystemExit) as e:
       ef_version.cmd_rollback_to(context)
-      self.assertIn(ami_id, e.message)
 
     get_versions.assert_called_once_with(context)
     cmd_set.assert_not_called()
