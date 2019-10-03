@@ -128,7 +128,7 @@ def handle_args_and_set_context(args):
     context.env = parsed_args["env"]
     context.template_file = parsed_args["template_file"]
   except ValueError as e:
-    fail("Error in argument: {}".format(e.message))
+    fail("Error in argument: {}".format(e))
   context.changeset = parsed_args["changeset"]
   context.commit = parsed_args["commit"]
   context.devel = parsed_args["devel"]

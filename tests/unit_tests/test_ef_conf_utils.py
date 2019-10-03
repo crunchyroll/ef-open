@@ -82,21 +82,21 @@ class TestEFConfUtils(unittest.TestCase):
         continue
       with self.assertRaises(ValueError) as exception:
         ef_conf_utils.global_env_valid(env)
-      self.assertTrue("Invalid global env" in exception.exception.message)
+      self.assertIn("Invalid global env", str(exception.exception))
 
     # Hard coded junk values
     with self.assertRaises(ValueError) as exception:
       ef_conf_utils.global_env_valid("not_global")
-    self.assertTrue("Invalid global env" in exception.exception.message)
+    self.assertIn("Invalid global env", str(exception.exception))
     with self.assertRaises(ValueError) as exception:
       ef_conf_utils.global_env_valid("not_mgmt")
-    self.assertTrue("Invalid global env" in exception.exception.message)
+    self.assertIn("Invalid global env", str(exception.exception))
     with self.assertRaises(ValueError) as exception:
       ef_conf_utils.global_env_valid("")
-    self.assertTrue("Invalid global env" in exception.exception.message)
+    self.assertIn("Invalid global env", str(exception.exception))
     with self.assertRaises(ValueError) as exception:
       ef_conf_utils.global_env_valid(None)
-    self.assertTrue("Invalid global env" in exception.exception.message)
+    self.assertIn("Invalid global env", str(exception.exception))
 
   def test_env_valid(self):
     """
@@ -326,23 +326,23 @@ class TestEFConfUtils(unittest.TestCase):
         env += '0'
       with self.assertRaises(ValueError) as exception:
         ef_conf_utils.get_account_alias(env)
-      self.assertTrue("unknown env" in exception.exception.message)
+      self.assertIn("unknown env", str(exception.exception))
 
     # Hard coded junk values
     with self.assertRaises(ValueError) as exception:
       ef_conf_utils.get_account_alias("non-existent-env")
-    self.assertTrue("unknown env" in exception.exception.message)
+    self.assertIn("unknown env", str(exception.exception))
     with patch('ef_conf_utils.env_valid') as mock_env_valid:
       with self.assertRaises(ValueError) as exception:
         mock_env_valid.return_value = True
         ef_conf_utils.get_account_alias("non-existent-env")
-    self.assertTrue("has no entry in ENV_ACCOUNT_MAP" in exception.exception.message)
+    self.assertIn("has no entry in ENV_ACCOUNT_MAP", str(exception.exception))
     with self.assertRaises(ValueError) as exception:
       ef_conf_utils.get_account_alias("")
-    self.assertTrue("unknown env" in exception.exception.message)
+    self.assertIn("unknown env", str(exception.exception))
     with self.assertRaises(ValueError) as exception:
       ef_conf_utils.get_account_alias(None)
-    self.assertTrue("unknown env" in exception.exception.message)
+    self.assertIn("unknown env", str(exception.exception))
 
   def test_get_template_parameters_s3(self):
     """Test method returns valid parameters file"""
@@ -388,15 +388,15 @@ class TestEFConfUtils(unittest.TestCase):
         env += '0'
       with self.assertRaises(ValueError) as exception:
         ef_conf_utils.get_env_short(env)
-      self.assertTrue("unknown env" in exception.exception.message)
+      self.assertIn("unknown env", str(exception.exception))
 
     # Hard coded junk values
     with self.assertRaises(ValueError) as exception:
       ef_conf_utils.get_env_short("non-existent-env")
-    self.assertTrue("unknown env" in exception.exception.message)
+    self.assertIn("unknown env", str(exception.exception))
     with self.assertRaises(ValueError) as exception:
       ef_conf_utils.get_env_short("")
-    self.assertTrue("unknown env" in exception.exception.message)
+    self.assertIn("unknown env", str(exception.exception))
     with self.assertRaises(ValueError) as exception:
       ef_conf_utils.get_env_short(None)
-    self.assertTrue("unknown env" in exception.exception.message)
+    self.assertIn("unknown env", str(exception.exception))

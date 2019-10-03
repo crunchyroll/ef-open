@@ -81,7 +81,7 @@ class EFVersionResolver(object):
     try:
       env, service = envservice.split("/")
     except ValueError as e:
-      raise RuntimeError("Request:{} can't resolve to env, service. {}".format(envservice, e.message))
+      raise RuntimeError("Request:{} can't resolve to env, service. {}".format(envservice, e))
 
     return self._s3_get(env, service, key)
 

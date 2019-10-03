@@ -176,7 +176,7 @@ class TestEFUtils(unittest.TestCase):
     mock_urllib2.return_value = mock_response
     with self.assertRaises(IOError) as exception:
       ef_utils.http_get_metadata("ami-id")
-    self.assertIn("Non-200 response", exception.exception.message)
+    self.assertIn("Non-200 response", str(exception.exception))
 
   @patch('ef_utils.getenv')
   @patch('ef_utils.http_get_metadata')
@@ -340,7 +340,7 @@ class TestEFUtils(unittest.TestCase):
     mock_http_get_metadata.return_value = "No data"
     with self.assertRaises(Exception) as exception:
       ef_utils.http_get_instance_env()
-    self.assertIn("Error looking up metadata:iam/info", exception.exception.message)
+    self.assertIn("Error looking up metadata:iam/info", str(exception.exception))
 
   @patch('ef_utils.http_get_metadata')
   def test_http_get_instance_role(self, mock_http_get_metadata):
@@ -377,7 +377,7 @@ class TestEFUtils(unittest.TestCase):
     mock_http_get_metadata.return_value = "No data"
     with self.assertRaises(Exception) as exception:
       ef_utils.http_get_instance_role()
-    self.assertIn("Error looking up metadata:iam/info:", exception.exception.message)
+    self.assertIn("Error looking up metadata:iam/info:", str(exception.exception))
 
   @patch('ef_utils.http_get_metadata')
   def test_get_instance_aws_context(self, mock_http_get_metadata):
@@ -436,7 +436,7 @@ class TestEFUtils(unittest.TestCase):
     mock_ec2_client = Mock(name="mock-ec2-client")
     with self.assertRaises(IOError) as exception:
       ef_utils.get_instance_aws_context(mock_ec2_client)
-    self.assertIn("Error looking up metadata:availability-zone or instance-id:", exception.exception.message)
+    self.assertIn("Error looking up metadata:availability-zone or instance-id:", str(exception.exception))
 
   @patch('boto3.Session')
   def test_create_aws_clients(self, mock_session_constructor):
