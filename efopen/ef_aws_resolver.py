@@ -98,7 +98,7 @@ class EFAwsResolver(object):
       if cert_handle["DomainName"] == domain_name:
         cert = acm_client.describe_certificate(CertificateArn=cert_handle["CertificateArn"])["Certificate"]
         # Patch up cert if there is no IssuedAt (i.e. cert was not issued by Amazon)
-        if not cert.has_key("IssuedAt"):
+        if "IssuedAt" not in cert:
           cert[u"IssuedAt"] = datetime.datetime(1970, 1, 1, 0, 0)
         if best_match_cert is None:
           best_match_cert = cert
@@ -403,7 +403,7 @@ class EFAwsResolver(object):
       for rule in rules["Rules"]:
         if rule["Name"] == lookup:
           return rule["RuleId"]
-      if rules.has_key("NextMarker"):
+      if "NextMarker" in rules:
         rules = EFAwsResolver.__CLIENTS["waf"].list_rules(Limit=list_limit, NextMarker=rules["NextMarker"])
       else:
         return default
@@ -423,7 +423,7 @@ class EFAwsResolver(object):
       for acl in acls["WebACLs"]:
         if acl["Name"] == lookup:
           return acl["WebACLId"]
-      if acls.has_key("NextMarker"):
+      if "NextMarker" in acls:
         acls = EFAwsResolver.__CLIENTS["waf"].list_web_acls(Limit=list_limit, NextMarker=acls["NextMarker"])
       else:
         return default
@@ -442,7 +442,7 @@ class EFAwsResolver(object):
       return default
     hosted_zones = EFAwsResolver.__CLIENTS["route53"].list_hosted_zones_by_name(DNSName=lookup, MaxItems=list_limit)
     # Return if the account has no HostedZones
-    if not hosted_zones.has_key("HostedZones"):
+    if "HostedZones" not in hosted_zones:
       return default
     while True:
       for hosted_zone in hosted_zones["HostedZones"]:
@@ -468,7 +468,7 @@ class EFAwsResolver(object):
       return default
     hosted_zones = EFAwsResolver.__CLIENTS["route53"].list_hosted_zones_by_name(DNSName=lookup, MaxItems=list_limit)
     # Return if the account has no HostedZones
-    if not hosted_zones.has_key("HostedZones"):
+    if "HostedZones" not in hosted_zones:
       return default
     while True:
       for hosted_zone in hosted_zones["HostedZones"]:
@@ -527,7 +527,7 @@ class EFAwsResolver(object):
     list_limit = "100"
     distributions = EFAwsResolver.__CLIENTS["cloudfront"].list_distributions(MaxItems=list_limit)["DistributionList"]
     # Return if the account has no Distributions
-    if not distributions.has_key("Items"):
+    if "Items" not in distributions:
       return default
     while True:
       for distribution in distributions["Items"]:
@@ -552,7 +552,7 @@ class EFAwsResolver(object):
     oais = EFAwsResolver.__CLIENTS["cloudfront"].list_cloud_front_origin_access_identities(
       MaxItems=list_limit)["CloudFrontOriginAccessIdentityList"]
     # Return if the account has no OriginAccessIdentities
-    if not oais.has_key("Items"):
+    if "Items" not in oais:
       return default
     while True:
       for oai in oais["Items"]:
@@ -577,7 +577,7 @@ class EFAwsResolver(object):
     oais = EFAwsResolver.__CLIENTS["cloudfront"].list_cloud_front_origin_access_identities(
       MaxItems=list_limit)["CloudFrontOriginAccessIdentityList"]
     # Return if the account has no OriginAccessIdentities
-    if not oais.has_key("Items"):
+    if "Items" not in oais:
       return default
     while True:
       for oai in oais["Items"]:
@@ -627,7 +627,7 @@ class EFAwsResolver(object):
           return pool["IdentityPoolId"]
 
       # No match found on this page, but there are more pages
-      if response.has_key("NextToken"):
+      if "NextToken" in response:
         response = client.list_identity_pools(MaxResults=list_limit, NextToken=response["NextToken"])
       else:
         break
@@ -650,7 +650,7 @@ class EFAwsResolver(object):
 
     response = client.describe_user_pool(UserPoolId=user_pool_id)
 
-    if not response.has_key("UserPool"):
+    if "UserPool" not in response:
       return default
 
     return response["UserPool"]["Arn"]
@@ -676,7 +676,7 @@ class EFAwsResolver(object):
           return pool["Id"]
 
       # No match found on this page, but there are more pages
-      if response.has_key("NextToken"):
+      if "NextToken" in response:
         response = client.list_identity_pools(MaxResults=list_limit, NextToken=response["NextToken"])
       else:
         break
