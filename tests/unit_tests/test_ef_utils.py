@@ -227,8 +227,8 @@ class TestEFUtils(unittest.TestCase):
     result = ef_utils.whereami()
     self.assertEquals(result, "jenkins")
 
-  @patch('ef_utils.getenv')
-  @patch('ef_utils.http_get_metadata')
+  @patch('efopen.ef_utils.getenv')
+  @patch('efopen.ef_utils.http_get_metadata')
   def test_whereami_jenkins_docker(self, mock_http_get_metadata, mock_getenv):
     """
     Tests whereami to see if it returns 'ec2' by mocking an ec2 Jenkins Docker
