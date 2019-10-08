@@ -34,6 +34,7 @@ from os.path import dirname, normpath
 import sys
 import time
 
+import botocore
 from botocore.exceptions import ClientError
 
 from .ef_aws_resolver import EFAwsResolver
@@ -360,6 +361,11 @@ def conditionally_attach_aws_managed_policies(role_name, sr_entry):
     if CONTEXT.commit:
       try:
         CLIENTS["iam"].attach_role_policy(RoleName=role_name, PolicyArn='arn:aws:iam::aws:policy/' + policy_name)
+        print_if_verbose("Attached managed policy '{}'".format(policy_name))
+      except CLIENTS["iam"].exceptions.NoSuchEntityException:
+        CLIENTS["iam"].attach_role_policy(RoleName=role_name,
+                                          PolicyArn='arn:aws:iam::aws:policy/job-function/' + policy_name)
+        print_if_verbose("Attached managed job-function '{}'".format(policy_name))
       except:
         fail("Exception putting policy: {} onto role: {}".format(policy_name, role_name), sys.exc_info())
 

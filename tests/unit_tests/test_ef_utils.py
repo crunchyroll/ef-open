@@ -216,11 +216,44 @@ class TestEFUtils(unittest.TestCase):
       AssertionError if any of the assert checks fail
     """
     mock_http_get_metadata.return_value = "i-somestuff"
-    mock_getenv.return_value = "not-falsy"
+
+    def getenv_side_effect(key, default=None):
+      if key == "JENKINS_URL":
+        return True
+      if key == "JENKINS_DOCKER":
+        return None
+      return default
+    mock_getenv.side_effect = getenv_side_effect
     result = ef_utils.whereami()
     self.assertEquals(result, "jenkins")
 
+  @patch('ef_utils.getenv')
+  @patch('ef_utils.http_get_metadata')
+  def test_whereami_jenkins_docker(self, mock_http_get_metadata, mock_getenv):
+    """
+    Tests whereami to see if it returns 'ec2' by mocking an ec2 Jenkins Docker
+    environment
 
+    Args:
+      mock_http_get_metadata: MagicMock, returns "i-somestuff"
+      mock_get_env: MagicMock, mocks the environment variables
+
+    Returns:
+      None
+
+    Raises:
+      AssertionError if any of the assert checks fail
+    """
+    mock_http_get_metadata.return_value = "i-somestuff"
+    def getenv_side_effect(key, default=None):
+      if key == "JENKINS_URL":
+        return True
+      if key == "JENKINS_DOCKER":
+        return True
+      return default
+    mock_getenv.side_effect = getenv_side_effect
+    result = ef_utils.whereami()
+    self.assertEquals(result, "ec2")
 
   @patch('efopen.ef_utils.getenv')
   @patch('efopen.ef_utils.is_in_virtualbox')
