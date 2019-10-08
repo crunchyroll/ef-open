@@ -279,7 +279,7 @@ def conditionally_create_role(role_name, sr_entry):
     print_if_verbose("not eligible for role (and possibly instance profile); service type: {}".format(service_type))
     return
 
-  if sr_entry.has_key("assume_role_policy"):
+  if "assume_role_policy" in sr_entry:
     # Explicitly defined AssumeRole policy
     assume_role_policy_document = resolve_policy_document(sr_entry["assume_role_policy"])
   else:

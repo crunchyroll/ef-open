@@ -153,7 +153,7 @@ class EFContext(object):
     """
     if client_id is None:
       return self._aws_clients
-    elif self._aws_clients is not None and self._aws_clients.has_key(client_id):
+    elif self._aws_clients is not None and client_id in self._aws_clients:
       return self._aws_clients[client_id]
     else:
       return None
