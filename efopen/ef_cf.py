@@ -179,8 +179,7 @@ def calculate_max_batch_size(asg_client, service, percent):
   current_desired = autoscaling_group_properties[0]["DesiredCapacity"]
   new_batch_size = int(math.ceil(current_desired * (percent * 0.01)))
   # max batch size must be a minimum of 1, otherwise cloudformation gives an error.
-  new_batch_size = max(new_batch_size, 1)
-  return new_batch_size
+  return max(new_batch_size, 1)
 
 class CFTemplateLinter(object):
 
