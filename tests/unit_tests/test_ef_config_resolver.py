@@ -18,17 +18,38 @@ import unittest
 
 # For local application imports, context_paths must be first despite lexicon ordering
 import context_paths
+
+from ef_config import EFConfig
 from ef_config_resolver import EFConfigResolver
+
 
 class TestEFConfigResolver(unittest.TestCase):
   """Tests for 'ef_config_resolver.py'"""
 
   def test_account_alias_of_env(self):
     """Does accountaliasofenv,prod resolve to the prod account alias"""
-    test_string = "accountaliasofenv,prod"
-    resolver = EFConfigResolver()
-    self.assertRegexpMatches(resolver.lookup(test_string), "^ellation$")
+    ef_config_resolver = EFConfigResolver()
+    result_config_data = ef_config_resolver.lookup("accountaliasofenv,test")
+    if result_config_data is None:
+      result_config_data = ''
+    self.assertRegexpMatches(result_config_data, "^testaccount$")
 
+  def test_config_custom_data(self):
+    target_custom_data = "custom_data"
+    EFConfig.CUSTOM_DATA = {"mock_data": "custom_data"}
 
-if __name__ == '__main__':
-  unittest.main()
+    ef_config_resolver = EFConfigResolver()
+    result_custom_data = ef_config_resolver.lookup("customdata,mock_data")
+    self.assertEquals(result_custom_data, target_custom_data)
+
+  def test_config_custom_data_no_data(self):
+    ef_config_resolver = EFConfigResolver()
+    result_custom_data = ef_config_resolver.lookup("customdata,mock_data")
+    self.assertEquals(result_custom_data, None)
+
+  def test_config_custom_data_missing_lookup(self):
+    EFConfig.CUSTOM_DATA = {}
+
+    ef_config_resolver = EFConfigResolver()
+    result_custom_data = ef_config_resolver.lookup("customdata,mock_data")
+    self.assertEquals(result_custom_data, None)

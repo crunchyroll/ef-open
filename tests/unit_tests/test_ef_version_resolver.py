@@ -16,39 +16,45 @@ limitations under the License.
 
 import unittest
 
-import boto3
+from mock import call, Mock, patch
 
 # For local application imports, context_paths must be first despite lexicon ordering
 import context_paths
+
 from ef_version_resolver import EFVersionResolver
-from ef_config import EFConfig
-from ef_utils import fail, get_account_alias, http_get_metadata, whereami
+
 
 class TestEFVersionResolver(unittest.TestCase):
   """Tests for 'ef_version_resolver.py'"""
 
-  # initialize based on where running
-  where = whereami()
-  if where == "local":
-    session = boto3.Session(profile_name=get_account_alias("proto0"), region_name=EFConfig.DEFAULT_REGION)
-  elif where == "ec2":
-    region = http_get_metadata("placement/availability-zone/")
-    region = region[:-1]
-    session = boto3.Session(region_name=region)
-  else:
-    fail("Can't test in environment: " + where)
+  def setUp(self):
+    """
+    Setup function that is run before every test
 
-  clients = {
-    "ec2": session.client("ec2"),
-    "s3": session.client("s3")
-  }
+    Returns:
+      None
+    """
+    mock_ec2_client = Mock(name="Mock EC2 Client")
+    mock_s3_client = Mock(name="Mock S3 Client")
 
-  def test_ami_id(self):
+    self._clients = {
+      "ec2": mock_ec2_client,
+      "s3": mock_s3_client
+    }
+
+  def tearDown(self):
+    """
+    Teardown function that is run after every test.
+
+    Returns:
+      None
+    """
+    pass
+
+  @patch('ef_version_resolver.EFVersionResolver._s3_get')
+  def test_ami_id(self, mock_s3_get):
     """Does ami-id,proto0/test-instance resolve to an AMI id"""
+    mock_s3_get.return_value = 'ami-12345678'
     test_string = "ami-id,proto0/test-instance"
-    resolver = EFVersionResolver(TestEFVersionResolver.clients)
+    resolver = EFVersionResolver(self._clients)
     self.assertRegexpMatches(resolver.lookup(test_string), "^ami-[a-f0-9]{8}$")
-
-
-if __name__ == '__main__':
-  unittest.main()

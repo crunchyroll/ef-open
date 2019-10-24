@@ -37,6 +37,7 @@ import botocore.exceptions
 from ef_config import EFConfig
 from ef_instanceinit_config_reader import EFInstanceinitConfigReader
 from ef_utils import http_get_instance_role, http_get_metadata, whereami
+from ef_conf_utils import get_account_alias
 from ef_template_resolver import EFTemplateResolver
 
 # constants
@@ -67,41 +68,70 @@ def critical(message):
   sys.exit(1)
 
 
-def merge_files(service):
+def get_user_group(dest):
+  """
+  Given a dictionary object representing the dest JSON in the late bind config's parameter file, return two
+  values, the user and group
+  Args:
+      dest: dict object from the late bind config's parameters file e.g. dest["user_group"] = "Bob:devops"
+
+  Returns:
+      user: user that the late bind config belongs to
+      group: group that the late bind config belongs to
+
+  """
+  return dest["user_group"].split(":")
+
+
+def merge_files(service, skip_on_user_group_error=False):
   """
   Given a prefix, find all templates below; merge with parameters; write to "dest"
   Args:
-    service: "<service>" or "all"
+    service: "<service>", "all", or "ssh"
+    skip_on_user_group_error: True or False
 
   For S3, full path becomes:
     s3://ellation-cx-global-configs/<service>/templates/<filename>
-    s3://ellation-cx-global-configs/<service>/parameters/<filename>.parameters.json
+    s3://ellation-cx-global-configs/<service>/parameters/<filename>.parameters.<yaml|yml|json>
   For filesystem, full path becomes:
     /vagrant/configs/<service>/templates/<filename>
-    /vagrant/configs/<service>/parameters/<filename>.parameters.json
+    /vagrant/configs/<service>/parameters/<filename>.parameters.<yaml|yml|json>
   """
   if WHERE == "ec2":
     config_reader = EFInstanceinitConfigReader("s3", service, log_info, RESOURCES["s3"])
+    resolver = EFTemplateResolver()
   elif WHERE == "virtualbox-kvm":
     config_path = "{}/{}".format(VIRTUALBOX_CONFIG_ROOT, service)
     config_reader = EFInstanceinitConfigReader("file", config_path, log_info)
+    environment = EFConfig.VAGRANT_ENV
+    resolver = EFTemplateResolver(env=environment, profile=get_account_alias(environment),
+                                  region=EFConfig.DEFAULT_REGION, service=service)
 
   while config_reader.next():
-    # Make a new TemplateResolver for every file::parameters pair, so cached keys don't carry over
-    if WHERE == "ec2":
-      resolver = EFTemplateResolver()
-    elif WHERE == "virtualbox-kvm":
-      resolver = EFTemplateResolver(env=EFConfig.VAGRANT_ENV, service=service)
-
     log_info("checking: {}".format(config_reader.current_key))
 
     # if 'dest' for the current object contains an 'environments' list, check it
     dest = config_reader.dest
-    if dest.has_key("environments"):
+    if "environments" in dest:
       if not resolver.resolved["ENV_SHORT"] in dest["environments"]:
         log_info("Environment: {} not enabled for {}".format(
           resolver.resolved["ENV_SHORT"], config_reader.current_key)
         )
+        continue
+
+    # If 'dest' for the current object contains a user_group that hasn't been created in the environment yet and the
+    # flag is set to True to skip, log the error and move onto the next config file without blowing up.
+    if skip_on_user_group_error:
+      user, group = get_user_group(dest)
+      try:
+        getpwnam(user).pw_uid
+      except KeyError:
+        log_info("File specifies user {} that doesn't exist in environment. Skipping config file.".format(user))
+        continue
+      try:
+        getgrnam(group).gr_gid
+      except KeyError:
+        log_info("File specifies group {} that doesn't exist in environment. Skipping config file.".format(group))
         continue
 
     # Process the template_body - apply context + parameters
@@ -129,7 +159,7 @@ def merge_files(service):
       outfile.close()
       log_info("chmod file to: " + dest["file_perm"])
       chmod(dest["path"], int(dest["file_perm"], 8))
-      user, group = dest["user_group"].split(":")
+      user, group = get_user_group(dest)
       uid = getpwnam(user).pw_uid
       gid = getgrnam(group).gr_gid
       log_info("chown last directory in path to: " + dest["user_group"])
@@ -150,6 +180,8 @@ def main():
     critical("Cannot determine whether operating context is ec2 or local. Exiting.")
   elif WHERE == "local":
     critical("local mode not supported: must run under virtualbox-kvm or in ec2")
+  elif WHERE == 'jenkins':
+    critical("will not run inside a Jenkins environment")
   elif WHERE == "ec2":
     # get info needed for logging
     try:
@@ -177,6 +209,7 @@ def main():
   log_info("platform: {} service: {}".format(WHERE, service))
 
   merge_files("all")
+  merge_files("ssh", skip_on_user_group_error=True)
   merge_files(service)
 
   log_info("exit: success")

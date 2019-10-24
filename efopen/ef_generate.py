@@ -30,20 +30,20 @@ limitations under the License.
 from __future__ import print_function
 import argparse
 import json
-from os import getenv
 from os.path import dirname, normpath
 import sys
 import time
 
+import botocore
 from botocore.exceptions import ClientError
 
 from ef_aws_resolver import EFAwsResolver
 from ef_config import EFConfig
 from ef_context import EFContext
-from ef_plugin import run_plugins
 from ef_service_registry import EFServiceRegistry
 from ef_template_resolver import EFTemplateResolver
-from ef_utils import create_aws_clients, fail, http_get_metadata, pull_repo
+from ef_utils import create_aws_clients, fail, get_account_id, http_get_metadata
+from ef_conf_utils import pull_repo
 
 # Globals
 CLIENTS = None
@@ -97,6 +97,7 @@ INSTANCE_PROFILE_SERVICE_TYPES = [
 # these service types get KMS Keys
 KMS_SERVICE_TYPES = [
   "aws_ec2",
+  "aws_fixture",
   "aws_lambda",
   "http_service"
 ]
@@ -278,7 +279,7 @@ def conditionally_create_role(role_name, sr_entry):
     print_if_verbose("not eligible for role (and possibly instance profile); service type: {}".format(service_type))
     return
 
-  if sr_entry.has_key("assume_role_policy"):
+  if "assume_role_policy" in sr_entry:
     # Explicitly defined AssumeRole policy
     assume_role_policy_document = resolve_policy_document(sr_entry["assume_role_policy"])
   else:
@@ -340,6 +341,63 @@ def conditionally_create_profile(role_name, service_type):
   else:
     print_if_verbose("instance profile already contains role: {}".format(role_name))
 
+def conditionally_attach_aws_managed_policies(role_name, sr_entry):
+  """
+  If 'aws_managed_policies' key lists the names of AWS managed policies to bind to the role,
+  attach them to the role
+  Args:
+    role_name: name of the role to attach the policies to
+    sr_entry: service registry entry
+  """
+  service_type = sr_entry['type']
+  if not (service_type in SERVICE_TYPE_ROLE and "aws_managed_policies" in sr_entry):
+    print_if_verbose("not eligible for policies; service_type: {} is not valid for policies "
+                     "or no 'aws_managed_policies' key in service registry for this role".format(service_type))
+    return
+
+  for policy_name in sr_entry['aws_managed_policies']:
+    print_if_verbose("loading policy: {} for role: {}".format(policy_name, role_name))
+
+    if CONTEXT.commit:
+      try:
+        CLIENTS["iam"].attach_role_policy(RoleName=role_name, PolicyArn='arn:aws:iam::aws:policy/' + policy_name)
+        print_if_verbose("Attached managed policy '{}'".format(policy_name))
+      except CLIENTS["iam"].exceptions.NoSuchEntityException:
+        CLIENTS["iam"].attach_role_policy(RoleName=role_name,
+                                          PolicyArn='arn:aws:iam::aws:policy/job-function/' + policy_name)
+        print_if_verbose("Attached managed job-function '{}'".format(policy_name))
+      except:
+        fail("Exception putting policy: {} onto role: {}".format(policy_name, role_name), sys.exc_info())
+
+def conditionally_attach_customer_managed_policies(role_name, sr_entry):
+  """
+  If 'customer_managed_policies' key lists the names of customer managed policies to bind to the role,
+  attach them to the role.
+
+  Note that this function will throw a warning without failing, if the managed policy does not exist in
+  the given account.
+  Args:
+    role_name: name of the role to attach the policies to
+    sr_entry: service registry entry
+  """
+  service_type = sr_entry['type']
+  if not (service_type in SERVICE_TYPE_ROLE and "customer_managed_policies" in sr_entry):
+    print_if_verbose("not eligible for policies; service_type: {} is not valid for policies "
+                     "or no 'customer_managed_policies' key in service registry for this role".format(service_type))
+    return
+
+  for policy_name in sr_entry['customer_managed_policies']:
+    print_if_verbose("loading policy: {} for role: {}".format(policy_name, role_name))
+
+    if CONTEXT.commit:
+      policy_arn = 'arn:aws:iam::{}:policy/{}'.format(CONTEXT.account_id, policy_name)
+      try:
+        CLIENTS["iam"].attach_role_policy(RoleName=role_name, PolicyArn=policy_arn)
+      except CLIENTS["iam"].exceptions.NoSuchEntityException as exc:
+        print("WARNING: {}".format(exc))
+      except:
+        fail("Exception putting policy: {} onto role: {}".format(policy_name, role_name), sys.exc_info())
+
 def conditionally_inline_policies(role_name, sr_entry):
   """
   If 'policies' key lists the filename prefixes of policies to bind to the role,
@@ -349,7 +407,7 @@ def conditionally_inline_policies(role_name, sr_entry):
     sr_entry: service registry entry
   """
   service_type = sr_entry['type']
-  if not (service_type in SERVICE_TYPE_ROLE and sr_entry.has_key("policies")):
+  if not (service_type in SERVICE_TYPE_ROLE and "policies" in sr_entry):
     print_if_verbose("not eligible for policies; service_type: {} is not valid for policies "
                      "or no 'policies' key in service registry for this role".format(service_type))
     return
@@ -368,13 +426,12 @@ def conditionally_inline_policies(role_name, sr_entry):
       except:
         fail("Exception putting policy: {} onto role: {}".format(policy_name, role_name), sys.exc_info())
 
-
 def conditionally_create_kms_key(role_name, service_type):
   """
   Create KMS Master Key for encryption/decryption of sensitive values in cf templates and latebind configs
   Args:
       role_name: name of the role that kms key is being created for; it will be given decrypt privileges.
-      service_type: service registry service type: 'aws_ec2', 'aws_lambda', or 'http_service'
+      service_type: service registry service type: 'aws_ec2', 'aws_fixture', 'aws_lambda', or 'http_service'
   """
   if service_type not in KMS_SERVICE_TYPES:
     print_if_verbose("not eligible for kms; service_type: {} is not valid for kms".format(service_type))
@@ -391,28 +448,71 @@ def conditionally_create_kms_key(role_name, service_type):
     else:
       fail("Exception describing KMS key: {} {}".format(role_name, error))
 
-  formatted_principal = '"AWS": "arn:aws:iam::{}:role/{}"'.format(CONTEXT.account_id, role_name)
-  kms_key_policy = '''{
-    "Version": "2012-10-17",
-    "Statement": [
-      {
-        "Sid": "Enable IAM User Permissions",
-        "Effect": "Allow",
-        "Principal": {
-          "AWS": "arn:aws:iam::''' + CONTEXT.account_id + ''':root"
+  if service_type == "aws_fixture":
+    kms_key_policy = '''{
+      "Version": "2012-10-17",
+      "Statement": [
+        {
+          "Sid": "Enable IAM User Permissions",
+          "Effect": "Allow",
+          "Principal": {
+            "AWS": "arn:aws:iam::''' + CONTEXT.account_id + ''':root"
+          },
+          "Action": "kms:*",
+          "Resource": "*"
+        }
+      ]
+    }'''
+  else:
+    formatted_principal = '"AWS": "arn:aws:iam::{}:role/{}"'.format(CONTEXT.account_id, role_name)
+    kms_key_policy = '''{
+      "Version": "2012-10-17",
+      "Statement": [
+        {
+          "Sid": "Enable IAM User Permissions",
+          "Effect": "Allow",
+          "Principal": {
+            "AWS": "arn:aws:iam::''' + CONTEXT.account_id + ''':root"
+          },
+          "Action": "kms:*",
+          "Resource": "*"
         },
-        "Action": "kms:*",
-        "Resource": "*"
-      },
-      {
-        "Sid": "Allow Service Role Decrypt Privileges",
-        "Effect": "Allow",
-        "Principal": { ''' + formatted_principal + ''' },
-        "Action": "kms:Decrypt",
-        "Resource": "*"
-      }
-    ]
-  }'''
+        {
+          "Sid": "Allow Service Role Decrypt Privileges",
+          "Effect": "Allow",
+          "Principal": { ''' + formatted_principal + ''' },
+          "Action": "kms:Decrypt",
+          "Resource": "*"
+        },
+        {
+          "Sid": "Allow use of the key for default autoscaling group service role",
+          "Effect": "Allow",
+          "Principal": { "AWS": "arn:aws:iam::''' + CONTEXT.account_id + ''':role/aws-service-role/autoscaling.amazonaws.com/AWSServiceRoleForAutoScaling" },
+          "Action": [
+            "kms:Encrypt",
+            "kms:Decrypt",
+            "kms:ReEncrypt*",
+            "kms:GenerateDataKey*",
+            "kms:DescribeKey"
+          ],
+          "Resource": "*"
+        },
+        {
+          "Sid": "Allow attachment of persistent resourcesfor default autoscaling group service role",
+          "Effect": "Allow",
+          "Principal": { "AWS": "arn:aws:iam::''' + CONTEXT.account_id + ''':role/aws-service-role/autoscaling.amazonaws.com/AWSServiceRoleForAutoScaling" },
+          "Action": [
+            "kms:CreateGrant"
+          ],
+          "Resource": "*",
+          "Condition": {
+            "Bool": {
+              "kms:GrantIsForAWSResource": true
+            }
+          }
+        }
+      ]
+    }'''
 
   if not kms_key:
     print("Create KMS key: {}".format(key_alias))
@@ -452,7 +552,7 @@ def main():
   global CONTEXT, CLIENTS, AWS_RESOLVER
 
   CONTEXT = handle_args_and_set_context(sys.argv[1:])
-  if not (CONTEXT.devel or getenv("JENKINS_URL", False)):
+  if not CONTEXT.devel and CONTEXT.whereami != 'jenkins':
     try:
       pull_repo()
     except RuntimeError as error:
@@ -468,8 +568,8 @@ def main():
       CONTEXT.account_id = str(json.loads(http_get_metadata('iam/info'))["InstanceProfileArn"].split(":")[4])
     else:
       # Otherwise, we use local user creds based on the account alias
-      CLIENTS = create_aws_clients(EFConfig.DEFAULT_REGION, CONTEXT.account_alias, "ec2", "iam", "kms")
-      CONTEXT.account_id = CLIENTS["SESSION"].resource('iam').CurrentUser().arn.split(':')[4]
+      CLIENTS = create_aws_clients(EFConfig.DEFAULT_REGION, CONTEXT.account_alias, "ec2", "iam", "kms", "sts")
+      CONTEXT.account_id = get_account_id(CLIENTS["sts"])
   except RuntimeError:
     fail("Exception creating AWS clients in region {} with profile {}".format(
       EFConfig.DEFAULT_REGION, CONTEXT.account_alias))
@@ -519,12 +619,15 @@ def main():
     # 3. KMS KEY FOR THE SERVICE : only some types of services get kms keys
     conditionally_create_kms_key(target_name, service_type)
 
-    # 4. INLINE SERVICE'S POLICIES INTO ROLE
+    # 4. ATTACH AWS MANAGED POLICIES TO ROLE
+    conditionally_attach_aws_managed_policies(target_name, sr_entry)
+
+    # 5. ATTACH CUSTOMER MANAGED POLICIES TO ROLE
+    conditionally_attach_customer_managed_policies(target_name, sr_entry)
+
+    # 6. INLINE SERVICE'S POLICIES INTO ROLE
     # only eligible service types with "policies" sections in the service registry get policies
     conditionally_inline_policies(target_name, sr_entry)
-
-  # 5. Execute plugins
-  run_plugins(context_obj=CONTEXT, boto3_clients=CLIENTS)
 
   print("Exit: success")
 

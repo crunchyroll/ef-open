@@ -14,12 +14,15 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-import json
 from os import walk
+import yaml
 
 import botocore.exceptions
 
 from ef_config import EFConfig
+import ef_utils
+import ef_conf_utils
+
 
 class EFInstanceinitConfigReader:
   """
@@ -29,6 +32,7 @@ class EFInstanceinitConfigReader:
     service: name of the service
     base_path: path to TLD of all configs that should be loaded
   """
+
   def __init__(self, service, base_path, logger, s3_resource=None):
     """
     Args:
@@ -87,24 +91,24 @@ class EFInstanceinitConfigReader:
       try:
         return open(self.current).read()
       except Exception as error:
-        raise IOError("Error loading template file: {} {}".format(self.current,repr(error)))
+        raise IOError("Error loading template file: {} {}".format(self.current, repr(error)))
 
   @property
   def parameters(self):
     if self.service == "s3":
-      key = self.current.key.replace("/templates/", "/parameters/") + EFConfig.PARAMETER_FILE_SUFFIX
+      key = ef_conf_utils.get_template_parameters_s3(self.current.key, self.s3_resource)
       self.logger("Loading parameters object: {}".format(key))
       try:
         obj = self.s3_resource.Object(EFConfig.S3_CONFIG_BUCKET, key)
         body = obj.get()['Body'].read()
-        return json.loads(body)
+        return yaml.safe_load(body)
       except botocore.exceptions.ClientError as error:
         raise IOError("Error loading parameters from: {} {}".format(key, repr(error)))
-    elif self.service =="file":
-      parameters_file = self.current.replace("/templates", "/parameters") + EFConfig.PARAMETER_FILE_SUFFIX
+    elif self.service == "file":
+      parameters_file = ef_conf_utils.get_template_parameters_file(self.current)
       self.logger("Loading parameters file: {}".format(self.current))
       try:
-        return json.load(file(parameters_file))
+        return yaml.safe_load(file(parameters_file))
       except Exception as error:
         raise IOError("Error loading parameters file: {} {}".format(parameters_file, repr(error)))
 

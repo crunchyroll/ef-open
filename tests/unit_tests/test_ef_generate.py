@@ -14,6 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
+import os
+import json
 import unittest
 
 from botocore.exceptions import ClientError
@@ -21,25 +23,79 @@ from mock import Mock, patch
 
 import context_paths
 from ef_context import EFContext
-ef_generate = __import__("ef-generate")
+
+import ef_generate
 
 
 class TestEFGenerate(unittest.TestCase):
   def setUp(self):
+    self.role_name = "global-test-role"
     self.service_name = "proto0-test-service"
     self.service_type = "http_service"
+    self.service_registry_file = os.path.abspath(os.path.join(os.path.dirname(__file__),
+                                                              '../test_data/test_service_registry_1.json'))
+    with open(self.service_registry_file, "r") as sr:
+      self.service_registry = json.load(sr)
     self.malformed_policy_response = {'Error': {'Code': 'MalformedPolicyDocumentException',
                                                 'Message': 'Error creating key'}}
     self.malformed_policy_client_error = ClientError(self.malformed_policy_response, "create_key")
     self.not_found_response = {'Error': {'Code': 'NotFoundException', 'Message': 'Error describing key'}}
     self.not_found_client_error = ClientError(self.not_found_response, "describe_key")
+    self.mock_iam = Mock(name="mocked iam client")
+    self.mock_iam.attach_role_policy.return_value = {}
     self.mock_kms = Mock(name="mocked kms client")
     self.mock_kms.create_key.return_value = {"KeyMetadata": {"KeyId": "1234"}}
     self.mock_kms.describe_key.side_effect = self.not_found_client_error
     ef_generate.CONTEXT = EFContext()
     ef_generate.CONTEXT.commit = True
     ef_generate.CONTEXT.account_id = "1234"
-    ef_generate.CLIENTS = {"kms": self.mock_kms}
+    ef_generate.CLIENTS = {"kms": self.mock_kms, "iam": self.mock_iam}
+
+  def test_attach_managed_policies(self):
+    """
+    Check that when an existing key is not found that the create key/alias methods are called with the correct
+    parameters.
+    """
+    ef_generate.conditionally_attach_aws_managed_policies(self.role_name,
+                                                      self.service_registry['fixtures']['test-role'])
+
+    self.mock_iam.attach_role_policy.assert_called_with(
+      RoleName=self.role_name,
+      PolicyArn='arn:aws:iam::aws:policy/{}'.format(self.service_registry['fixtures']['test-role']['aws_managed_policies'][0])
+    )
+
+  def test_attach_customer_managed_policies(self):
+    """
+    Check that when an existing key is not found that the create key/alias methods are called with the correct
+    parameters.
+    """
+    ef_generate.conditionally_attach_customer_managed_policies(self.role_name,
+                                                      self.service_registry['fixtures']['test-role'])
+
+    self.mock_iam.attach_role_policy.assert_called_with(
+      RoleName=self.role_name,
+      PolicyArn='arn:aws:iam::{}:policy/{}'.format(
+        ef_generate.CONTEXT.account_id,
+        self.service_registry['fixtures']['test-role']['customer_managed_policies'][0])
+    )
+
+  def test_not_service_type_for_managed_policy(self):
+    """
+    Validates that a managed policy is not attached for unsupported service types
+    """
+    self.service_type = {"type": "invalid_service"}
+    ef_generate.conditionally_attach_aws_managed_policies(self.role_name, self.service_type)
+
+    self.mock_iam.attach_role_policy.assert_not_called()
+
+  def test_no_aws_managed_policies_key_in_service(self):
+    """
+    Validates that a managed policy is not attached services without the 'aws_managed_policies' key
+    """
+    ef_generate.conditionally_attach_aws_managed_policies(self.role_name,
+                                                      self.service_registry['fixtures']['test-role-2'])
+
+    self.mock_iam.attach_role_policy.assert_not_called()
 
   def test_create_kms_key(self):
     """
@@ -78,6 +134,19 @@ class TestEFGenerate(unittest.TestCase):
 
     self.mock_kms.create_key.assert_not_called()
     self.mock_kms.create_alias.assert_not_called()
+
+  def test_kms_service_type_fixture(self):
+    """
+    Verify that a KMS key is created when of service_type "aws_fixture"
+    """
+    self.service_type = "aws_fixture"
+    ef_generate.conditionally_create_kms_key(self.service_name, self.service_type)
+
+    self.mock_kms.create_key.assert_called()
+    self.mock_kms.create_alias.assert_called_with(
+      AliasName='alias/{}'.format(self.service_name),
+      TargetKeyId='1234'
+    )
 
   def test_not_kms_service_type(self):
     """

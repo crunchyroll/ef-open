@@ -143,7 +143,7 @@ def generate_secret_file(file_path, pattern, service, environment, clients):
   if changed:
     with open(file_path, "w") as encrypted_file:
       json.dump(data, encrypted_file, indent=2, separators=(',', ': '))
-      # Writing new line here so it conforms to WG14 N1256 §5.1.1.1 (so github doesn't complain)
+      # Writing new line here so it conforms to WG14 N1256 5.1.1.1 (so github doesn't complain)
       encrypted_file.write("\n")
 
 def copy_environment_secret(file_path, service, source_env, dest_env, clients):
@@ -184,13 +184,14 @@ def handle_args_and_set_context(args):
   parser = argparse.ArgumentParser()
   parser.add_argument("service", help="name of service password is being generated for")
   parser.add_argument("env", help=", ".join(EFConfig.ENV_LIST))
-  parser.add_argument("--length", help="length of generated password (default 32)", default=32)
-  parser.add_argument("--decrypt", help="encrypted string to be decrypted", default="")
-  parser.add_argument("--plaintext", help="secret to be encrypted rather than a randomly generated one", default="")
-  parser.add_argument("--secret_file", help="json file containing secrets to be encrypted", default="")
+  group = parser.add_mutually_exclusive_group()
+  group.add_argument("--decrypt", help="encrypted string to be decrypted", default="")
+  group.add_argument("--plaintext", help="secret to be encrypted rather than a randomly generated one", default="")
+  group.add_argument("--secret_file", help="json file containing secrets to be encrypted", default="")
   parser.add_argument("--match", help="used in conjunction with --secret_file to match against keys to be encrypted", default="")
   parser.add_argument("--copy_environment_secret", help="json file containing secrets to be encrypted", default="")
   parser.add_argument("--dest_env", help="json file containing secrets to be encrypted", default="")
+  parser.add_argument("--length", help="length of generated password (default 32)", default=32)
   parsed_args = vars(parser.parse_args(args))
   context = EFPWContext()
   try:

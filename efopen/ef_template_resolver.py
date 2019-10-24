@@ -18,20 +18,22 @@ from __future__ import print_function
 import json
 import re
 import sys
+import yaml
 
 import botocore.exceptions
 
 from ef_aws_resolver import EFAwsResolver
 from ef_config import EFConfig
 from ef_config_resolver import EFConfigResolver
-from ef_utils import create_aws_clients, fail, http_get_metadata, whereami
+from ef_utils import create_aws_clients, fail, get_account_id, http_get_metadata, whereami
 from ef_version_resolver import EFVersionResolver
 
 # CONSTANTS
 # pattern to find resolvable symbols - finds innermost nestings
-SYMBOL_PATTERN = r'{{([0-9A-Za-z/_,.:\-\+=]+?)}}'
+SYMBOL_PATTERN = r'{{([0-9A-Za-z/_,.:\-\+=\*]+?)}}'
 # inverse of SYMBOL_PATTERN, and disallows ':' and ',' from param keys; this is checked in load()
 ILLEGAL_PARAMETER_CHARS = r'[^(0-9A-Za-z/_.\-)]'
+
 
 # Utilities
 def get_metadata_or_fail(metadata_key):
@@ -42,6 +44,7 @@ def get_metadata_or_fail(metadata_key):
     return http_get_metadata(metadata_key)
   except IOError as error:
     fail("Exception in http_get_metadata {} {}".format(metadata_key, repr(error)))
+
 
 class EFTemplateResolver(object):
   """
@@ -115,11 +118,11 @@ class EFTemplateResolver(object):
   __VR = None     # EFVersionResolver
 
   def __init__(self,
-               profile=None, region=None, # set both for user access mode
-               lambda_context=None, # set if target is 'self' and this is a lambda
-               target_other=False, env=None, service=None, # set env & service if target_other=True
+               profile=None, region=None,  # set both for user access mode
+               lambda_context=None,  # set if target is 'self' and this is a lambda
+               target_other=False, env=None, service=None,  # set env & service if target_other=True
                verbose=False
-              ):
+               ):
     """
     Depending on how this is called, access mode (how it logs into AWS) and target (what the
       various context vars report) will vary
@@ -179,18 +182,18 @@ class EFTemplateResolver(object):
                           CloudFormation: compose role name in template by joining other strings
     """
     # instance vars
-    self.verbose = False # print noisy status if True
+    self.verbose = False  # print noisy status if True
     # resolved tokens - only look up symbols once per session. Protect internal names by declaring
     self.resolved = {
-      "ACCOUNT": None,
-      "ACCOUNT_ALIAS": None,
-      "ENV": None,
-      "ENV_SHORT": None,
-      "ENV_FULL": None,
-      "FUNCTION_NAME": None,
-      "INSTANCE_ID": None,
-      "REGION": None,
-      "ROLE": None
+        "ACCOUNT": None,
+        "ACCOUNT_ALIAS": None,
+        "ENV": None,
+        "ENV_SHORT": None,
+        "ENV_FULL": None,
+        "FUNCTION_NAME": None,
+        "INSTANCE_ID": None,
+        "REGION": None,
+        "ROLE": None
     }
 
     # template and parameters are populated by the load() method as each template is processed
@@ -204,7 +207,7 @@ class EFTemplateResolver(object):
     self.verbose = verbose
 
     # determine ACCESS MODE
-    if profile: # accessing as a user
+    if profile:  # accessing as a user
       target_other = True
       if not region:
         fail("'region' is required with 'profile' for user-mode access")
@@ -215,90 +218,95 @@ class EFTemplateResolver(object):
     if (target_other or where == "virtualbox-kvm") and (env is None or service is None):
       fail("'env' and 'service' must be set when target is 'other' or running in " + where)
 
-    # login to AWS and capture AWS context unless running in localvm (we can't hook up with AWS from localvm)
-    if whereami() == "virtualbox-kvm":
+    if target_other or profile:
+      self.resolved["REGION"] = region
+    # lambda initializing self
+    elif lambda_context:
+      self.resolved["REGION"] = lambda_context.invoked_function_arn.split(":")[3]
+    # ec2 initializing self
+    else:
+      self.resolved["REGION"] = get_metadata_or_fail("placement/availability-zone/")[:-1]
+
+    # Create clients - if accessing by role, profile should be None
+    clients = [
+      "cloudformation",
+      "cloudfront",
+      "cognito-identity",
+      "cognito-idp",
+      "ec2",
+      "elbv2",
+      "iam",
+      "kms",
+      "lambda",
+      "route53",
+      "s3",
+      "sts",
+      "waf"
+    ]
+    try:
+      EFTemplateResolver.__CLIENTS = create_aws_clients(self.resolved["REGION"], profile, *clients)
+    except RuntimeError as error:
+      fail("Exception logging in with Session()", error)
+
+    # Create EFAwsResolver object for interactive lookups
+    EFTemplateResolver.__AWSR = EFAwsResolver(EFTemplateResolver.__CLIENTS)
+    # Create EFConfigResolver object for ef tooling config lookups
+    EFTemplateResolver.__EFCR = EFConfigResolver()
+    # Create EFVersionResolver object for version lookups
+    EFTemplateResolver.__VR = EFVersionResolver(EFTemplateResolver.__CLIENTS)
+
+    # Set the internal parameter values for aws
+    # self-configuring lambda
+    if (not target_other) and lambda_context:
+      arn_split = lambda_context.invoked_function_arn.split(":")
+      self.resolved["ACCOUNT"] = arn_split[4]
+      self.resolved["FUNCTION_NAME"] = arn_split[6]
+      try:
+        lambda_desc = EFTemplateResolver.__CLIENTS["lambda"].get_function()
+      except:
+        fail("Exception in get_function: ", sys.exc_info())
+      self.resolved["ROLE"] = lambda_desc["Configuration"]["Role"]
+      env = re.search("^({})-".format(EFConfig.VALID_ENV_REGEX), self.resolved["ROLE"])
+      if not env:
+        fail("Did not find environment in lambda function name.")
+      self.resolved["ENV"] = env.group(1)
+      parsed_service = re.search(self.resolved["ENV"] + "-(.*?)-lambda", self.resolved["ROLE"])
+      if parsed_service:
+        self.resolved["SERVICE"] = parsed_service.group(1)
+
+    # self-configuring EC2
+    elif (not target_other) and (not lambda_context):
+      self.resolved["INSTANCE_ID"] = get_metadata_or_fail('instance-id')
+      try:
+        instance_desc = EFTemplateResolver.__CLIENTS["ec2"].describe_instances(InstanceIds=[self.resolved["INSTANCE_ID"]])
+      except:
+        fail("Exception in describe_instances: ", sys.exc_info())
+      self.resolved["ACCOUNT"] = instance_desc["Reservations"][0]["OwnerId"]
+      arn = instance_desc["Reservations"][0]["Instances"][0]["IamInstanceProfile"]["Arn"]
+      self.resolved["ROLE"] = arn.split(":")[5].split("/")[1]
+      env = re.search("^({})-".format(EFConfig.VALID_ENV_REGEX), self.resolved["ROLE"])
+      if not env:
+        fail("Did not find environment in role name")
+      self.resolved["ENV"] = env.group(1)
+      self.resolved["SERVICE"] = "-".join(self.resolved["ROLE"].split("-")[1:])
+
+    # target is "other"
+    else:
+      try:
+        if whereami() == "ec2":
+          self.resolved["ACCOUNT"] = str(json.loads(http_get_metadata('iam/info'))["InstanceProfileArn"].split(":")[4])
+        else:
+          self.resolved["ACCOUNT"] = get_account_id(EFTemplateResolver.__CLIENTS["sts"])
+      except botocore.exceptions.ClientError as error:
+        fail("Exception in get_user()", error)
       self.resolved["ENV"] = env
       self.resolved["SERVICE"] = service
-    else:
-      # look up REGION - different methods needed based on how we are running
-      # user credentials, or ec2 or lambda setting up some other resource
-      if target_other or profile:
-        self.resolved["REGION"] = region
-      # lambda initializing self
-      elif lambda_context:
-        self.resolved["REGION"] = lambda_context.invoked_function_arn.split(":")[3]
-      # ec2 initializing self
-      else:
-        self.resolved["REGION"] = get_metadata_or_fail("placement/availability-zone/")[:-1]
 
-      # Create clients - if accessing by role, profile should be None
-      try:
-        EFTemplateResolver.__CLIENTS = create_aws_clients(self.resolved["REGION"], profile,
-                                        "cloudformation", "cloudfront", "ec2", "iam", "kms",
-                                                          "lambda", "route53", "s3", "waf")
-      except RuntimeError as error:
-        fail("Exception logging in with Session()", error)
-
-      # Create EFAwsResolver object for interactive lookups
-      EFTemplateResolver.__AWSR = EFAwsResolver(EFTemplateResolver.__CLIENTS)
-      # Create EFConfigResolver object for ef tooling config lookups
-      EFTemplateResolver.__EFCR = EFConfigResolver()
-      # Create EFVersionResolver object for version lookups
-      EFTemplateResolver.__VR = EFVersionResolver(EFTemplateResolver.__CLIENTS)
-
-      # Set the internal parameter values for aws
-      # self-configuring lambda
-      if (not target_other) and lambda_context:
-        arn_split = lambda_context.invoked_function_arn.split(":")
-        self.resolved["ACCOUNT"] = arn_split[4]
-        self.resolved["FUNCTION_NAME"] = arn_split[6]
-        try:
-          lambda_desc = EFTemplateResolver.__CLIENTS["lambda"].get_function()
-        except:
-          fail("Exception in get_function: ", sys.exc_info())
-        self.resolved["ROLE"] = lambda_desc["Configuration"]["Role"]
-        env = re.search("^({})-".format(EFConfig.VALID_ENV_REGEX), self.resolved["ROLE"])
-        if not env:
-          fail("Did not find environment in lambda function name.")
-        self.resolved["ENV"] = env.group(1)
-        parsed_service = re.search(self.resolved["ENV"]+"-(.*?)-lambda", self.resolved["ROLE"])
-        if parsed_service:
-          self.resolved["SERVICE"] = parsed_service.group(1)
-
-      # self-configuring EC2
-      elif (not target_other) and (not lambda_context):
-        self.resolved["INSTANCE_ID"] = get_metadata_or_fail('instance-id')
-        try:
-          instance_desc = EFTemplateResolver.__CLIENTS["ec2"].describe_instances(InstanceIds=[self.resolved["INSTANCE_ID"]])
-        except:
-          fail("Exception in describe_instances: ", sys.exc_info())
-        self.resolved["ACCOUNT"] = instance_desc["Reservations"][0]["OwnerId"]
-        arn = instance_desc["Reservations"][0]["Instances"][0]["IamInstanceProfile"]["Arn"]
-        self.resolved["ROLE"] = arn.split(":")[5].split("/")[1]
-        env = re.search("^({})-".format(EFConfig.VALID_ENV_REGEX), self.resolved["ROLE"])
-        if not env:
-          fail("Did not find environment in role name")
-        self.resolved["ENV"] = env.group(1)
-        self.resolved["SERVICE"] = "-".join(self.resolved["ROLE"].split("-")[1:])
-
-      # target is "other"
-      else:
-        try:
-          if whereami() == "ec2":
-            self.resolved["ACCOUNT"] = str(json.loads(http_get_metadata('iam/info'))["InstanceProfileArn"].split(":")[4])
-          else:
-            self.resolved["ACCOUNT"] = EFTemplateResolver.__CLIENTS["iam"].get_user()["User"]["Arn"].split(":")[4]
-        except botocore.exceptions.ClientError as error:
-          fail("Exception in get_user()", error)
-        self.resolved["ENV"] = env
-        self.resolved["SERVICE"] = service
-
-      # ACCOUNT_ALIAS is resolved consistently for access modes and targets other than virtualbox
-      try:
-        self.resolved["ACCOUNT_ALIAS"] = \
-          EFTemplateResolver.__CLIENTS["iam"].list_account_aliases()["AccountAliases"][0]
-      except botocore.exceptions.ClientError as error:
-        fail("Exception in list_account_aliases", error)
+    # ACCOUNT_ALIAS is resolved consistently for access modes and targets other than virtualbox
+    try:
+      self.resolved["ACCOUNT_ALIAS"] = EFTemplateResolver.__CLIENTS["iam"].list_account_aliases()["AccountAliases"][0]
+    except botocore.exceptions.ClientError as error:
+      fail("Exception in list_account_aliases", error)
 
     # ENV_SHORT is resolved the same way for all access modes and targets
     self.resolved["ENV_SHORT"] = self.resolved["ENV"].strip(".0123456789")
@@ -337,27 +345,27 @@ class EFTemplateResolver(object):
       except IOError as error:
         fail("Exception loading template from file: ", error)
     else:
-      fail("Unknown type loading template; expected string or file: "+type(template))
+      fail("Unknown type loading template; expected string or file: " + type(template))
 
     # load parameters, if any
     if parameters:
       if isinstance(parameters, str):
         try:
-          self.parameters = json.loads(parameters)
+          self.parameters = yaml.safe_load(parameters)
         except ValueError as error:
           fail("Exception loading parameters from string: ", error)
       elif isinstance(parameters, file):
         try:
-          self.parameters = json.load(parameters)
+          self.parameters = yaml.safe_load(parameters)
           parameters.close()
         except ValueError as error:
           fail("Exception loading parameters from file: {}".format(error), sys.exc_info())
       elif isinstance(parameters, dict):
         self.parameters = parameters
       else:
-        fail("Unknown type loading parameters; expected string, file, or dict: "+type(parameters))
+        fail("Unknown type loading parameters; expected string, file, or dict: " + type(parameters))
       # sanity check the loaded parameters
-      if not self.parameters.has_key("params"):
+      if "params" not in self.parameters:
         fail("'params' field not found in parameters")
       # just the params, please
       self.parameters = self.parameters["params"]
@@ -365,7 +373,7 @@ class EFTemplateResolver(object):
       for k in set().union(*(self.parameters[d].keys() for d in self.parameters.keys())):
         invalid_char = re.search(ILLEGAL_PARAMETER_CHARS, k)
         if invalid_char:
-          fail("illegal character: '"+invalid_char.group(0)+"' in parameter key: "+k)
+          fail("illegal character: '" + invalid_char.group(0) + "' in parameter key: " + k)
 
   def search_parameters(self, symbol):
     """
@@ -378,17 +386,14 @@ class EFTemplateResolver(object):
       return None
     # Hierarchically lookup the key
     result = None
-    if self.parameters.has_key("default") and self.parameters["default"].has_key(symbol):
+    if "default" in self.parameters and symbol in self.parameters["default"]:
       result = self.parameters["default"][symbol]
-    if self.parameters.has_key(self.resolved["ENV_SHORT"]) and \
-      self.parameters[self.resolved["ENV_SHORT"]].has_key(symbol):
+    if self.resolved["ENV_SHORT"] in self.parameters and symbol in self.parameters[self.resolved["ENV_SHORT"]]:
       result = self.parameters[self.resolved["ENV_SHORT"]][symbol]
-    # This lookup is redundant when env_short == env, but it's also cheap
-    if self.parameters.has_key(self.resolved["ENV"]) and \
-      self.parameters[self.resolved["ENV"]].has_key(symbol):
-      result = self.parameters[self.resolved["ENV"]][symbol]
+    # This lookup is redundant when env_short == env_full, but it's also cheap. Also handles the case for mgmt.<account_alias>
+    if self.resolved["ENV_FULL"] in self.parameters and symbol in self.parameters[self.resolved["ENV_FULL"]]:
+      result = self.parameters[self.resolved["ENV_FULL"]][symbol]
     return result
-
 
   def render(self):
     """
@@ -402,13 +407,15 @@ class EFTemplateResolver(object):
       - 4. built-in context (such as "ENV")
       - 5. parameters from a parameter file / dictionary of params
     """
+    # Ensure that our symbols are clean and are not from a previous template that was rendered
+    self.symbols = set()
     # Until all symbols are resolved or it is determined that some cannot be resolved, repeat:
     go_again = True
     while go_again:
-      go_again = False # if at least one symbol isn't resolved in a pass, stop
+      go_again = False  # if at least one symbol isn't resolved in a pass, stop
       # Gather all resolvable symbols in the template
       template_symbols = set(re.findall(SYMBOL_PATTERN, self.template))
-      self.symbols.update(template_symbols) # include this pass's symbols in full set
+      self.symbols.update(template_symbols)  # include this pass's symbols in full set
       # resolve and replace symbols
       for symbol in template_symbols:
         resolved_symbol = None
@@ -417,26 +424,29 @@ class EFTemplateResolver(object):
           resolved_symbol = EFTemplateResolver.__AWSR.lookup(symbol[4:])
         # Lookups in credentials
         elif symbol[:12] == "credentials:":
-          pass #TODO
+          pass  #TODO
         elif symbol[:9] == "efconfig:":
           resolved_symbol = EFTemplateResolver.__EFCR.lookup(symbol[9:])
         elif symbol[:8] == "version:":
           resolved_symbol = EFTemplateResolver.__VR.lookup(symbol[8:])
+          if not resolved_symbol:
+            print("WARNING: Lookup failed for {{%s}} - placeholder value of 'NONE' used in rendered template" % symbol)
+            resolved_symbol = "NONE"
         else:
           # 1. context - these are already in the resolved table
           # self.resolved[symbol] may have value=None; use has_key tell "resolved w/value=None" from "not resolved"
-          if self.resolved.has_key(symbol):
+          # these may be "global" symbols such like "ENV", "ACCOUNT", etc.
+          if symbol in self.resolved:
             resolved_symbol = self.resolved[symbol]
           # 2. parameters
           if not resolved_symbol:
             resolved_symbol = self.search_parameters(symbol)
         # if symbol was resolved, replace it everywhere
         if resolved_symbol is not None:
-          self.resolved[symbol] = resolved_symbol
           if isinstance(resolved_symbol, list):
-            self.template = self.template.replace("{{"+symbol+"}}", "\n".join(self.resolved[symbol]))
+            self.template = self.template.replace("{{" + symbol + "}}", "\n".join(resolved_symbol))
           else:
-            self.template = self.template.replace("{{"+symbol+"}}", self.resolved[symbol])
+            self.template = self.template.replace("{{" + symbol + "}}", resolved_symbol)
           go_again = True
     return self.template
 

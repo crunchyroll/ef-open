@@ -17,7 +17,11 @@ limitations under the License.
 """
 
 from ef_service_registry import EFServiceRegistry
-from ef_utils import env_valid, get_account_alias, get_env_short, global_env_valid, whereami
+from ef_utils import whereami
+from ef_conf_utils import env_valid
+from ef_conf_utils import get_account_alias
+from ef_conf_utils import get_env_short
+from ef_conf_utils import global_env_valid
 
 class EFContext(object):
   """
@@ -149,7 +153,7 @@ class EFContext(object):
     """
     if client_id is None:
       return self._aws_clients
-    elif self._aws_clients is not None and self._aws_clients.has_key(client_id):
+    elif self._aws_clients is not None and client_id in self._aws_clients:
       return self._aws_clients[client_id]
     else:
       return None

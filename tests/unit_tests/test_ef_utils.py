@@ -15,6 +15,7 @@ limitations under the License.
 """
 
 import base64
+import os
 from StringIO import StringIO
 import unittest
 
@@ -23,7 +24,8 @@ from mock import Mock, patch
 
 # For local application imports, context_paths must be first despite lexicon ordering
 import context_paths
-from ef_site_config import EFSiteConfig
+
+from ef_config import EFConfig
 import ef_utils
 
 
@@ -32,6 +34,25 @@ class TestEFUtils(unittest.TestCase):
   Tests for 'ef_utils.py' Relies on the ef_site_config.py for testing. Look inside that file for where
   some of the test values are coming from.
   """
+
+  def setUp(self):
+    """
+    Setup function that is run before every test
+
+    Returns:
+      None
+    """
+    os.chdir(os.path.join(os.path.dirname(os.path.abspath(__file__)), "../.."))
+
+  def tearDown(self):
+    """
+    Teardown function that is run after every test.
+
+    Returns:
+      None
+    """
+    pass
+
   @patch('sys.stderr', new_callable=StringIO)
   def test_fail_with_message(self, mock_stderr):
     """
@@ -157,12 +178,93 @@ class TestEFUtils(unittest.TestCase):
       ef_utils.http_get_metadata("ami-id")
     self.assertIn("Non-200 response", exception.exception.message)
 
+  @patch('ef_utils.getenv')
+  @patch('ef_utils.http_get_metadata')
+  def test_whereami_ec2(self, mock_http_get_metadata, getenv):
+    """
+    Tests whereami to see if it returns 'ec2' by mocking an ec2 environment
+
+    Args:
+      mock_http_get_metadata: MagicMock, returns "i-somestuff"
+
+    Returns:
+      None
+
+    Raises:
+      AssertionError if any of the assert checks fail
+    """
+    mock_http_get_metadata.return_value = "i-somestuff"
+    getenv.return_value = False
+    result = ef_utils.whereami()
+    self.assertEquals(result, "ec2")
+
+  @patch('ef_utils.getenv')
+  @patch('ef_utils.http_get_metadata')
+  def test_whereami_jenkins(self, mock_http_get_metadata, mock_getenv):
+    """
+    Tests whereami to see if it returns 'jenkins' by mocking an ec2 Jenkins
+    environment
+
+    Args:
+      mock_http_get_metadata: MagicMock, returns "i-somestuff"
+      mock_get_env: MagicMock, mocks the environment variables
+
+    Returns:
+      None
+
+    Raises:
+      AssertionError if any of the assert checks fail
+    """
+    mock_http_get_metadata.return_value = "i-somestuff"
+
+    def getenv_side_effect(key, default=None):
+      if key == "JENKINS_URL":
+        return True
+      if key == "JENKINS_DOCKER":
+        return None
+      return default
+    mock_getenv.side_effect = getenv_side_effect
+    result = ef_utils.whereami()
+    self.assertEquals(result, "jenkins")
+
+  @patch('ef_utils.getenv')
+  @patch('ef_utils.http_get_metadata')
+  def test_whereami_jenkins_docker(self, mock_http_get_metadata, mock_getenv):
+    """
+    Tests whereami to see if it returns 'ec2' by mocking an ec2 Jenkins Docker
+    environment
+
+    Args:
+      mock_http_get_metadata: MagicMock, returns "i-somestuff"
+      mock_get_env: MagicMock, mocks the environment variables
+
+    Returns:
+      None
+
+    Raises:
+      AssertionError if any of the assert checks fail
+    """
+    mock_http_get_metadata.return_value = "i-somestuff"
+    def getenv_side_effect(key, default=None):
+      if key == "JENKINS_URL":
+        return True
+      if key == "JENKINS_DOCKER":
+        return True
+      return default
+    mock_getenv.side_effect = getenv_side_effect
+    result = ef_utils.whereami()
+    self.assertEquals(result, "ec2")
+
+  @patch('ef_utils.getenv')
+  @patch('ef_utils.is_in_virtualbox')
   @patch('ef_utils.gethostname')
-  def test_whereami_local(self, mock_gethostname):
+  @patch('ef_utils.http_get_metadata')
+  def test_whereami_local(self, mock_http_get_metadata, mock_gethostname, mock_is_in_virtualbox, mock_getenv):
     """
     Tests whereami to see if it returns 'local' by mocking a local machine environment
 
     Args:
+      mock_http_get_metadata: MagicMock, returns something other than "i-...."
       mock_gethostname: MagicMock, returns .local
 
     Returns:
@@ -171,16 +273,23 @@ class TestEFUtils(unittest.TestCase):
     Raises:
       AssertionError if any of the assert checks fail
     """
+    mock_getenv.return_value = False
+    mock_http_get_metadata.return_value = "nothinguseful"
+    mock_is_in_virtualbox.return_value = False
     mock_gethostname.return_value = ".local"
     result = ef_utils.whereami()
     self.assertEquals(result, "local")
 
+  @patch('ef_utils.getenv')
+  @patch('ef_utils.is_in_virtualbox')
   @patch('ef_utils.gethostname')
-  def test_whereami_unknown(self, mock_gethostname):
+  @patch('ef_utils.http_get_metadata')
+  def test_whereami_unknown(self, mock_http_get_metadata, mock_gethostname, mock_is_in_virtualbox, mock_getenv):
     """
     Tests whereami to see if it returns 'unknown' by mocking the environment to not match anything
 
     Args:
+      mock_http_get_metadata: MagicMock, returns something other than "i-...."
       mock_gethostname: MagicMock, returns some junk value
 
     Returns:
@@ -189,6 +298,9 @@ class TestEFUtils(unittest.TestCase):
     Raises:
       AssertionError if any of the assert checks fail
     """
+    mock_getenv.return_value = False
+    mock_http_get_metadata.return_value = "nothinguseful"
+    mock_is_in_virtualbox.return_value = False
     mock_gethostname.return_value = "not local"
     result = ef_utils.whereami()
     self.assertEquals(result, "unknown")
@@ -196,7 +308,7 @@ class TestEFUtils(unittest.TestCase):
   @patch('ef_utils.http_get_metadata')
   def test_http_get_instance_env(self, mock_http_get_metadata):
     """
-    Tests http_get_instance_env to see if it returns 'dev' by mocking the metadata with a valid IAM instance profile
+    Tests http_get_instance_env to see if it returns 'alpha' by mocking the metadata with a valid IAM instance profile
 
     Args:
       mock_http_get_metadata: MagicMock, returns a valid JSON InstanceProfileArn
@@ -207,9 +319,9 @@ class TestEFUtils(unittest.TestCase):
     Raises:
       AssertionError if any of the assert checks fail
     """
-    mock_http_get_metadata.return_value = "{\"InstanceProfileArn\": \"arn:aws:iam::1234:role/dev-server\"}"
+    mock_http_get_metadata.return_value = "{\"InstanceProfileArn\": \"arn:aws:iam::1234:role/alpha-server\"}"
     env = ef_utils.http_get_instance_env()
-    self.assertEquals(env, "dev")
+    self.assertEquals(env, "alpha")
 
   @patch('ef_utils.http_get_metadata')
   def test_http_get_instance_env_exception(self, mock_http_get_metadata):
@@ -244,7 +356,7 @@ class TestEFUtils(unittest.TestCase):
     Raises:
       AssertionError if any of the assert checks fail
     """
-    mock_http_get_metadata.return_value = "{\"InstanceProfileArn\": \"arn:aws:iam::1234:role/dev-server\"}"
+    mock_http_get_metadata.return_value = "{\"InstanceProfileArn\": \"arn:aws:iam::1234:role/alpha-server\"}"
     role = ef_utils.http_get_instance_role()
     self.assertEquals(role, "server")
 
@@ -292,7 +404,7 @@ class TestEFUtils(unittest.TestCase):
             "Instances": [
               {
                 "IamInstanceProfile": {
-                  "Arn": "arn:aws:iam::1234:instance-profile/dev0-server-ftp"
+                  "Arn": "arn:aws:iam::1234:instance-profile/alpha0-server-ftp"
                 }
               }
             ]
@@ -301,11 +413,9 @@ class TestEFUtils(unittest.TestCase):
       }
     result = ef_utils.get_instance_aws_context(mock_ec2_client)
     self.assertEquals(result["account"], "4444")
-    self.assertEquals(result["env"], "dev0")
-    self.assertEquals(result["env_short"], "dev")
     self.assertEquals(result["instance_id"], "i-00001111f")
     self.assertEquals(result["region"], "us-west-2")
-    self.assertEquals(result["role"], "dev0-server-ftp")
+    self.assertEquals(result["role"], "alpha0-server-ftp")
     self.assertEquals(result["service"], "server-ftp")
 
   @patch('ef_utils.http_get_metadata')
@@ -327,137 +437,6 @@ class TestEFUtils(unittest.TestCase):
     with self.assertRaises(IOError) as exception:
       ef_utils.get_instance_aws_context(mock_ec2_client)
     self.assertIn("Error looking up metadata:availability-zone or instance-id:", exception.exception.message)
-
-  @patch('ef_utils.http_get_metadata')
-  def test_get_instance_aws_context_ec2_invalid_environment_exception(self, mock_http_get_metadata):
-    """
-    Tests get_instance_aws_context to see if it throws an exception by modifying the describe_instances
-    to return a IamInstanceProfile with an invalid environment in it.
-
-    Args:
-      mock_http_get_metadata: MagicMock, returns valid responses in the order its called
-
-    Returns:
-      None
-
-    Raises:
-      AssertionError if any of the assert checks fail
-    """
-    mock_http_get_metadata.side_effect = ["us-west-2a", "i-00001111f"]
-    mock_ec2_client = Mock(name="mock-ec2-client")
-    mock_ec2_client.describe_instances.return_value = \
-      {
-        "Reservations": [
-          {
-            "OwnerId": "4444",
-            "Instances": [
-              {
-                "IamInstanceProfile": {
-                  "Arn": "arn:aws:iam::1234:instance-profile/invalid_env-server-ftp"
-                }
-              }
-            ]
-          }
-        ]
-      }
-    with self.assertRaises(Exception) as exception:
-      ef_utils.get_instance_aws_context(mock_ec2_client)
-    self.assertIn("Did not find environment in role name:", exception.exception.message)
-
-  @patch('subprocess.check_output')
-  def test_pull_repo_ssh_credentials(self, mock_check_output):
-    """
-    Tests pull_repo by mocking the subprocess.check_output to return git ssh credentials.
-
-    Args:
-      mock_check_output: MagicMock, returns valid git responses in order of being called, with the
-      repo coming from the ef_site_config.py
-
-    Returns:
-      None
-
-    Raises:
-      AssertionError if any of the assert checks fail
-    """
-    mock_check_output.side_effect = [
-      "user@" + EFSiteConfig.EF_REPO.replace("/", ":", 1) + ".git",
-      EFSiteConfig.EF_REPO_BRANCH
-    ]
-    try:
-      ef_utils.pull_repo()
-    except RuntimeError as exception:
-      self.fail("Exception occurred during test_pull_repo_ssh_credentials: " + exception.message)
-
-  @patch('subprocess.check_output')
-  def test_pull_repo_https_credentials(self, mock_check_output):
-    """
-    Tests the pull_repo by mocking the subprocess.check_output to return git http credentials.
-
-    Args:
-      mock_check_output: MagicMock, returns valid git responses in order of being called, with the
-      repo coming from the ef_site_config.py
-
-    Returns:
-      None
-
-    Raises:
-      AssertionError if any of the assert checks fail
-    """
-    mock_check_output.side_effect = [
-      "origin\thttps://user@" + EFSiteConfig.EF_REPO + ".git",
-      EFSiteConfig.EF_REPO_BRANCH
-    ]
-    try:
-      ef_utils.pull_repo()
-    except RuntimeError as exception:
-      self.fail("Exception occurred during test_pull_repo_ssh_credentials: " + exception.message)
-
-  @patch('subprocess.check_output')
-  def test_pull_repo_incorrect_repo(self, mock_check_output):
-    """
-    Tests pull_repo to see if it throws an exception when the supplied repo doesn't match the one in
-    ef_site_config.py
-
-    Args:
-      mock_check_output: MagicMock, returns git responses with non matching repo names
-
-    Returns:
-      None
-
-    Raises:
-      AssertionError if any of the assert checks fail
-    """
-    mock_check_output.side_effect = [
-      "user@github.com:company/wrong_repo.git "
-      "other_user@github.com:company/wrong_repo.git"
-    ]
-    with self.assertRaises(RuntimeError) as exception:
-      ef_utils.pull_repo()
-    self.assertIn("Must be in", exception.exception.message)
-
-  @patch('subprocess.check_output')
-  def test_pull_repo_incorrect_branch(self, mock_check_output):
-    """
-    Tests pull_repo to see if it throws an error when the mocked check_output states it's on a branch
-    other than the one specified in ef_site_config.py
-
-    Args:
-      mock_check_output: MagicMock, returns some valid git responses, with the
-      repo coming from the ef_site_config.py, and then a non matching branch name
-
-    Returns:
-      None
-
-    Raises:
-      AssertionError if any of the assert checks fail
-    """
-    mock_check_output.side_effect = [
-      "user@" + EFSiteConfig.EF_REPO.replace("/", ":", 1) + ".git",
-      "wrong_branch"
-    ]
-    with self.assertRaises(RuntimeError) as exception:
-      ef_utils.pull_repo()
-    self.assertIn("Must be on branch:", exception.exception.message)
 
   @patch('boto3.Session')
   def test_create_aws_clients(self, mock_session_constructor):
@@ -511,9 +490,16 @@ class TestEFUtils(unittest.TestCase):
     self.assertTrue("sqs" in client_dict)
     self.assertTrue("SESSION" in client_dict)
 
-  def test_get_account_alias(self):
+  @patch('boto3.Session')
+  def test_create_aws_clients_cache_multiple_configs(self, mock_session_constructor):
     """
-    Checks if get_account_alias returns the correct account based on valid environments
+    Test create_aws_clients with multiple parameters and mocking the boto3
+    Session constructor.
+
+    Check that every (region, profile) pair gets its own set of clients.
+
+    Args:
+      mock_session_constructor: MagicMock, returns Mock object representing a boto3.Session object
 
     Returns:
       None
@@ -521,23 +507,41 @@ class TestEFUtils(unittest.TestCase):
     Raises:
       AssertionError if any of the assert checks fail
     """
-    for env, account_alias in EFSiteConfig.ENV_ACCOUNT_MAP.items():
-      # Attach a numeric value to environments that are ephemeral
-      if env in EFSiteConfig.EPHEMERAL_ENVS:
-        env += '0'
-      self.assertEquals(ef_utils.get_account_alias(env), account_alias)
+    mock_session = Mock(name="mock-boto3-session")
+    # make sure we get different clients on every call
+    mock_session.client.side_effect = lambda *args, **kwargs: Mock(name="mock-boto3-session")
+    mock_session_constructor.return_value = mock_session
+    amazon_services = ["acm", "batch", "ec2", "sqs"]
 
-    # Do tests for global and mgmt envs, which have a special mapping, Example: global.account_alias
-    if "global" in EFSiteConfig.ENV_ACCOUNT_MAP:
-      for account_alias in EFSiteConfig.ENV_ACCOUNT_MAP.values():
-        self.assertEquals(ef_utils.get_account_alias("global." + account_alias), account_alias)
-    if "mgmt" in EFSiteConfig.ENV_ACCOUNT_MAP:
-      for account_alias in EFSiteConfig.ENV_ACCOUNT_MAP.values():
-        self.assertEquals(ef_utils.get_account_alias("mgmt." + account_alias), account_alias)
+    cases = [
+        ("us-west-2d", None),
+        ("us-west-3d", None),
+        ("us-west-2d", "codemobs"),
+        ("us-west-2d", "ellationeng"),
+        ("", None),
+    ]
 
-  def test_get_account_alias_invalid_env(self):
+    built_clients = {}
+
+    for region, profile in cases:
+      client_dict = ef_utils.create_aws_clients(region, profile, *amazon_services)
+
+      for key, clients in built_clients.items():
+        # check if the new clients are unique
+        self.assertNotEquals(client_dict, clients,
+                             msg="Duplicate clients for {} vs {}".format(key, (region, profile)))
+      built_clients[(region, profile)] = client_dict
+
+  @patch('boto3.Session')
+  def test_create_aws_clients_cache_same_client(self, mock_session_constructor):
     """
-    Tests if get_account_alias raises exceptions when given invalid environments
+    Test create_aws_clients with same parameters and mocking the boto3
+    Session constructor.
+
+    Check that we get the same clients every time.
+
+    Args:
+      mock_session_constructor: MagicMock, returns Mock object representing a boto3.Session object
 
     Returns:
       None
@@ -545,34 +549,34 @@ class TestEFUtils(unittest.TestCase):
     Raises:
       AssertionError if any of the assert checks fail
     """
-    # Create junk environment values by attaching numbers to non-ephemeral environments and not attaching numbers
-    # to ephemeral environments
-    for env, account_alias in EFSiteConfig.ENV_ACCOUNT_MAP.items():
-      if env not in EFSiteConfig.EPHEMERAL_ENVS:
-        env += '0'
-      with self.assertRaises(ValueError) as exception:
-        ef_utils.get_account_alias(env)
-      self.assertTrue("unknown env" in exception.exception.message)
+    mock_session = Mock(name="mock-boto3-session")
+    # make sure we get different clients on every call
+    mock_session.client.side_effect = lambda *args, **kwargs: Mock(name="mock-boto3-session")
+    mock_session_constructor.return_value = mock_session
+    amazon_services = ["acm", "batch", "ec2", "sqs"]
+    cases = [
+        ("us-west-2d", None),
+        ("us-west-3d", None),
+        ("us-west-2d", "codemobs"),
+        ("us-west-2d", "ellationeng"),
+        ("", None),
+    ]
+    for region, profile in cases:
+      clients1 = ef_utils.create_aws_clients(region, profile, *amazon_services)
+      clients2 = ef_utils.create_aws_clients(region, profile, *amazon_services)
 
-    # Hard coded junk values
-    with self.assertRaises(ValueError) as exception:
-      ef_utils.get_account_alias("non-existent-env")
-    self.assertTrue("unknown env" in exception.exception.message)
-    with patch('ef_utils.env_valid') as mock_env_valid:
-      with self.assertRaises(ValueError) as exception:
-        mock_env_valid.return_value = True
-        ef_utils.get_account_alias("non-existent-env")
-    self.assertTrue("has no entry in ENV_ACCOUNT_MAP" in exception.exception.message)
-    with self.assertRaises(ValueError) as exception:
-      ef_utils.get_account_alias("")
-    self.assertTrue("unknown env" in exception.exception.message)
-    with self.assertRaises(ValueError) as exception:
-      ef_utils.get_account_alias(None)
-    self.assertTrue("unknown env" in exception.exception.message)
+      self.assertEquals(clients1, clients2, msg="Should get the same clients for the same region/profile pair")
 
-  def test_get_env_short(self):
+  @patch('boto3.Session')
+  def test_create_aws_clients_cache_new_clients(self, mock_session_constructor):
     """
-    Checks if get_env_short returns the correct environment shortname when given valid environments
+    Test create_aws_clients with same parameters and mocking the boto3
+    Session constructor.
+
+    Check that we get the same clients every time.
+
+    Args:
+      mock_session_constructor: MagicMock, returns Mock object representing a boto3.Session object
 
     Returns:
       None
@@ -580,16 +584,29 @@ class TestEFUtils(unittest.TestCase):
     Raises:
       AssertionError if any of the assert checks fail
     """
-    for env in EFSiteConfig.ENV_ACCOUNT_MAP:
-      expected_env_value = env
-      # Attach a numeric value to environments that are ephemeral
-      if env in EFSiteConfig.EPHEMERAL_ENVS:
-         env += '0'
-      self.assertEquals(ef_utils.get_env_short(env), expected_env_value)
+    mock_session = Mock(name="mock-boto3-session")
+    # make sure we get different clients on every call
+    mock_session.client.side_effect = lambda *args, **kwargs: Mock(name="mock-boto3-session")
+    mock_session_constructor.return_value = mock_session
+    amazon_services = ["acm", "batch", "ec2", "sqs"]
+    new_amazon_services = amazon_services + ["cloudfront"]
+    region, profile = "us-west-2", "testing"
 
-  def test_get_env_short_invalid_envs(self):
+    clients = ef_utils.create_aws_clients(region, profile, *amazon_services)
+    # copy the old clients, so they're not overwritten
+    built_clients = {k: v for k, v in clients.items()}
+    new_clients = ef_utils.create_aws_clients(region, profile, *new_amazon_services)
+
+    for service in new_amazon_services:
+      self.assertIn(service, new_clients)
+
+    for service, client in built_clients.items():
+      self.assertEquals(new_clients.get(service), client)
+
+
+  def test_get_account_id(self):
     """
-    Tests if get_env_short raises exceptions when given invalid environments
+    Checks if get_account_id returns the correct account id
 
     Returns:
       None
@@ -597,123 +614,63 @@ class TestEFUtils(unittest.TestCase):
     Raises:
       AssertionError if any of the assert checks fail
     """
-    # Create junk environment values by attaching numbers to non-ephemeral environments and not attaching numbers
-    # to ephemeral environments
-    for env in EFSiteConfig.ENV_ACCOUNT_MAP:
-      if env not in EFSiteConfig.EPHEMERAL_ENVS:
-        env += '0'
-      with self.assertRaises(ValueError) as exception:
-        ef_utils.get_env_short(env)
-      self.assertTrue("unknown env" in exception.exception.message)
+    target_account_id = "123456789"
+    mock_sts_client = Mock(name="mock sts client")
+    mock_sts_client.get_caller_identity.return_value.get.return_value = target_account_id
+    self.assertEquals(ef_utils.get_account_id(mock_sts_client), target_account_id)
 
-    # Hard coded junk values
-    with self.assertRaises(ValueError) as exception:
-      ef_utils.get_env_short("non-existent-env")
-    self.assertTrue("unknown env" in exception.exception.message)
-    with self.assertRaises(ValueError) as exception:
-      ef_utils.get_env_short("")
-    self.assertTrue("unknown env" in exception.exception.message)
-    with self.assertRaises(ValueError) as exception:
-      ef_utils.get_env_short(None)
-    self.assertTrue("unknown env" in exception.exception.message)
 
-  def test_env_valid(self):
-    """
-    Checks if env_valid returns true for correctly named environments
+  def test_get_autoscaling_group_properties_valid_asg_name(self):
+    """Test method returns valid parameters file"""
+    mock_asg_resource = Mock(name="Mock Autoscaling Client")
+    mock_asg_resource.describe_auto_scaling_groups.return_value = \
+    {
+      "AutoScalingGroups": [
+        {
+          "DesiredCapacity": 2,
+          "Tags": [
+            {
+              "ResourceType": "auto-scaling-group",
+              "ResourceId": "alpha0-test-instance-ServerGroup",
+              "PropagateAtLaunch": "true",
+              "Value": "alpha0-test-instance",
+              "Key": "Name"
+            }
+          ],
+          "AutoScalingGroupName": "alpha0-test-instance-ServerGroup"
+        }
+      ]
+    }
+    result = ef_utils.get_autoscaling_group_properties(mock_asg_resource, "alpha0", "test-instance")
+    self.assertEquals(result[0]["DesiredCapacity"], 2)
+    self.assertEquals(result[0]["AutoScalingGroupName"], "alpha0-test-instance-ServerGroup")
+    self.assertEquals(result[0]["Tags"][0]["ResourceId"], "alpha0-test-instance-ServerGroup")
 
-    Returns:
-      None
-
-    Raises:
-      AssertionError if any of the assert checks fail
-    """
-    for env in EFSiteConfig.ENV_ACCOUNT_MAP:
-      # Attach a numeric value to environments that are ephemeral
-      if env in EFSiteConfig.EPHEMERAL_ENVS:
-         env += '0'
-      self.assertTrue(ef_utils.env_valid(env))
-
-    # Do tests for global and mgmt envs, which have a special mapping, Example: global.account_alias
-    if "global" in EFSiteConfig.ENV_ACCOUNT_MAP:
-      for account_alias in EFSiteConfig.ENV_ACCOUNT_MAP.values():
-        self.assertTrue(ef_utils.env_valid("global." + account_alias))
-    if "mgmt" in EFSiteConfig.ENV_ACCOUNT_MAP:
-      for account_alias in EFSiteConfig.ENV_ACCOUNT_MAP.values():
-        self.assertTrue(ef_utils.env_valid("mgmt." + account_alias))
-
-  def test_env_valid_invalid_envs(self):
-    """
-    Checks if env_valid returns ValueError for incorrectly name environments
-
-    Returns:
-      None
-
-    Raises:
-      AssertionError if any of the assert checks fail
-    """
-    # Create junk environment values by attaching numbers to non-ephemeral environments and not attaching numbers
-    # to ephemeral environments
-    for env in EFSiteConfig.ENV_ACCOUNT_MAP:
-      if env not in EFSiteConfig.EPHEMERAL_ENVS:
-        env += '0'
-      with self.assertRaises(ValueError):
-        ef_utils.env_valid(env)
-
-    # Hard coded junk values
-    with self.assertRaises(ValueError):
-      ef_utils.env_valid("invalid_env")
-    with self.assertRaises(ValueError):
-      ef_utils.env_valid("")
-    with self.assertRaises(ValueError):
-      ef_utils.env_valid(None)
-
-  def test_global_env_valid(self):
-    """
-    Checks global_env_valid returns true for account scoped envs.
-
-    Returns:
-      None
-
-    Raises:
-      AssertionError if any of the assert checks fail
-    """
-    if "global" in EFSiteConfig.ENV_ACCOUNT_MAP:
-      self.assertTrue(ef_utils.global_env_valid("global"))
-    if "mgmt" in EFSiteConfig.ENV_ACCOUNT_MAP:
-      self.assertTrue(ef_utils.global_env_valid("mgmt"))
-
-  def test_global_env_valid_non_scoped_envs(self):
-    """
-    Checks global_env_valid returns false for non account scoped envs.
-
-    Returns:
-      None
-
-    Raises:
-      AssertionError if any of the assert checks fail
-    """
-    # Loop through all environments that are not mgmt or global
-    for env in EFSiteConfig.ENV_ACCOUNT_MAP:
-      if env == "mgmt" or env == "global":
-        continue
-      with self.assertRaises(ValueError) as exception:
-        ef_utils.global_env_valid(env)
-      self.assertTrue("Invalid global env" in exception.exception.message)
-
-    # Hard coded junk values
-    with self.assertRaises(ValueError) as exception:
-      ef_utils.global_env_valid("not_global")
-    self.assertTrue("Invalid global env" in exception.exception.message)
-    with self.assertRaises(ValueError) as exception:
-      ef_utils.global_env_valid("not_mgmt")
-    self.assertTrue("Invalid global env" in exception.exception.message)
-    with self.assertRaises(ValueError) as exception:
-      ef_utils.global_env_valid("")
-    self.assertTrue("Invalid global env" in exception.exception.message)
-    with self.assertRaises(ValueError) as exception:
-      ef_utils.global_env_valid(None)
-    self.assertTrue("Invalid global env" in exception.exception.message)
-
+  def test_get_autoscaling_group_properties_valid_tag_name(self):
+    """Test method returns valid parameters file"""
+    mock_asg_resource = Mock(name="Mock Autoscaling Client")
+    mock_asg_resource.describe_auto_scaling_groups.return_value = \
+    {
+      "AutoScalingGroups": [
+      ]
+    }
+    mock_asg_resource.describe_tags.return_value = \
+    {
+      "Tags": [
+        {
+          "ResourceType": "auto-scaling-group",
+          "ResourceId": "alpha0-test-instance-ServerGroup",
+          "PropagateAtLaunch": "true",
+          "Value": "alpha0-test-instance",
+          "Key": "Name"
+        }
+      ]
+    }
+    result = ef_utils.get_autoscaling_group_properties(mock_asg_resource, "alpha0", "test-instance")
+    mock_asg_resource.describe_tags.assert_called_once_with(
+      Filters=[{ "Name": "Key", "Values": ["Name"] }, { "Name": "Value", "Values": ["alpha0-test-instance"]}])
+    mock_asg_resource.describe_auto_scaling_groups.assert_called_with(
+      AutoScalingGroupNames=["alpha0-test-instance-ServerGroup"])
 
 class TestEFUtilsKMS(unittest.TestCase):
   """Test cases for functions using kms"""
@@ -775,7 +732,3 @@ class TestEFUtilsKMS(unittest.TestCase):
     self.mock_kms.decrypt.side_effect = self.client_error
     with self.assertRaises(SystemExit):
       ef_utils.kms_decrypt(self.mock_kms, self.secret)
-
-
-if __name__ == '__main__':
-  unittest.main()

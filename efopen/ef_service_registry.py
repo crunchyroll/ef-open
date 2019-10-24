@@ -14,12 +14,13 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-from collections import Counter
 import json
-from os.path import isfile, normpath
 import subprocess
+from collections import Counter
+from os.path import isfile, normpath
 
 from ef_config import EFConfig
+
 
 class EFServiceRegistry(object):
   """
@@ -56,7 +57,7 @@ class EFServiceRegistry(object):
     # Validate service registry
     # 1. All service groups listed in EFConfig.SERVICE_GROUPS must be present
     for service_group in EFConfig.SERVICE_GROUPS:
-      if not self.service_registry_json.has_key(service_group):
+      if service_group not in self.service_registry_json:
         raise RuntimeError("service registry: {} doesn't have '{}' service group listed in EFConfig".format(
                            self._service_registry_file, service_group))
     # 2. A service name must be unique and can only belong to one group
@@ -109,9 +110,24 @@ class EFServiceRegistry(object):
       if service_group not in EFConfig.SERVICE_GROUPS:
         raise RuntimeError("service registry: {} doesn't have '{}' section listed in EFConfig".format(
           self._service_registry_file, service_group))
-      return self.service_registry_json[service_group].iteritems()
+      return iter(self.service_registry_json[service_group].items())
     else:
-     return self.services().iteritems()
+      return iter(self.services().items())
+
+  def _expand_ephemeral_env_names(self, envlist):
+    """
+    Args:
+      envlist: a list of environment names, which may be "ephemeral" names which get expanded to specific environment names
+    Returns:
+      List[String]: envlist, with ephemeral environment names expanded into specific environment names
+    """
+    result = []
+    for service_env in envlist:
+      if service_env not in EFConfig.PROTECTED_ENVS and service_env in EFConfig.EPHEMERAL_ENVS:
+        result.extend((lambda env=service_env: [env + str(x) for x in range(EFConfig.EPHEMERAL_ENVS[env])])())
+      else:
+        result.append(service_env)
+    return result
 
   def valid_envs(self, service_name):
     """
@@ -127,17 +143,46 @@ class EFServiceRegistry(object):
       raise RuntimeError("service registry doesn't have service: {}".format(service_name))
 
     # Return empty list if service has no "environments" section
-    if not (service_record.has_key("environments")):
+    if "environments" not in service_record:
       return []
     # Otherwise gather up the envs
-    service_record_envs = service_record["environments"]
-    result = []
-    for service_env in service_record_envs:
-      if service_env not in EFConfig.PROTECTED_ENVS and service_env in EFConfig.EPHEMERAL_ENVS:
-        result.extend((lambda env=service_env: [env + str(x) for x in range(EFConfig.EPHEMERAL_ENVS[env])])())
-      else:
-        result.append(service_env)
-    return result
+    return self._expand_ephemeral_env_names(service_record["environments"])
+
+  def valid_auto_deploy_envs(self, service_name):
+    """
+    Args:
+      service_name: the name of the service in the service registry
+    Returns:
+      List[String]|bool: A list of environments to which it is ok to auto-deploy the given service,
+                         or a boolean flag allowing/denying all the environments in the 'environments'
+                         service record field to be auto-deployed.
+    Raises:
+      RuntimeError if the service wasn't found
+
+    Note that environments in the return are filtered for also being in the service record's
+    'environments' field, so in order to qualify for autodeployment, an environment needs to be
+    in both lists.
+    """
+    service_record = self.service_record(service_name)
+    if service_record is None:
+      raise RuntimeError("service registry doesn't have service: {}".format(service_name))
+
+    if "auto_deploy_environments" not in service_record:
+      return []
+
+    # The list of valid deployment environments, for this service
+    envs = self.valid_envs(service_name)
+
+    #  If the auto_deploy_environments field is a boolean false, return [].
+    if isinstance(service_record["auto_deploy_environments"], bool) and not service_record["auto_deploy_environments"]:
+      return []
+    elif isinstance(service_record["auto_deploy_environments"], bool):
+      #  If the auto_deploy_environments field is a boolean true, return the full list of 'environments' for the service.
+      return envs
+    else:
+      # filter the auto-deploy environments to only include environments that are also in the 'environments' list.
+      auto_dep_envs = self._expand_ephemeral_env_names(service_record["auto_deploy_environments"])
+      return list(set(auto_dep_envs).intersection(envs))
 
   def service_record(self, service_name):
     """
@@ -146,7 +191,7 @@ class EFServiceRegistry(object):
     Returns:
       the entire service record from the service registry or None if the record was not found
     """
-    if not self.services().has_key(service_name):
+    if service_name not in self.services():
       return None
     return self.services()[service_name]
 
@@ -158,9 +203,21 @@ class EFServiceRegistry(object):
       the name of the group the service is in, or None of the service was not found
     """
     for group in EFConfig.SERVICE_GROUPS:
-      if self.services(group).has_key(service_name):
+      if service_name in self.services(group):
         return group
     return None
+
+  def service_region(self, service_name):
+    """
+    Args:
+      service_name: the name of the service in the service registry
+    Returns:
+      the region the service is in, or EFConfig.DEFAULT_REGION if the region was not found
+    """
+    if "region" not in self.services()[service_name]:
+      return EFConfig.DEFAULT_REGION
+    else:
+      return self.services()[service_name]["region"]
 
   def version_keys(self):
     return self.service_registry_json["version_keys"]
@@ -175,9 +232,9 @@ class EFServiceRegistry(object):
     Raises:
       ValueError if the key was not found
     """
-    if not self.version_keys().has_key(version_key_name):
+    if version_key_name not in self.version_keys():
       raise RuntimeError("service registry doesn't have a version key entry for: {}".format(version_key_name))
-    if not self.version_keys()[version_key_name].has_key("allow_latest"):
+    if "allow_latest" not in self.version_keys()[version_key_name]:
       raise RuntimeError("service registry key {} doesn't have an 'allow_latest' value".format(
         version_key_name))
     return self.version_keys()[version_key_name]["allow_latest"]

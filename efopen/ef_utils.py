@@ -19,7 +19,7 @@ limitations under the License.
 from __future__ import print_function
 import base64
 import json
-from os import access, X_OK
+from os import access, getenv, X_OK
 from os.path import isfile
 import re
 from socket import gethostname
@@ -30,8 +30,6 @@ import urllib2
 import boto3
 from botocore.exceptions import ClientError
 
-from ef_config import EFConfig
-
 __HTTP_DEFAULT_TIMEOUT_SEC = 5
 __METADATA_PREFIX = "http://169.254.169.254/latest/meta-data/"
 __VIRT_WHAT = "/sbin/virt-what"
@@ -39,6 +37,10 @@ __VIRT_WHAT_VIRTUALBOX_WITH_KVM = ["virtualbox", "kvm"]
 
 # Matches CIDRs (loosely, TBH)
 CIDR_REGEX = r"^(([1-2][0-9]{2}|[0-9]{0,2})\.){3}([1-2][0-9]{2}|[0-9]{0,2})\/([1-3][0-9]|[0-9])$"
+
+# Cache for AWS clients. Keeps all the clients under (region, profile) keys.
+client_cache = {}
+
 
 def fail(message, exception_data=None):
   """
@@ -68,30 +70,58 @@ def http_get_metadata(metadata_path, timeout=__HTTP_DEFAULT_TIMEOUT_SEC):
   except urllib2.URLError as error:
     raise IOError("URLError in http_get_metadata: " + repr(error))
 
+def is_in_virtualbox():
+  """
+  Is the current environment a virtualbox instance?
+  Returns a boolean
+  Raises IOError if the necessary tooling isn't available
+  """
+  if not isfile(__VIRT_WHAT) or not access(__VIRT_WHAT, X_OK):
+    raise IOError("virt-what not available")
+  try:
+    return subprocess.check_output(["sudo", "-n", __VIRT_WHAT]).split('\n')[0:2] == __VIRT_WHAT_VIRTUALBOX_WITH_KVM
+  except subprocess.CalledProcessError as e:
+    raise IOError("virt-what failed execution with {}".format(e))
+
 def whereami():
   """
   Determine if this is an ec2 instance or "running locally"
   Returns:
     "ec2" - this is an ec2 instance
+    "jenkins" - running inside a Jenkins job
     "virtualbox-kvm" - kernel VM (virtualbox with vagrant)
     "local" - running locally and not in a known VM
     "unknown" - I have no idea where I am
   """
+  if getenv("JENKINS_URL") and getenv("JENKINS_DOCKER") is None:
+    # The addition of the JENKINS_DOCKER is a temporary workaround to have Jenkins Docker machine rely on its instance
+    # role and assume roles vs a credentials file. This is an on-going effort to move everything to code with
+    # https://ellation.atlassian.net/browse/OPS-13637
+    # Regular Jenkins machines will still continue to use their credentials files until we switch over.
+    return "jenkins"
+
   # If the metadata endpoint responds, this is an EC2 instance
+  # If it doesn't, we can safely say this isn't EC2 and try the other options
   try:
     response = http_get_metadata("instance-id", 1)
     if response[:2] == "i-":
       return "ec2"
   except:
     pass
+
   # Virtualbox?
-  if isfile(__VIRT_WHAT) and access(__VIRT_WHAT, X_OK):
-    if subprocess.check_output(["sudo", __VIRT_WHAT]).split('\n')[0:2] == __VIRT_WHAT_VIRTUALBOX_WITH_KVM:
+  try:
+    if is_in_virtualbox():
       return "virtualbox-kvm"
+  except:
+    pass
+
   # Outside virtualbox/vagrant but not in aws; hostname is "<name>.local"
   hostname = gethostname()
   if re.findall(r"\.local$", hostname):
     return "local"
+
+  # we have no idea where we are
   return "unknown"
 
 def http_get_instance_env():
@@ -116,60 +146,6 @@ def http_get_instance_role():
     raise IOError("Error looking up metadata:iam/info: " + repr(error))
   return info["InstanceProfileArn"].split(":")[5].split("/")[1].split("-",1)[1]
 
-def get_instance_aws_context(ec2_client):
-  """
-  Returns: a dictionary of aws context
-    dictionary will contain these entries:
-    region, instance_id, account, role, env, env_short, service
-  Raises: IOError if couldn't read metadata or lookup attempt failed
-  """
-  result = {}
-  try:
-    result["region"] = http_get_metadata("placement/availability-zone/")
-    result["region"] = result["region"][:-1]
-    result["instance_id"] = http_get_metadata('instance-id')
-  except IOError as error:
-    raise IOError("Error looking up metadata:availability-zone or instance-id: " + repr(error))
-  try:
-    instance_desc = ec2_client.describe_instances(InstanceIds=[result["instance_id"]])
-  except Exception as error:
-    raise IOError("Error calling describe_instances: " + repr(error))
-  result["account"] = instance_desc["Reservations"][0]["OwnerId"]
-  arn = instance_desc["Reservations"][0]["Instances"][0]["IamInstanceProfile"]["Arn"]
-  result["role"] = arn.split(":")[5].split("/")[1]
-  env = re.search("^(" + EFConfig.VALID_ENV_REGEX + ")-", result["role"])
-  if not env:
-    raise IOError("Did not find environment in role name: " + result["role"])
-  result["env"] = env.group(1)
-  result["env_short"] = result["env"].strip(".0123456789")
-  result["service"] = "-".join(result["role"].split("-")[1:])
-  return result
-
-def pull_repo():
-  """
-  Pulls latest version of EF_REPO_BRANCH from EF_REPO (as set in ef_config.py) if client is in EF_REPO
-  and on the branch EF_REPO_BRANCH
-  Raises:
-    RuntimeError with message if not in the correct repo on the correct branch
-  """
-  try:
-    current_repo = subprocess.check_output(["git", "remote", "-v", "show"])
-  except subprocess.CalledProcessError as error:
-    raise RuntimeError("Exception checking current repo", error)
-  current_repo = re.findall("(https://|@)(.*?)(.git|[ ])", current_repo)[0][1].replace(":", "/")
-  if current_repo != EFConfig.EF_REPO:
-    raise RuntimeError("Must be in " + EFConfig.EF_REPO + " repo. Current repo is: " + current_repo)
-  try:
-    current_branch = subprocess.check_output(["git", "rev-parse", "--abbrev-ref", "HEAD"]).rstrip()
-  except subprocess.CalledProcessError as error:
-    raise RuntimeError("Exception checking current branch: " + repr(error))
-  if current_branch != EFConfig.EF_REPO_BRANCH:
-    raise RuntimeError("Must be on branch: " + EFConfig.EF_REPO_BRANCH + ". Current branch is: " + current_branch)
-  try:
-    subprocess.check_call(["git", "pull", "-q", "origin", EFConfig.EF_REPO_BRANCH])
-  except subprocess.CalledProcessError as error:
-    raise RuntimeError("Exception running 'git pull': " + repr(error))
-
 def create_aws_clients(region, profile, *clients):
   """
   Create boto3 clients for one or more AWS services. These are the services used within the libs:
@@ -183,87 +159,40 @@ def create_aws_clients(region, profile, *clients):
     { "cloudfront": <cloudfront_client>, ... }
     Dictionary contains an extra record, "SESSION" - pointing to the session that created the clients
   """
+  if not profile:
+    profile = None
+
+  client_key = (region, profile)
+
+  aws_clients = client_cache.get(client_key, {})
+  requested_clients = set(clients)
+  new_clients = requested_clients.difference(aws_clients)
+
+  if not new_clients:
+    return aws_clients
+
+  session = aws_clients.get("SESSION")
   try:
-    if not profile:
-      # use instance credentials
-      session = boto3.Session(region_name=region)
-    else:
-      # explicitly use a credential from .aws/credentials
+    if not session:
       session = boto3.Session(region_name=region, profile_name=profile)
+      aws_clients["SESSION"] = session
     # build clients
-    client_dict = { c: session.client(c) for c in clients }
+    client_dict = {c: session.client(c) for c in new_clients}
     # append the session itself in case it's needed by the client code - can't get it from the clients themselves
-    client_dict.update({"SESSION": session})
-    return client_dict
+    aws_clients.update(client_dict)
+
+    # add the created clients to the cache
+    client_cache[client_key] = aws_clients
+    return aws_clients
   except ClientError as error:
     raise RuntimeError("Exception logging in with Session() and creating clients", error)
 
-def get_account_alias(env):
+def get_account_id(sts_client):
   """
-  Given an env, return <account_alias> if env is valid
   Args:
-    env: an environment, such as "prod", "staging", "proto<N>", "mgmt.<account_alias>"
-  Returns:
-    the alias of the AWS account that holds the env
-  Raises:
-    ValueError if env is misformatted or doesn't name a known environment
+    sts_client (boto3 sts client object): Instantiated sts client object. Usually created through create_aws_clients
   """
-  env_valid(env)
-  # Env is a global env of the form "env.<account_alias>" (e.g. "mgmt.<account_alias>")
-  if env.find(".") > -1:
-    base, ext = env.split(".")
-    return ext
-  # Ordinary env, possibly a proto env ending with a digit that is stripped to look up the alias
-  else:
-    env_short = env.strip(".0123456789")
-    if env_short not in EFConfig.ENV_ACCOUNT_MAP:
-      raise ValueError("generic env: {} has no entry in ENV_ACCOUNT_MAP of ef_site_config.py".format(env_short))
-    return EFConfig.ENV_ACCOUNT_MAP[env_short]
-
-def get_env_short(env):
-  """
-  Given an env, return <env_short> if env is valid
-  Args:
-    env: an environment, such as "prod", "staging", "proto<N>", "mgmt.<account_alias>"
-  Returns:
-    the shortname of the env, such as "prod", "staging", "proto", "mgmt"
-  Raises:
-    ValueError if env is misformatted or doesn't name a known environment
-  """
-  env_valid(env)
-  if env.find(".") > -1:
-    env_short, ext = env.split(".")
-  else:
-    env_short = env.strip(".0123456789")
-  return env_short
-
-def env_valid(env):
-  """
-  Given an env, determine if it's valid
-  Args:
-    env: the env to check
-  Returns:
-    True if the env is valid
-  Raises:
-    ValueError with message if the env is not valid
-  """
-  if env not in EFConfig.ENV_LIST:
-    raise ValueError("unknown env: {}; env must be one of: ".format(env) + ", ".join(EFConfig.ENV_LIST))
-  return True
-
-def global_env_valid(env):
-  """
-  Given an env, determine if it's a valid "global" or "mgmt" env as listed in EFConfig
-  Args:
-    env: the env to check
-  Returns:
-    True if the env is a valid global env in EFConfig
-  Raises:
-    ValueError with message if the env is not valid
-  """
-  if env not in EFConfig.ACCOUNT_SCOPED_ENVS:
-    raise ValueError("Invalid global env: {}; global envs are: {}".format(env, EFConfig.ACCOUNT_SCOPED_ENVS))
-  return True
+  return sts_client.get_caller_identity().get('Account')
 
 def kms_encrypt(kms_client, service, env, secret):
   """
@@ -318,3 +247,77 @@ def kms_decrypt(kms_client, secret):
     else:
       fail("boto3 exception occurred while performing kms decrypt operation.", error)
   return decrypted_secret
+
+def kms_key_arn(kms_client, alias):
+  """
+  Obtain the full key arn based on the key alias provided
+  Args:
+    kms_client (boto3 kms client object): Instantiated kms client object. Usually created through create_aws_clients.
+    alias (string): alias of key, example alias/proto0-evs-drm.
+
+  Returns:
+    string of the full key arn
+  """
+  try:
+    response = kms_client.describe_key(KeyId=alias)
+    key_arn = response["KeyMetadata"]["Arn"]
+  except ClientError as error:
+    raise RuntimeError("Failed to obtain key arn for alias {}, error: {}".format(alias, error.response["Error"]["Message"]))
+
+  return key_arn
+
+def get_autoscaling_group_properties(asg_client, env, service):
+  """
+  Gets the autoscaling group properties based on the service name that is provided. This function will attempt the find
+  the autoscaling group base on the following logic:
+    1. If the service name provided matches the autoscaling group name
+    2. If the service name provided matches the Name tag of the autoscaling group
+    3. If the service name provided does not match the above, return None
+  Args:
+    clients: Instantiated boto3 autoscaling client
+    env: Name of the environment to search for the autoscaling group
+    service: Name of the service
+  Returns:
+    JSON object of the autoscaling group properties if it exists
+  """
+  try:
+    # See if {{ENV}}-{{SERVICE}} matches ASG name
+    response = asg_client.describe_auto_scaling_groups(AutoScalingGroupNames=["{}-{}".format(env, service)])
+    if len(response["AutoScalingGroups"]) == 0:
+      # See if {{ENV}}-{{SERVICE}} matches ASG tag name
+      response = asg_client.describe_tags(Filters=[{ "Name": "Key", "Values": ["Name"] }, { "Name": "Value", "Values": ["{}-{}".format(env, service)]}])
+      if len(response["Tags"]) == 0:
+        # Query does not match either of the above, return None
+        return None
+      else:
+         asg_name = response["Tags"][0]["ResourceId"]
+         response = asg_client.describe_auto_scaling_groups(AutoScalingGroupNames=[asg_name])
+         return response["AutoScalingGroups"]
+    else:
+      return response["AutoScalingGroups"]
+  except ClientError as error:
+    raise RuntimeError("Error in finding autoscaling group {} {}".format(env, service), error)
+
+def get_instance_aws_context(ec2_client): # marked, not used
+  """
+  Returns: a dictionary of aws context
+    dictionary will contain these entries:
+    region, instance_id, account, role, env, env_short, service
+  Raises: IOError if couldn't read metadata or lookup attempt failed
+  """
+  result = {}
+  try:
+    result["region"] = http_get_metadata("placement/availability-zone/")
+    result["region"] = result["region"][:-1]
+    result["instance_id"] = http_get_metadata('instance-id')
+  except IOError as error:
+    raise IOError("Error looking up metadata:availability-zone or instance-id: " + repr(error))
+  try:
+    instance_desc = ec2_client.describe_instances(InstanceIds=[result["instance_id"]])
+  except Exception as error:
+    raise IOError("Error calling describe_instances: " + repr(error))
+  result["account"] = instance_desc["Reservations"][0]["OwnerId"]
+  arn = instance_desc["Reservations"][0]["Instances"][0]["IamInstanceProfile"]["Arn"]
+  result["role"] = arn.split(":")[5].split("/")[1]
+  result["service"] = "-".join(result["role"].split("-")[1:])
+  return result

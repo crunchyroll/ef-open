@@ -26,10 +26,12 @@ class EFConfig(object):
   All supported site-specific customizations are found in ef_site_config.py
   """
 
-  _ef_site_config = EFSiteConfig().load
+  _ef_site_config = EFSiteConfig().load()
 
   # Initialize config constants
   ALLOW_EF_VERSION_SKIP_PRECHECK = _ef_site_config["ALLOW_EF_VERSION_SKIP_PRECHECK"]
+  if "CUSTOM_DATA" in _ef_site_config:
+    CUSTOM_DATA = _ef_site_config["CUSTOM_DATA"]
   DEFAULT_REGION = _ef_site_config["DEFAULT_REGION"]
   EF_CF_POLL_PERIOD = _ef_site_config["EF_CF_POLL_PERIOD"]
   EF_REPO = _ef_site_config["EF_REPO"]
@@ -40,11 +42,13 @@ class EFConfig(object):
   S3_VERSION_BUCKET = _ef_site_config["S3_VERSION_BUCKET"]
   SERVICE_GROUPS = set(_ef_site_config["SERVICE_GROUPS"])
   SPECIAL_VERSION_ENVS = _ef_site_config["SPECIAL_VERSION_ENVS"]
+  STACK_TERMINATION_PROTECTED_ENVS = _ef_site_config["STACK_TERMINATION_PROTECTED_ENVS"]
   VAGRANT_ENV = _ef_site_config["VAGRANT_ENV"]
+  PLUGINS = _ef_site_config.get("PLUGINS", {})
 
   # Default service registry file name
   DEFAULT_SERVICE_REGISTRY_FILE = "service_registry.json"
-  PARAMETER_FILE_SUFFIX = ".parameters.json"
+  PARAMETER_FILE_SUFFIXES = [".parameters.yaml", ".parameters.yml", ".parameters.json"]
   POLICY_TEMPLATE_PATH_SUFFIX = "/policy_templates/"
   # the service group 'fixtures' always exists
   SERVICE_GROUPS.add("fixtures")
@@ -99,7 +103,7 @@ class EFConfig(object):
       },
       "config": {},
       "dist-hash": {
-          "allowed_types": ["dist_static"]
+          "allowed_types": ["dist_static", "aws_lambda"]
       }
   }
   # Some envs' version entries can be set via these special values, meaning 'use the value found there'

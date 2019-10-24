@@ -14,12 +14,13 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-import json
+import yaml
 
 import botocore.exceptions
 
 from ef_config import EFConfig
-from ef_utils import get_env_short
+from ef_conf_utils import get_env_short
+
 
 class EFAppConfigReader:
   """
@@ -28,6 +29,7 @@ class EFAppConfigReader:
   e.g.: default (if present) - superseded by proto (if present) - superseded by proto<N> (if present)
   or: default (if present) - superseded by staging or prod (if present)
   """
+
   def __init__(self, env, service, clients):
     """
     Args:
@@ -47,12 +49,12 @@ class EFAppConfigReader:
     parameters_key = self.service + "/parameters/" + self.service + ".parameters.json"
     try:
       parameters_object = self.clients["s3"].get_object(
-        Bucket = EFConfig.S3_CONFIG_BUCKET,
-        Key = parameters_key
+        Bucket=EFConfig.S3_CONFIG_BUCKET,
+        Key=parameters_key
       )
     except botocore.exceptions.ClientError:
       raise RuntimeError("Error getting parameters from key: {}".format(parameters_key))
-    self.parameters = json.loads(parameters_object["Body"].read().decode("utf-8"))["params"]
+    self.parameters = yaml.safe_load(parameters_object["Body"].read().decode("utf-8"))["params"]
 
   def __repr__(self):
     keys = set()
@@ -60,7 +62,7 @@ class EFAppConfigReader:
       keys.update(self.parameters[env].keys())
     result = ""
     for key in keys:
-      result = result + "{}: {}\n".format(key,self.get_value(key))
+      result = result + "{}: {}\n".format(key, self.get_value(key))
     return result
 
   def get_value(self, symbol):
@@ -78,14 +80,12 @@ class EFAppConfigReader:
       return None
     # Hierarchically lookup the value
     result = None
-    if self.parameters.has_key(default) and self.parameters[default].has_key(symbol):
+    if default in self.parameters and symbol in self.parameters[default]:
       result = self.parameters[default][symbol]
-    if self.parameters.has_key(self.env_short) and \
-      self.parameters[self.env_short].has_key(symbol):
+    if self.env_short in self.parameters and symbol in self.parameters[self.env_short]:
       result = self.parameters[self.env_short][symbol]
     # This lookup is redundant when env_short == env, but it's also cheap
-    if self.parameters.has_key(self.env) and \
-      self.parameters[self.env].has_key(symbol):
+    if self.env in self.parameters and symbol in self.parameters[self.env]:
       result = self.parameters[self.env][symbol]
     # Finally, convert any list of items into a single \n-delimited string
     if isinstance(result, list):
@@ -97,12 +97,15 @@ class EFAppConfigReader:
 # @todo: proper test coverage for this module
 # In lieu of that for the moment, this demonstration code:
 import boto3
+
+
 def main():
   session = boto3.Session(profile_name="ellationeng", region_name="us-west-2")
-  clients = {"s3": session.client("s3") }
+  clients = {"s3": session.client("s3")}
   configreader = EFAppConfigReader("staging", "qc-pulls", clients)
   print("remote username")
   print(configreader.get_value("remote_username"))
+
 
 if __name__ == "__main__":
   main()
