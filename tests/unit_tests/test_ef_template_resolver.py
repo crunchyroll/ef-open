@@ -128,6 +128,24 @@ class TestEFTemplateResolver(unittest.TestCase):
     self.assertEqual(resolver.render(), "testenv one|testenv two|slashunderscoredashdot|test")
 
   @patch('ef_template_resolver.create_aws_clients')
+  def test_leading_dot(self, mock_create_aws):
+    """Do symbols with a leading dot render correctly"""
+    mock_create_aws.return_value = self._clients
+    test_string = "{{.one}}"
+    resolver = EFTemplateResolver(profile=TEST_PROFILE, env=TEST_ENV, region=TEST_REGION, service=TEST_SERVICE)
+    resolver.load(test_string, PARAMS)
+    self.assertEqual(resolver.render(), "testenv one")
+
+  @patch('ef_template_resolver.create_aws_clients')
+  def test_leading_dot_context(self, mock_create_aws):
+    """Do context symbols with a leading dot render correctly"""
+    mock_create_aws.return_value = self._clients
+    test_string = "{{.ENV}}"
+    resolver = EFTemplateResolver(profile=TEST_PROFILE, env=TEST_ENV, region=TEST_REGION, service=TEST_SERVICE)
+    resolver.load(test_string, PARAMS)
+    self.assertEqual(resolver.render(), TEST_ENV)
+
+  @patch('ef_template_resolver.create_aws_clients')
   def test_embedded_symbols(self, mock_create_aws):
     """Does a symbol built from other symbols resolve correctly"""
     mock_create_aws.return_value = self._clients
