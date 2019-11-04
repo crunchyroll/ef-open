@@ -31,7 +31,7 @@ from ef_version_resolver import EFVersionResolver
 # pattern to find resolvable symbols - finds innermost nestings
 symbol_pattern = re.compile(r'{{\.?([0-9A-Za-z/_,.:\-+=*]+?)}}')
 # inverse of SYMBOL_PATTERN, and disallows ':' and ',' from param keys; this is checked in load()
-illegal_param_chars = re.compile(r'[^(0-9A-Za-z/_\-)]')
+illegal_param_chars = re.compile(r'[^(0-9A-Za-z/_.\-)]')
 
 
 # Utilities
