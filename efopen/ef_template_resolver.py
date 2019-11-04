@@ -443,14 +443,15 @@ class EFTemplateResolver(object):
         # if symbol was resolved, replace it everywhere
         if resolved_symbol is not None:
           if isinstance(resolved_symbol, list):
-            self.template = self.template.replace("{{" + symbol + "}}", "\n".join(resolved_symbol))
+            # Using old style of string formatting here due to str.format() interaction with curly braces
+            self.template = re.sub(r'{{\.?%s}}' % re.escape(symbol), "\n".join(resolved_symbol), self.template)
           else:
-            self.template = self.template.replace("{{" + symbol + "}}", resolved_symbol)
+            self.template = re.sub(r'{{\.?%s}}' % re.escape(symbol), resolved_symbol, self.template)
           go_again = True
     return self.template
 
   def unresolved_symbols(self):
-    return set(re.findall(SYMBOL_PATTERN, self.template))
+    return set(symbol_pattern.findall(self.template))
 
   def count_braces(self):
     """
