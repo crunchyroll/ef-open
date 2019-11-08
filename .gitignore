@@ -6,6 +6,8 @@
 *.egg
 *.egg-info
 dist
+.eggs/
+_build_env/
 build
 eggs
 parts
