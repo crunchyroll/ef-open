@@ -44,6 +44,7 @@ from ef_service_registry import EFServiceRegistry
 from ef_template_resolver import EFTemplateResolver
 from ef_utils import create_aws_clients, fail, get_account_id, http_get_metadata
 from ef_conf_utils import pull_repo
+from newrelic.executor import NewRelicAlerts
 
 # Globals
 CLIENTS = None
@@ -628,6 +629,9 @@ def main():
     # 6. INLINE SERVICE'S POLICIES INTO ROLE
     # only eligible service types with "policies" sections in the service registry get policies
     conditionally_inline_policies(target_name, sr_entry)
+
+  # Create newrelic alerts for all "application_services" in the service registry
+  NewRelicAlerts(CONTEXT, CLIENTS).run()
 
   print("Exit: success")
 

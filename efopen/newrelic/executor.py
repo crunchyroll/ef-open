@@ -1,9 +1,8 @@
 from copy import deepcopy
 import logging
 
-from ef_config import EFConfig
-from ef_plugin import ef_plugin
-from ef_utils import kms_decrypt
+from efopen.ef_config import EFConfig
+from efopen.ef_utils import kms_decrypt
 
 from interface import NewRelic, AlertPolicy
 
@@ -12,15 +11,14 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-@ef_plugin('ef-generate')
 class NewRelicAlerts(object):
 
-  def __init__(self):
-    # load config settings
+  def __init__(self, context, clients):
     self.config = EFConfig.PLUGINS['newrelic']
     self.conditions = self.config['alert_conditions']
     self.admin_token = self.config['admin_token']
     self.all_notification_channels = self.config['env_notification_map']
+    self.context, self.clients = context, clients
 
   @classmethod
   def replace_symbols(cls, condition_obj, symbols):
@@ -64,7 +62,7 @@ class NewRelicAlerts(object):
           policy.conditions = newrelic.get_policy_alert_conditions(policy.id)
           policy.config_conditions = deepcopy(self.conditions)
 
-          # Add alert policy tqo notification channels if missing
+          # Add alert policy to notification channels if missing
           for channel in newrelic.all_channels:
             if channel['name'] in policy.notification_channels and policy.id not in channel['links']['policy_ids']:
               newrelic.add_policy_channels(policy.id, [channel['id']])
