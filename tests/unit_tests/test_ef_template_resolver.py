@@ -146,6 +146,24 @@ class TestEFTemplateResolver(unittest.TestCase):
     self.assertEqual(resolver.render(), TEST_ENV)
 
   @patch('ef_template_resolver.create_aws_clients')
+  def test_newline_literal(self, mock_create_aws):
+    """Do newline literals get converted to newlines"""
+    mock_create_aws.return_value = self._clients
+    test_string = "foo\nbar"
+    resolver = EFTemplateResolver(profile=TEST_PROFILE, env=TEST_ENV, region=TEST_REGION, service=TEST_SERVICE)
+    resolver.load(test_string, PARAMS)
+    self.assertEqual(resolver.render(), "foo\nbar")
+
+  @patch('ef_template_resolver.create_aws_clients')
+  def test_newline_literal_against_raw(self, mock_create_aws):
+    """Another check to make sure newline literals are not mistakenly written as r'\n'"""
+    mock_create_aws.return_value = self._clients
+    test_string = "foo\nbar"
+    resolver = EFTemplateResolver(profile=TEST_PROFILE, env=TEST_ENV, region=TEST_REGION, service=TEST_SERVICE)
+    resolver.load(test_string, PARAMS)
+    self.assertNotEqual(resolver.render(), r'foo\nbar')
+
+  @patch('ef_template_resolver.create_aws_clients')
   def test_embedded_symbols(self, mock_create_aws):
     """Does a symbol built from other symbols resolve correctly"""
     mock_create_aws.return_value = self._clients
