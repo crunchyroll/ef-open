@@ -691,7 +691,7 @@ class EFAwsResolver(object):
       The decrypted lookup value
     """
     decrypted_lookup = ef_utils.kms_decrypt(EFAwsResolver.__CLIENTS["kms"], lookup)
-    return decrypted_lookup
+    return decrypted_lookup.decode('string_escape')
 
   def kms_key_arn(self, lookup):
     """
