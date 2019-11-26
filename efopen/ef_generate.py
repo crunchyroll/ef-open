@@ -112,7 +112,7 @@ def handle_args_and_set_context(args):
     a populated EFContext object
   Raises:
     IOError: if service registry file can't be found or can't be opened
-    RuntimeError: if repo or branch isn't as spec'd in ef_config.EF_REPO and ef_config.EF_REPO_BRANCH
+    RuntimeError: if branch isn't as spec'd in ef_config.EF_REPO_BRANCH
     CalledProcessError: if 'git rev-parse' command to find repo root could not be run
   """
   parser = argparse.ArgumentParser()

@@ -37,7 +37,7 @@ class EFServiceRegistry(object):
       service_registry_file: the file containing the service registry
     Raises:
       IOError: if file can't be found or can't be opened
-      RuntimeError: if repo or branch isn't as spec'd in ef_config.EF_REPO and ef_config.EF_REPO_BRANCH
+      RuntimeError: if branch isn't as spec'd in ef_config.EF_REPO_BRANCH
       CalledProcessError: if 'git rev-parse' command to find repo root could not be run
     """
     # If a file wasn't provided, try to fetch the default

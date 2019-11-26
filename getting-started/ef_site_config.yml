@@ -18,11 +18,7 @@
 #   Example: DEFAULT_REGION: "us-east-1"
 DEFAULT_REGION: ""
 
-# Repo where tools and all EF data are
-#   Example: EF_REPO: "github.com/account/repo"
-EF_REPO: ""
-
-# Branch in EF_REPO to deploy CloudFormation templates from; probably "master"
+# Branch in of repo to deploy CloudFormation templates from; probably "master"
 #   Example: EF_REPO_BRANCH: "master"
 EF_REPO_BRANCH: "master"
 
