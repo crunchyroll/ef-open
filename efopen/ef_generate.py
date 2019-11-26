@@ -34,7 +34,6 @@ from os.path import dirname, normpath
 import sys
 import time
 
-import botocore
 from botocore.exceptions import ClientError
 
 from ef_aws_resolver import EFAwsResolver
@@ -44,7 +43,6 @@ from ef_service_registry import EFServiceRegistry
 from ef_template_resolver import EFTemplateResolver
 from ef_utils import create_aws_clients, fail, get_account_id, http_get_metadata
 from ef_conf_utils import pull_repo
-from newrelic.executor import NewRelicAlerts
 
 # Globals
 CLIENTS = None
@@ -549,6 +547,16 @@ def conditionally_create_kms_key(role_name, service_type):
   else:
     print_if_verbose("KMS key already exists: {}".format(key_alias))
 
+
+def create_newrelic_alerts():
+  """
+   Create Newrelic Alerts for each entry in the service registry application_services
+   Note: Import is inside this function rather than top of the file so that we do not import when running unit tests.
+         (would otherwise require an ef_site_config.yml in the directory where tests are being run)
+   """
+  from newrelic.executor import NewRelicAlerts
+  NewRelicAlerts(CONTEXT, CLIENTS).run()
+
 def main():
   global CONTEXT, CLIENTS, AWS_RESOLVER
 
@@ -631,9 +639,10 @@ def main():
     conditionally_inline_policies(target_name, sr_entry)
 
   # Create newrelic alerts for all "application_services" in the service registry
-  NewRelicAlerts(CONTEXT, CLIENTS).run()
+  create_newrelic_alerts()
 
   print("Exit: success")
+
 
 if __name__ == "__main__":
   main()

@@ -148,29 +148,6 @@ class TestEFConfUtils(unittest.TestCase):
     with self.assertRaises(ValueError):
       ef_conf_utils.env_valid(None)
 
-  @patch('subprocess.check_output')
-  def test_pull_repo_incorrect_repo(self, mock_check_output):
-    """
-    Tests pull_repo to see if it throws an exception when the supplied repo doesn't match the one in
-    ef_site_config.py
-
-    Args:
-      mock_check_output: MagicMock, returns git responses with non matching repo names
-
-    Returns:
-      None
-
-    Raises:
-      AssertionError if any of the assert checks fail
-    """
-    mock_check_output.side_effect = [
-      "user@github.com:company/wrong_repo.git "
-      "other_user@github.com:company/wrong_repo.git"
-    ]
-    with self.assertRaises(RuntimeError) as exception:
-      ef_conf_utils.pull_repo()
-    self.assertIn("Must be in", exception.exception.message)
-
   def test_get_account_alias(self):
     """
     Checks if get_account_alias returns the correct account based on valid environments
