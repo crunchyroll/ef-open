@@ -330,10 +330,10 @@ class EFAwsResolver(object):
   def ec2_vpc_vpn_gateway_id(self, lookup, default=None):
     """
     Args:
-      lookup: the friendly name of the VPC whose VPN Gateway ID we want
+      lookup: the friendly name of the VPN Gateway ID to look up
       default: the optional value to return if lookup failed; returns None if not set
     Returns:
-      The ID of the first VPN Gateway found with a label matching 'lookup' or default/None if no match found
+      The ID of the VPN Gateway found with a label matching 'lookup' or default/None if no match found
     """
     vpn_gateways = EFAwsResolver.__CLIENTS["ec2"].describe_vpn_gateways(Filters=[{
       "Name": "tag:Name",
