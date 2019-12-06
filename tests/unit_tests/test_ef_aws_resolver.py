@@ -867,6 +867,23 @@ class TestEFAwsResolver(unittest.TestCase):
     result = ef_aws_resolver.lookup("ec2:vpc/vpc-id,target_vpc_name")
     self.assertIsNone(result)
 
+  def test_ec2_vpc_vpn_gateway_id(self):
+    """
+    Tests VPN Gateway ID lookup
+    """
+    vpn_gateway_id = "vgw-6cc41f72"
+    vpn_gateway_response = {
+      "VpnGateways": [
+        {
+          "VpnGatewayId": vpn_gateway_id
+        }
+      ]
+    }
+    self._clients["ec2"].describe_vpn_gateways.return_value = vpn_gateway_response
+    ef_aws_resolver = EFAwsResolver(self._clients)
+    result = ef_aws_resolver.lookup("ec2:vpc/vpn-gateway-id,vpnGateway-name")
+    self.assertEquals(vpn_gateway_id, result)
+    
   def test_waf_rule_id(self):
     """
     Tests waf_rule_id to see if it returns the rule id that matches the rule name

@@ -327,6 +327,23 @@ class EFAwsResolver(object):
     else:
       return default
 
+  def ec2_vpc_vpn_gateway_id(self, lookup, default=None):
+    """
+    Args:
+      lookup: the friendly name of the VPN Gateway ID to look up
+      default: the optional value to return if lookup failed; returns None if not set
+    Returns:
+      The ID of the VPN Gateway found with a label matching 'lookup' or default/None if no match found
+    """
+    vpn_gateways = EFAwsResolver.__CLIENTS["ec2"].describe_vpn_gateways(Filters=[{
+      "Name": "tag:Name",
+      "Values": [lookup]
+    }])
+    if len(vpn_gateways) > 0:
+      return vpn_gateways["VpnGateways"][0]["VpnGatewayId"]
+    else:
+      return default
+    
   def elbv2_load_balancer_hosted_zone(self, lookup, default=None):
     """
     Args:
@@ -750,6 +767,8 @@ class EFAwsResolver(object):
       return self.ec2_vpc_subnets(*kv[1:])
     elif kv[0] == "ec2:vpc/vpc-id":
       return self.ec2_vpc_vpc_id(*kv[1:])
+    elif kv[0] == "ec2:vpc/vpn-gateway-id":
+      return self.ec2_vpc_vpn_gateway_id(*kv[1:])
     elif kv[0] == "elbv2:load-balancer/dns-name":
       return self.elbv2_load_balancer_dns_name(*kv[1:])
     elif kv[0] == "elbv2:load-balancer/hosted-zone":
