@@ -335,12 +335,12 @@ class EFAwsResolver(object):
     Returns:
       The ID of the first VPN Gateway found with a label matching 'lookup' or default/None if no match found
     """
-    vpcs = EFAwsResolver.__CLIENTS["ec2"].describe_vpcs(Filters=[{
-      'Name': 'tag:Name',
-      'Values': [lookup]
+    vpn_gateways = EFAwsResolver.__CLIENTS["ec2"].describe_vpn_gateways(Filters=[{
+      "Name": "tag:Name",
+      "Values": [lookup]
     }])
-    if len(vpcs.get("Vpcs")) > 0:
-      return vpcs["Vpcs"][0]["VpnGatewayId"]
+    if len(vpn_gateways) > 0:
+      return vpn_gateways["VpnGateways"][0]["VpnGatewayId"]
     else:
       return default
     
