@@ -241,7 +241,7 @@ which is looked in 'proto3' as:<br>
 returns:<br>
 ```vpc-21ac3315```<br>
 
-#### {{aws:ec2:vpc/vpc-id,\<vpc_friendly_name>}}
+#### {{aws:ec2:vpc/vpc-id,\<vgw_friendly_name>}}
 Returns: Virtual Private Gateway's ID<br>
 Needs: VPN Gateway's friendly name, which is always "vgw-\<az>"<br>
 Example:<br>
