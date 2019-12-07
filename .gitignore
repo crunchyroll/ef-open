@@ -51,4 +51,6 @@ doc/source/tutorial/services.rst
 # Pyenv
 .python-version
 venv/
-.vscode
+
+# VS Code
+.vscode/
