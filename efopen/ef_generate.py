@@ -553,8 +553,9 @@ def create_newrelic_alerts():
    Create Newrelic Alerts for each entry in the service registry application_services
    Note: Import is inside this function rather than top of the file so that we do not import when running unit tests.
          (would otherwise require an ef_site_config.yml in the directory where tests are being run)
-   """
-pass
+  """
+  pass
+ 
 def main():
   global CONTEXT, CLIENTS, AWS_RESOLVER
 
