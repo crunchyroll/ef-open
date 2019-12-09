@@ -554,6 +554,7 @@ def create_newrelic_alerts():
    Note: Import is inside this function rather than top of the file so that we do not import when running unit tests.
          (would otherwise require an ef_site_config.yml in the directory where tests are being run)
    """
+pass
 def main():
   global CONTEXT, CLIENTS, AWS_RESOLVER
 
