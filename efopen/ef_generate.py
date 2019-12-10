@@ -127,7 +127,7 @@ def handle_args_and_set_context(args):
   try:
     context.env = parsed_args["env"]
   except ValueError as e:
-    fail("Error in env: {}".format(e.message))
+    fail("Error in env: {}".format(e))
   # Set up service registry and policy template path which depends on it
   context.service_registry = EFServiceRegistry(parsed_args["sr"])
   context.policy_template_path = normpath(dirname(context.service_registry.filespec)) + EFConfig.POLICY_TEMPLATE_PATH_SUFFIX
