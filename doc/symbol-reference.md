@@ -21,6 +21,16 @@ in the current environment.
 - If a \<default> value is not present and the lookup fails, the symbol will remain
 unresolved and processing will stop with an error (ef-cf won't upload a template with unresolved symbols)
 
+Note there may be some scenarios where you need to have {{ }} or {{{ }}} in a string but you aren't intending it
+to be a symbol. ef-cf will complain that you have dangling symbols. To fix this just add spaces like so { { } } or { { { } } }
+Here's an example
+
+"Configuration": "{\"Version\":1.0,\"CrawlerOutput\":{\"Partitions\":{\"AddOrUpdateBehavior\":\"InheritFromTable\"},\"Tables\":{\"AddOrUpdateBehavior\":\"MergeNewColumns\"}}}"
+
+will error but the line below will not
+
+"Configuration": "{\"Version\":1.0,\"CrawlerOutput\":{\"Partitions\":{\"AddOrUpdateBehavior\":\"InheritFromTable\"},\"Tables\":{\"AddOrUpdateBehavior\":\"MergeNewColumns\"} } }"
+
 Default values should be used sparingly. They are mostly used to pass syntax checks for values gated by Condition statements in the template, since the symbol must resolve even if the condition is false.
 
 ### Examples
