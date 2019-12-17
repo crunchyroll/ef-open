@@ -4,7 +4,7 @@ import logging
 from efopen.ef_config import EFConfig
 from efopen.ef_utils import kms_decrypt
 
-from interface import NewRelic, AlertPolicy
+from efopen.newrelic_interface import NewRelic, AlertPolicy
 
 
 logging.basicConfig(level=logging.INFO)
