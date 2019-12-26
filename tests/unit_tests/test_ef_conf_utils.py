@@ -82,21 +82,21 @@ class TestEFConfUtils(unittest.TestCase):
         continue
       with self.assertRaises(ValueError) as exception:
         ef_conf_utils.global_env_valid(env)
-      self.assertTrue("Invalid global env" in exception.exception.message)
+      self.assertIn("Invalid global env", str(exception.exception))
 
     # Hard coded junk values
     with self.assertRaises(ValueError) as exception:
       ef_conf_utils.global_env_valid("not_global")
-    self.assertTrue("Invalid global env" in exception.exception.message)
+    self.assertIn("Invalid global env", str(exception.exception))
     with self.assertRaises(ValueError) as exception:
       ef_conf_utils.global_env_valid("not_mgmt")
-    self.assertTrue("Invalid global env" in exception.exception.message)
+    self.assertIn("Invalid global env", str(exception.exception))
     with self.assertRaises(ValueError) as exception:
       ef_conf_utils.global_env_valid("")
-    self.assertTrue("Invalid global env" in exception.exception.message)
+    self.assertIn("Invalid global env", str(exception.exception))
     with self.assertRaises(ValueError) as exception:
       ef_conf_utils.global_env_valid(None)
-    self.assertTrue("Invalid global env" in exception.exception.message)
+    self.assertIn("Invalid global env", str(exception.exception))
 
   def test_env_valid(self):
     """
@@ -148,147 +148,6 @@ class TestEFConfUtils(unittest.TestCase):
     with self.assertRaises(ValueError):
       ef_conf_utils.env_valid(None)
 
-  @patch('subprocess.check_call')
-  @patch('subprocess.check_output')
-  def test_pull_repo_ssh_credentials(self, mock_check_output, mock_check_call):
-    """
-    Tests pull_repo by mocking the subprocess.check_output to return git ssh credentials.
-
-    Args:
-      mock_check_output: MagicMock, returns valid git responses in order of being called, with the
-      repo coming from the ef_site_config.py
-
-    Returns:
-      None
-
-    Raises:
-      AssertionError if any of the assert checks fail
-    """
-
-    try:
-      mock_check_output.side_effect = [
-        "user@" + EFConfig.EF_REPO.replace("/", ":", 1) + ".git",
-        EFConfig.EF_REPO_BRANCH
-      ]
-      ef_conf_utils.pull_repo()
-      mock_check_output.side_effect = [
-        "origin\tuser@" + EFConfig.EF_REPO.replace("/", ":", 1) + ".git",
-        EFConfig.EF_REPO_BRANCH
-      ]
-      ef_conf_utils.pull_repo()
-      mock_check_output.side_effect = [
-        "origin\tuser@" + EFConfig.EF_REPO.replace("/", ":", 1) + ".git (fetch)",
-        EFConfig.EF_REPO_BRANCH
-      ]
-      ef_conf_utils.pull_repo()
-      mock_check_output.side_effect = [
-        "origin\tuser@" + EFConfig.EF_REPO.replace("/", ":", 1) + ".git (push)",
-        EFConfig.EF_REPO_BRANCH
-      ]
-      ef_conf_utils.pull_repo()
-    except RuntimeError as exception:
-      self.fail("Exception occurred during test_pull_repo_ssh_credentials: " + exception.message)
-
-  @patch('subprocess.check_call')
-  @patch('subprocess.check_output')
-  def test_pull_repo_https_credentials(self, mock_check_output, mock_check_call):
-    """
-    Tests the pull_repo by mocking the subprocess.check_output to return git http credentials.
-
-    Args:
-      mock_check_output: MagicMock, returns valid git responses in order of being called, with the
-      repo coming from the ef_site_config.py
-
-    Returns:
-      None
-
-    Raises:
-      AssertionError if any of the assert checks fail
-    """
-
-    try:
-      mock_check_output.side_effect = [
-        "https://" + EFConfig.EF_REPO + ".git",
-        EFConfig.EF_REPO_BRANCH
-      ]
-      ef_conf_utils.pull_repo()
-      mock_check_output.side_effect = [
-        "origin\thttps://" + EFConfig.EF_REPO + ".git",
-        EFConfig.EF_REPO_BRANCH
-      ]
-      ef_conf_utils.pull_repo()
-      mock_check_output.side_effect = [
-        "https://8c3c99990fd0fa55454634dad85f8a48beaa1916@" + EFConfig.EF_REPO + ".git",
-        EFConfig.EF_REPO_BRANCH
-      ]
-      ef_conf_utils.pull_repo()
-      mock_check_output.side_effect = [
-        "origin\thttps://8c3c99990fd0fa55454634dad85f8a48beaa1916@" + EFConfig.EF_REPO + ".git",
-        EFConfig.EF_REPO_BRANCH
-      ]
-      ef_conf_utils.pull_repo()
-      mock_check_output.side_effect = [
-        "origin\thttps://8c3c99990fd0fa55454634dad85f8a48beaa1916@" + EFConfig.EF_REPO + ".git (fetch)",
-        EFConfig.EF_REPO_BRANCH
-      ]
-      ef_conf_utils.pull_repo()
-      mock_check_output.side_effect = [
-        "origin\thttps://8c3c99990fd0fa55454634dad85f8a48beaa1916@" + EFConfig.EF_REPO + ".git (push)",
-        EFConfig.EF_REPO_BRANCH
-      ]
-      ef_conf_utils.pull_repo()
-    except RuntimeError as exception:
-      self.fail("Exception occurred during test_pull_repo_ssh_credentials: " + exception.message)
-
-  @patch('subprocess.check_call')
-  @patch('subprocess.check_output')
-  def test_pull_repo_incorrect_repo(self, mock_check_output, mock_check_call):
-    """
-    Tests pull_repo to see if it throws an exception when the supplied repo doesn't match the one in
-    ef_site_config.py
-
-    Args:
-      mock_check_output: MagicMock, returns git responses with non matching repo names
-
-    Returns:
-      None
-
-    Raises:
-      AssertionError if any of the assert checks fail
-    """
-    mock_check_output.side_effect = [
-      "user@github.com:company/wrong_repo.git "
-      "other_user@github.com:company/wrong_repo.git"
-    ]
-    with self.assertRaises(RuntimeError) as exception:
-      ef_conf_utils.pull_repo()
-    self.assertIn("Must be in", exception.exception.message)
-
-  @patch('subprocess.check_call')
-  @patch('subprocess.check_output')
-  def test_pull_repo_incorrect_branch(self, mock_check_output, mock_check_call):
-    """
-    Tests pull_repo to see if it throws an error when the mocked check_output states it's on a branch
-    other than the one specified in ef_site_config.py
-
-    Args:
-      mock_check_output: MagicMock, returns some valid git responses, with the
-      repo coming from the ef_site_config.py, and then a non matching branch name
-
-    Returns:
-      None
-
-    Raises:
-      AssertionError if any of the assert checks fail
-    """
-    mock_check_output.side_effect = [
-      "user@" + EFConfig.EF_REPO.replace("/", ":", 1) + ".git",
-      "wrong_branch"
-    ]
-    with self.assertRaises(RuntimeError) as exception:
-      ef_conf_utils.pull_repo()
-    self.assertIn("Must be on branch:", exception.exception.message)
-
   def test_get_account_alias(self):
     """
     Checks if get_account_alias returns the correct account based on valid environments
@@ -330,23 +189,23 @@ class TestEFConfUtils(unittest.TestCase):
         env += '0'
       with self.assertRaises(ValueError) as exception:
         ef_conf_utils.get_account_alias(env)
-      self.assertTrue("unknown env" in exception.exception.message)
+      self.assertIn("unknown env", str(exception.exception))
 
     # Hard coded junk values
     with self.assertRaises(ValueError) as exception:
       ef_conf_utils.get_account_alias("non-existent-env")
-    self.assertTrue("unknown env" in exception.exception.message)
+    self.assertIn("unknown env", str(exception.exception))
     with patch('efopen.ef_conf_utils.env_valid') as mock_env_valid:
       with self.assertRaises(ValueError) as exception:
         mock_env_valid.return_value = True
         ef_conf_utils.get_account_alias("non-existent-env")
-    self.assertTrue("has no entry in ENV_ACCOUNT_MAP" in exception.exception.message)
+    self.assertIn("has no entry in ENV_ACCOUNT_MAP", str(exception.exception))
     with self.assertRaises(ValueError) as exception:
       ef_conf_utils.get_account_alias("")
-    self.assertTrue("unknown env" in exception.exception.message)
+    self.assertIn("unknown env", str(exception.exception))
     with self.assertRaises(ValueError) as exception:
       ef_conf_utils.get_account_alias(None)
-    self.assertTrue("unknown env" in exception.exception.message)
+    self.assertIn("unknown env", str(exception.exception))
 
   def test_get_template_parameters_s3(self):
     """Test method returns valid parameters file"""
@@ -392,15 +251,15 @@ class TestEFConfUtils(unittest.TestCase):
         env += '0'
       with self.assertRaises(ValueError) as exception:
         ef_conf_utils.get_env_short(env)
-      self.assertTrue("unknown env" in exception.exception.message)
+      self.assertIn("unknown env", str(exception.exception))
 
     # Hard coded junk values
     with self.assertRaises(ValueError) as exception:
       ef_conf_utils.get_env_short("non-existent-env")
-    self.assertTrue("unknown env" in exception.exception.message)
+    self.assertIn("unknown env", str(exception.exception))
     with self.assertRaises(ValueError) as exception:
       ef_conf_utils.get_env_short("")
-    self.assertTrue("unknown env" in exception.exception.message)
+    self.assertIn("unknown env", str(exception.exception))
     with self.assertRaises(ValueError) as exception:
       ef_conf_utils.get_env_short(None)
-    self.assertTrue("unknown env" in exception.exception.message)
+    self.assertIn("unknown env", str(exception.exception))

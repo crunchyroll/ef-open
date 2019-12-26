@@ -34,7 +34,6 @@ from os.path import dirname, normpath
 import sys
 import time
 
-import botocore
 from botocore.exceptions import ClientError
 
 from .ef_aws_resolver import EFAwsResolver
@@ -111,7 +110,7 @@ def handle_args_and_set_context(args):
     a populated EFContext object
   Raises:
     IOError: if service registry file can't be found or can't be opened
-    RuntimeError: if repo or branch isn't as spec'd in ef_config.EF_REPO and ef_config.EF_REPO_BRANCH
+    RuntimeError: if branch isn't as spec'd in ef_config.EF_REPO_BRANCH
     CalledProcessError: if 'git rev-parse' command to find repo root could not be run
   """
   parser = argparse.ArgumentParser()
@@ -128,7 +127,7 @@ def handle_args_and_set_context(args):
   try:
     context.env = parsed_args["env"]
   except ValueError as e:
-    fail("Error in env: {}".format(e.message))
+    fail("Error in env: {}".format(e))
   # Set up service registry and policy template path which depends on it
   context.service_registry = EFServiceRegistry(parsed_args["sr"])
   context.policy_template_path = normpath(dirname(context.service_registry.filespec)) + EFConfig.POLICY_TEMPLATE_PATH_SUFFIX
@@ -279,7 +278,7 @@ def conditionally_create_role(role_name, sr_entry):
     print_if_verbose("not eligible for role (and possibly instance profile); service type: {}".format(service_type))
     return
 
-  if sr_entry.has_key("assume_role_policy"):
+  if "assume_role_policy" in sr_entry:
     # Explicitly defined AssumeRole policy
     assume_role_policy_document = resolve_policy_document(sr_entry["assume_role_policy"])
   else:
@@ -548,6 +547,17 @@ def conditionally_create_kms_key(role_name, service_type):
   else:
     print_if_verbose("KMS key already exists: {}".format(key_alias))
 
+
+def create_newrelic_alerts():
+  """
+   Create Newrelic Alerts for each entry in the service registry application_services
+   Note: Import is inside this function rather than top of the file so that we do not import when running unit tests.
+         (would otherwise require an ef_site_config.yml in the directory where tests are being run)
+  """
+  from newrelic_executor import NewRelicAlerts
+  print("> Creating NewRelic Alerts")
+  NewRelicAlerts(CONTEXT, CLIENTS).run()
+ 
 def main():
   global CONTEXT, CLIENTS, AWS_RESOLVER
 
@@ -629,7 +639,11 @@ def main():
     # only eligible service types with "policies" sections in the service registry get policies
     conditionally_inline_policies(target_name, sr_entry)
 
+  # Create newrelic alerts for all "application_services" in the service registry
+  create_newrelic_alerts()
+
   print("Exit: success")
+
 
 if __name__ == "__main__":
   main()

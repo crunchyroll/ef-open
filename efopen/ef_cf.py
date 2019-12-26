@@ -101,7 +101,7 @@ def handle_args_and_set_context(args):
     a populated EFCFContext object (extends EFContext)
   Raises:
     IOError: if service registry file can't be found or can't be opened
-    RuntimeError: if repo or branch isn't as spec'd in ef_config.EF_REPO and ef_config.EF_REPO_BRANCH
+    RuntimeError: if branch isn't as spec'd in ef_config.EF_REPO_BRANCH
     CalledProcessError: if 'git rev-parse' command to find repo root could not be run
   """
   parser = argparse.ArgumentParser()
@@ -128,7 +128,7 @@ def handle_args_and_set_context(args):
     context.env = parsed_args["env"]
     context.template_file = parsed_args["template_file"]
   except ValueError as e:
-    fail("Error in argument: {}".format(e.message))
+    fail("Error in argument: {}".format(e))
   context.changeset = parsed_args["changeset"]
   context.commit = parsed_args["commit"]
   context.devel = parsed_args["devel"]
@@ -178,7 +178,8 @@ def calculate_max_batch_size(asg_client, service, percent):
       return 1
   current_desired = autoscaling_group_properties[0]["DesiredCapacity"]
   new_batch_size = int(math.ceil(current_desired * (percent * 0.01)))
-  return new_batch_size
+  # max batch size must be a minimum of 1, otherwise cloudformation gives an error.
+  return max(new_batch_size, 1)
 
 class CFTemplateLinter(object):
 

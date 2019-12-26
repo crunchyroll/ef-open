@@ -152,7 +152,7 @@ def handle_args_and_set_context(args):
   Returns:
       a populated EFPWContext object
   Raises:
-      RuntimeError: if repo or branch isn't as spec'd in ef_config.EF_REPO and ef_config.EF_REPO_BRANCH
+      RuntimeError: if branch isn't as spec'd in ef_config.EF_REPO_BRANCH
       ValueError: if a parameter is invalid
   """
   parser = argparse.ArgumentParser()
@@ -169,7 +169,7 @@ def handle_args_and_set_context(args):
   try:
     context.env = parsed_args["env"]
   except ValueError as e:
-    ef_utils.fail("Error in env: {}".format(e.message))
+    ef_utils.fail("Error in env: {}".format(e))
   context.service = parsed_args["service"]
   context.decrypt = parsed_args["decrypt"]
   context.length = parsed_args["length"]

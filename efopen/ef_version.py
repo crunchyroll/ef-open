@@ -305,7 +305,7 @@ def handle_args_and_set_context(args):
   try:
     context.env = parsed_args["env"]
   except ValueError as e:
-    fail("Error in env: {}".format(e.message))
+    fail("Error in env: {}".format(e))
   # marshall this module's additional context values
   context._get = parsed_args["get"]
   context._history = parsed_args["history"]
@@ -686,7 +686,7 @@ def cmd_set(context):
   try:
     precheck(context)
   except Exception as e:
-    fail("Precheck failed: {}".format(e.message))
+    fail("Precheck failed: {}".format(e))
 
   s3_key = "{}/{}/{}".format(context.service_name, context.env, context.key)
   s3_version_status = EFConfig.S3_VERSION_STATUS_STABLE if context.stable else EFConfig.S3_VERSION_STATUS_UNDEFINED

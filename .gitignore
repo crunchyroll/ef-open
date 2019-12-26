@@ -6,6 +6,8 @@
 *.egg
 *.egg-info
 dist
+.eggs/
+_build_env/
 build
 eggs
 parts
@@ -49,3 +51,6 @@ doc/source/tutorial/services.rst
 # Pyenv
 .python-version
 venv/
+
+# VS Code
+.vscode/

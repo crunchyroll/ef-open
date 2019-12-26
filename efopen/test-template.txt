@@ -1,0 +1,10 @@
+{{aws:ec2:security-group/security-group-id,{{ENV}}-playheads-ec2}}
+{{aws:acm:certificate-arn,us-east-1/cx-{{ENV}}.com}}
+{{aws:acm:certificate-arn,{{REGION}}/cx-{{ENV}}.com}}
+{{aws:cloudfront:domain-name,cx-proto0.com}}
+{{aws:cognito-identity:identity-pool-arn,proto0_cms_identity_pool,NONE}}
+{{aws:cognito-identity:identity-pool-id,proto0_cms_identity_pool,NONE}}
+{{aws:cognito-idp:user-pool-arn,proto0-cognito-config-delta,NONE}}
+{{aws:cognito-idp:user-pool-id,proto0-cms-user-pool}}
+{{aws:ec2:elasticip/elasticip-id,ElasticIpMgmtJenkins1}}
+{{aws:ec2:elasticip/elasticip-ipaddress,ElasticIpMgmtJenkins1}}

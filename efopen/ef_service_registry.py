@@ -37,7 +37,7 @@ class EFServiceRegistry(object):
       service_registry_file: the file containing the service registry
     Raises:
       IOError: if file can't be found or can't be opened
-      RuntimeError: if repo or branch isn't as spec'd in ef_config.EF_REPO and ef_config.EF_REPO_BRANCH
+      RuntimeError: if branch isn't as spec'd in ef_config.EF_REPO_BRANCH
       CalledProcessError: if 'git rev-parse' command to find repo root could not be run
     """
     # If a file wasn't provided, try to fetch the default
@@ -57,7 +57,7 @@ class EFServiceRegistry(object):
     # Validate service registry
     # 1. All service groups listed in EFConfig.SERVICE_GROUPS must be present
     for service_group in EFConfig.SERVICE_GROUPS:
-      if not self.service_registry_json.has_key(service_group):
+      if service_group not in self.service_registry_json:
         raise RuntimeError("service registry: {} doesn't have '{}' service group listed in EFConfig".format(
                            self._service_registry_file, service_group))
     # 2. A service name must be unique and can only belong to one group
@@ -110,9 +110,9 @@ class EFServiceRegistry(object):
       if service_group not in EFConfig.SERVICE_GROUPS:
         raise RuntimeError("service registry: {} doesn't have '{}' section listed in EFConfig".format(
           self._service_registry_file, service_group))
-      return self.service_registry_json[service_group].iteritems()
+      return iter(self.service_registry_json[service_group].items())
     else:
-      return self.services().iteritems()
+      return iter(self.services().items())
 
   def _expand_ephemeral_env_names(self, envlist):
     """
@@ -143,7 +143,7 @@ class EFServiceRegistry(object):
       raise RuntimeError("service registry doesn't have service: {}".format(service_name))
 
     # Return empty list if service has no "environments" section
-    if not service_record.has_key("environments"):
+    if "environments" not in service_record:
       return []
     # Otherwise gather up the envs
     return self._expand_ephemeral_env_names(service_record["environments"])
@@ -167,7 +167,7 @@ class EFServiceRegistry(object):
     if service_record is None:
       raise RuntimeError("service registry doesn't have service: {}".format(service_name))
 
-    if not service_record.has_key("auto_deploy_environments"):
+    if "auto_deploy_environments" not in service_record:
       return []
 
     # The list of valid deployment environments, for this service
@@ -191,7 +191,7 @@ class EFServiceRegistry(object):
     Returns:
       the entire service record from the service registry or None if the record was not found
     """
-    if not self.services().has_key(service_name):
+    if service_name not in self.services():
       return None
     return self.services()[service_name]
 
@@ -203,7 +203,7 @@ class EFServiceRegistry(object):
       the name of the group the service is in, or None of the service was not found
     """
     for group in EFConfig.SERVICE_GROUPS:
-      if self.services(group).has_key(service_name):
+      if service_name in self.services(group):
         return group
     return None
 
@@ -214,7 +214,7 @@ class EFServiceRegistry(object):
     Returns:
       the region the service is in, or EFConfig.DEFAULT_REGION if the region was not found
     """
-    if not self.services()[service_name].has_key("region"):
+    if "region" not in self.services()[service_name]:
       return EFConfig.DEFAULT_REGION
     else:
       return self.services()[service_name]["region"]
@@ -232,9 +232,9 @@ class EFServiceRegistry(object):
     Raises:
       ValueError if the key was not found
     """
-    if not self.version_keys().has_key(version_key_name):
+    if version_key_name not in self.version_keys():
       raise RuntimeError("service registry doesn't have a version key entry for: {}".format(version_key_name))
-    if not self.version_keys()[version_key_name].has_key("allow_latest"):
+    if "allow_latest" not in self.version_keys()[version_key_name]:
       raise RuntimeError("service registry key {} doesn't have an 'allow_latest' value".format(
         version_key_name))
     return self.version_keys()[version_key_name]["allow_latest"]

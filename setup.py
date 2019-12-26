@@ -22,6 +22,7 @@ setup(
         'click',
         'PyYAML',
         'cfn-lint',
+        'requests',
         'yamllint'
     ],
     extras_require={

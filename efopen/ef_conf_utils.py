@@ -53,18 +53,10 @@ def env_valid(env):
 
 def pull_repo():
   """
-  Pulls latest version of EF_REPO_BRANCH from EF_REPO (as set in ef_config.py) if client is in EF_REPO
-  and on the branch EF_REPO_BRANCH
+  Pulls latest version of EF_REPO_BRANCH
   Raises:
-    RuntimeError with message if not in the correct repo on the correct branch
+    RuntimeError with message if not on the correct branch
   """
-  try:
-    current_repo = subprocess.check_output(["git", "remote", "-v", "show"])
-  except subprocess.CalledProcessError as error:
-    raise RuntimeError("Exception checking current repo", error)
-  current_repo = re.findall(r"(.*?https://|.*?@)(.*?@)?(.*?)(\.git.*)", current_repo)[0][2].replace(":", "/")
-  if current_repo != EFConfig.EF_REPO:
-    raise RuntimeError("Must be in " + EFConfig.EF_REPO + " repo. Current repo is: " + current_repo)
   try:
     current_branch = subprocess.check_output(["git", "rev-parse", "--abbrev-ref", "HEAD"]).rstrip()
   except subprocess.CalledProcessError as error:

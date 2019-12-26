@@ -28,11 +28,10 @@ from .ef_config_resolver import EFConfigResolver
 from .ef_utils import create_aws_clients, fail, get_account_id, http_get_metadata, whereami
 from .ef_version_resolver import EFVersionResolver
 
-# CONSTANTS
 # pattern to find resolvable symbols - finds innermost nestings
-SYMBOL_PATTERN = r'{{([0-9A-Za-z/_,.:\-\+=\*]+?)}}'
+symbol_pattern = re.compile(r'{{\.?([0-9A-Za-z/_,.:\-+=*]+?)}}')
 # inverse of SYMBOL_PATTERN, and disallows ':' and ',' from param keys; this is checked in load()
-ILLEGAL_PARAMETER_CHARS = r'[^(0-9A-Za-z/_.\-)]'
+illegal_param_chars = re.compile(r'[^(0-9A-Za-z/_.\-)]')
 
 
 # Utilities
@@ -371,7 +370,7 @@ class EFTemplateResolver(object):
       self.parameters = self.parameters["params"]
       # are all the keys valid (must have legal characters)
       for k in set().union(*(self.parameters[d].keys() for d in self.parameters.keys())):
-        invalid_char = re.search(ILLEGAL_PARAMETER_CHARS, k)
+        invalid_char = illegal_param_chars.search(k)
         if invalid_char:
           fail("illegal character: '" + invalid_char.group(0) + "' in parameter key: " + k)
 
@@ -414,7 +413,7 @@ class EFTemplateResolver(object):
     while go_again:
       go_again = False  # if at least one symbol isn't resolved in a pass, stop
       # Gather all resolvable symbols in the template
-      template_symbols = set(re.findall(SYMBOL_PATTERN, self.template))
+      template_symbols = set(symbol_pattern.findall(self.template))
       self.symbols.update(template_symbols)  # include this pass's symbols in full set
       # resolve and replace symbols
       for symbol in template_symbols:
@@ -444,14 +443,15 @@ class EFTemplateResolver(object):
         # if symbol was resolved, replace it everywhere
         if resolved_symbol is not None:
           if isinstance(resolved_symbol, list):
-            self.template = self.template.replace("{{" + symbol + "}}", "\n".join(resolved_symbol))
+            # Using old style of string formatting here due to str.format() interaction with curly braces
+            self.template = re.sub(r'{{\.?%s}}' % re.escape(symbol), "\n".join(resolved_symbol), self.template)
           else:
-            self.template = self.template.replace("{{" + symbol + "}}", resolved_symbol)
+            self.template = re.sub(r'{{\.?%s}}' % re.escape(symbol), resolved_symbol, self.template)
           go_again = True
     return self.template
 
   def unresolved_symbols(self):
-    return set(re.findall(SYMBOL_PATTERN, self.template))
+    return set(symbol_pattern.findall(self.template))
 
   def count_braces(self):
     """
