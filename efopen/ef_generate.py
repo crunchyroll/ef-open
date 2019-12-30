@@ -447,31 +447,31 @@ def conditionally_create_kms_key(role_name, service_type):
     else:
       fail("Exception describing KMS key: {} {}".format(role_name, error))
 
+  account_id = CONTEXT.account_id
   if service_type == "aws_fixture":
-    kms_key_policy = '''{
+    kms_key_policy = {
       "Version": "2012-10-17",
       "Statement": [
         {
           "Sid": "Enable IAM User Permissions",
           "Effect": "Allow",
           "Principal": {
-            "AWS": "arn:aws:iam::''' + CONTEXT.account_id + ''':root"
+            "AWS": "arn:aws:iam::{}:root".format(account_id)
           },
           "Action": "kms:*",
           "Resource": "*"
         }
       ]
-    }'''
+    }
   else:
-    formatted_principal = '"AWS": "arn:aws:iam::{}:role/{}"'.format(CONTEXT.account_id, role_name)
-    kms_key_policy = '''{
+    kms_key_policy = {
       "Version": "2012-10-17",
       "Statement": [
         {
           "Sid": "Enable IAM User Permissions",
           "Effect": "Allow",
           "Principal": {
-            "AWS": "arn:aws:iam::''' + CONTEXT.account_id + ''':root"
+            "AWS": "arn:aws:iam::{}:root".format(account_id)
           },
           "Action": "kms:*",
           "Resource": "*"
@@ -479,14 +479,14 @@ def conditionally_create_kms_key(role_name, service_type):
         {
           "Sid": "Allow Service Role Decrypt Privileges",
           "Effect": "Allow",
-          "Principal": { ''' + formatted_principal + ''' },
+          "Principal": { "AWS":"arn:aws:iam::{}:role/{}".format(account_id, role_name) },
           "Action": "kms:Decrypt",
           "Resource": "*"
         },
         {
           "Sid": "Allow use of the key for default autoscaling group service role",
           "Effect": "Allow",
-          "Principal": { "AWS": "arn:aws:iam::''' + CONTEXT.account_id + ''':role/aws-service-role/autoscaling.amazonaws.com/AWSServiceRoleForAutoScaling" },
+          "Principal": { "AWS": "arn:aws:iam::{}:role/aws-service-role/autoscaling.amazonaws.com/AWSServiceRoleForAutoScaling".format(account_id) },
           "Action": [
             "kms:Encrypt",
             "kms:Decrypt",
@@ -499,19 +499,19 @@ def conditionally_create_kms_key(role_name, service_type):
         {
           "Sid": "Allow attachment of persistent resourcesfor default autoscaling group service role",
           "Effect": "Allow",
-          "Principal": { "AWS": "arn:aws:iam::''' + CONTEXT.account_id + ''':role/aws-service-role/autoscaling.amazonaws.com/AWSServiceRoleForAutoScaling" },
+          "Principal": { "AWS": "arn:aws:iam::{}:role/aws-service-role/autoscaling.amazonaws.com/AWSServiceRoleForAutoScaling".format(account_id) },
           "Action": [
             "kms:CreateGrant"
           ],
           "Resource": "*",
           "Condition": {
             "Bool": {
-              "kms:GrantIsForAWSResource": true
+              "kms:GrantIsForAWSResource": True
             }
           }
         }
       ]
-    }'''
+    }
 
   if not kms_key:
     print("Create KMS key: {}".format(key_alias))
@@ -522,7 +522,7 @@ def conditionally_create_kms_key(role_name, service_type):
       while create_key_failures <= 5:
         try:
           new_kms_key = CLIENTS["kms"].create_key(
-            Policy=kms_key_policy,
+            Policy=json.dumps(kms_key_policy, indent=4),
             Description='Master Key for {}'.format(role_name)
           )
           break
@@ -557,7 +557,7 @@ def create_newrelic_alerts():
   from newrelic_executor import NewRelicAlerts
   print("> Creating NewRelic Alerts")
   NewRelicAlerts(CONTEXT, CLIENTS).run()
- 
+
 def main():
   global CONTEXT, CLIENTS, AWS_RESOLVER
 
