@@ -464,6 +464,10 @@ def conditionally_create_kms_key(role_name, service_type):
       ]
     }
   else:
+    role_principal = [ "arn:aws:iam::{}:role/{}".format(account_id, role_name) ]
+    if '.' not in role_name:
+      subservice_principals = "arn:aws:iam::{}:role/{}.*".format(account_id, role_name)
+      role_principal.append(subservice_principals)
     kms_key_policy = {
       "Version": "2012-10-17",
       "Statement": [
@@ -479,9 +483,14 @@ def conditionally_create_kms_key(role_name, service_type):
         {
           "Sid": "Allow Service Role Decrypt Privileges",
           "Effect": "Allow",
-          "Principal": { "AWS":"arn:aws:iam::{}:role/{}".format(account_id, role_name) },
+          "Principal": "*",
           "Action": "kms:Decrypt",
-          "Resource": "*"
+          "Resource": "*",
+          "Condition": {
+                "ForAnyValue:StringLike": {
+                    "aws:PrincipalArn": role_principal
+                }
+            }
         },
         {
           "Sid": "Allow use of the key for default autoscaling group service role",
