@@ -238,7 +238,7 @@ def kms_decrypt(kms_client, secret):
     SystemExit(1): If there is an error with the boto3 decryption call (ex. malformed secret)
   """
   try:
-    response = decrypted_secret = kms_client.decrypt(CiphertextBlob=base64.b64decode(secret))
+    response = kms_client.decrypt(CiphertextBlob=base64.b64decode(secret))
     decrypted_secret = DecryptedSecret(response["Plaintext"], response["KeyId"])
   except TypeError as e:
     fail("Malformed base64 string data: {}".format(e))
