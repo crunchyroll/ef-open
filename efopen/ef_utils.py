@@ -18,6 +18,7 @@ limitations under the License.
 
 from __future__ import print_function
 import base64
+from collections import namedtuple
 import json
 from os import access, getenv, X_OK
 from os.path import isfile
@@ -40,6 +41,8 @@ CIDR_REGEX = r"^(([1-2][0-9]{2}|[0-9]{0,2})\.){3}([1-2][0-9]{2}|[0-9]{0,2})\/([1
 
 # Cache for AWS clients. Keeps all the clients under (region, profile) keys.
 client_cache = {}
+
+DecryptedSecret = namedtuple("DecryptedSecret", ["plaintext", "key_id"])
 
 
 def fail(message, exception_data=None):
@@ -230,14 +233,15 @@ def kms_decrypt(kms_client, secret):
     kms_client (boto3 kms client object): Instantiated kms client object. Usually created through create_aws_clients.
     secret (string): base64 encoded value to be decrypted
   Returns:
-    a populated EFPWContext object
+    DecryptedSecret object
   Raises:
     SystemExit(1): If there is an error with the boto3 decryption call (ex. malformed secret)
   """
   try:
-    decrypted_secret = kms_client.decrypt(CiphertextBlob=base64.b64decode(secret))['Plaintext']
-  except TypeError:
-    fail("Malformed base64 string data")
+    response = kms_client.decrypt(CiphertextBlob=base64.b64decode(secret))
+    decrypted_secret = DecryptedSecret(response["Plaintext"], response["KeyId"])
+  except TypeError as e:
+    fail("Malformed base64 string data: {}".format(e))
   except ClientError as error:
     if error.response["Error"]["Code"] == "InvalidCiphertextException":
       fail("The decrypt request was rejected because the specified ciphertext \
@@ -247,6 +251,25 @@ def kms_decrypt(kms_client, secret):
     else:
       fail("boto3 exception occurred while performing kms decrypt operation.", error)
   return decrypted_secret
+
+def kms_key_alias(kms_client, key_arn):
+  """
+  Obtain the key aliases based on the key arn provided
+  Args:
+    kms_client (boto3 kms client object): Instantiated kms client object. Usually created through create_aws_clients.
+    key_arn (string): key arn
+
+  Returns:
+    list of aliases associated with the key
+  """
+  try:
+    response = kms_client.list_aliases(KeyId=key_arn)
+    key_aliases = [key_data["AliasName"] for key_data in response["Aliases"]]
+    clean_aliases = [alias.split('/', 1)[1] for alias in key_aliases]
+  except ClientError as error:
+    raise RuntimeError("Failed to obtain key arn for alias {}, error: {}".format(alias, error.response["Error"]["Message"]))
+
+  return clean_aliases
 
 def kms_key_arn(kms_client, alias):
   """

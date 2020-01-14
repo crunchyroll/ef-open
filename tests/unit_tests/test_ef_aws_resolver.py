@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
+import base64
 import unittest
 import datetime
 
@@ -883,7 +884,7 @@ class TestEFAwsResolver(unittest.TestCase):
     ef_aws_resolver = EFAwsResolver(self._clients)
     result = ef_aws_resolver.lookup("ec2:vpc/vpn-gateway-id,vpnGateway-name")
     self.assertEquals(vpn_gateway_id, result)
-    
+
   def test_waf_rule_id(self):
     """
     Tests waf_rule_id to see if it returns the rule id that matches the rule name
@@ -2011,6 +2012,32 @@ class TestEFAwsResolver(unittest.TestCase):
 
     result = ef_aws_resolver.lookup("")
     self.assertIsNone(result)
+
+  def test_kms_decrypt_value(self):
+    """
+    Test kms value decryption
+
+    Returns:
+      None
+
+    Raises:
+      AssertionError if any of the assert checks fail
+    """
+    decrypted_value = "KMS DECRYPTED THIS"
+    encrypted_value = base64.b64encode(decrypted_value)
+    # Set mock value for describe_key
+    decrypt =self._clients["kms"].decrypt
+    decrypt.return_value = {
+      "Plaintext": decrypted_value,
+      "KeyId": "KEY_ID"
+    }
+
+    ef_aws_resolver = EFAwsResolver(self._clients)
+
+    result = ef_aws_resolver.lookup("kms:decrypt,{}=".format(encrypted_value))
+
+    decrypt.assert_called_with(CiphertextBlob='KMS DECRYPTED THIS')
+    self.assertEquals(result, decrypted_value)
 
   def test_kms_key_arn(self):
     """

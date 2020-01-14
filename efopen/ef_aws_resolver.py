@@ -343,7 +343,7 @@ class EFAwsResolver(object):
       return vpn_gateways["VpnGateways"][0]["VpnGatewayId"]
     else:
       return default
-    
+
   def elbv2_load_balancer_hosted_zone(self, lookup, default=None):
     """
     Args:
@@ -708,7 +708,7 @@ class EFAwsResolver(object):
       The decrypted lookup value
     """
     decrypted_lookup = ef_utils.kms_decrypt(EFAwsResolver.__CLIENTS["kms"], lookup)
-    return decrypted_lookup.decode('string_escape')
+    return decrypted_lookup.plaintext.decode('string_escape')
 
   def kms_key_arn(self, lookup):
     """

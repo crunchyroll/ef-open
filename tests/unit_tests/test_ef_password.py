@@ -36,8 +36,14 @@ class TestEFPassword(unittest.TestCase):
     self.client_error = ClientError(self.error_response, "boto3")
     self.mock_kms = Mock(name="mocked kms client")
     self.bytes_return = "cipher_blob".encode()
-    self.mock_kms.encrypt.return_value = {"CiphertextBlob": self.bytes_return}
-    self.mock_kms.decrypt.return_value = {"Plaintext": self.bytes_return}
+    self.key_id = "AWS_KMS_KEY_ID"
+    self.mock_kms.encrypt.return_value = {"CiphertextBlob": self.bytes_return, "KeyId": self.key_id}
+    self.mock_kms.decrypt.return_value = {"Plaintext": self.bytes_return, "KeyId": self.key_id}
+    self.mock_kms.list_aliases.return_value = {
+      'Aliases': [ { 'AliasName': 'alias/staging-data-flow' } ]
+    }
+
+
 
   def test_generate_secret(self):
     """Check that generated secret matches the length specified and doesn't contain any special characters"""
