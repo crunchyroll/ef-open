@@ -42,7 +42,7 @@ class NewRelicAlerts(object):
   def run(self):
     if self.context.env in self.all_notification_channels.keys():
       if self.config['token_kms_encrypted']:
-        self.admin_token = kms_decrypt(self.clients['kms'], self.admin_token)
+        self.admin_token = kms_decrypt(self.clients['kms'], self.admin_token).plaintext
 
       newrelic = NewRelic(self.admin_token)
       for service in self.context.service_registry.iter_services(service_group="application_services"):

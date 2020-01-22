@@ -683,8 +683,9 @@ class TestEFUtilsKMS(unittest.TestCase):
     self.client_error = ClientError(self.error_response, "boto3")
     self.mock_kms = Mock(name="mocked kms client")
     self.bytes_return = "cipher_blob".encode()
+    self.key_id = "AWS_key_id"
     self.mock_kms.encrypt.return_value = {"CiphertextBlob": self.bytes_return}
-    self.mock_kms.decrypt.return_value = {"Plaintext": self.bytes_return}
+    self.mock_kms.decrypt.return_value = {"Plaintext": self.bytes_return, "KeyId": self.key_id}
 
   def test_kms_encrypt_call(self):
     """Validates basic kms call parameters"""
