@@ -249,6 +249,24 @@ class EFAwsResolver(object):
     else:
       return default
 
+  def ec2_transit_gateway_id(self, lookup, default=None):
+    """
+    Args:
+      lookup: the friendly name of the transit gateway to look up
+      default: the optional value to return if lookup failed; returns None if not set
+    Returns:
+      The ID of the first transit gateway found with a label matching 'lookup' or default/None if no match found
+    """
+    transit_gateways = EFAwsResolver.__CLIENTS["ec2"].describe_transit_gateways(Filters=[{
+      'Name': 'tag:Name',
+      'Values': [lookup]
+    }])
+    
+    if len(transit_gateways.get("TransitGateways")) > 0:
+      return transit_gateways["TransitGateways"][0]["TransitGatewayId"]
+    else:
+      return default
+
   def ec2_vpc_availabilityzones(self, lookup, default=None):
     """
     Args:
@@ -759,6 +777,8 @@ class EFAwsResolver(object):
       return self.ec2_subnet_subnet_cidr(*kv[1:])
     elif kv[0] == "ec2:subnet/subnet-id":
       return self.ec2_subnet_subnet_id(*kv[1:])
+    elif kv[0] == "ec2:transit-gateway/transit-gateway-id":
+      return self.ec2_transit_gateway_id(*kv[1:])
     elif kv[0] == "ec2:vpc/availabilityzones":
       return self.ec2_vpc_availabilityzones(*kv[1:])
     elif kv[0] == "ec2:vpc/cidrblock":
