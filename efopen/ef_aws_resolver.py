@@ -769,7 +769,7 @@ class EFAwsResolver(object):
       return transit_gateways[0]["TransitGatewayId"]
     else:
       return default
-  
+
   def lookup(self, token):
     try:
       kv = token.split(",")

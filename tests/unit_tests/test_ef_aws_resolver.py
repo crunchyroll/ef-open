@@ -51,6 +51,7 @@ class TestEFAwsResolver(unittest.TestCase):
     mock_session = Mock(name="Mock Client")
     mock_kms_client = Mock(name="Mock KMS Client")
     mock_elbv2_client = Mock(name="Mock ELBV2 Client")
+    mock_ram_client = Mock(name="Mock RAM Client")
 
     self._clients = {
       "cloudformation": mock_cloud_formation_client,
@@ -63,6 +64,7 @@ class TestEFAwsResolver(unittest.TestCase):
       "SESSION": mock_session,
       "kms": mock_kms_client,
       "elbv2": mock_elbv2_client,
+      "ram": mock_ram_client
     }
 
   def tearDown(self):
@@ -662,6 +664,48 @@ class TestEFAwsResolver(unittest.TestCase):
     self._clients["ec2"].describe_subnets.return_value = subnet_response
     ef_aws_resolver = EFAwsResolver(self._clients)
     result = ef_aws_resolver.lookup("ec2:subnet/subnet-id,cant_possibly_match")
+    self.assertIsNone(result)
+  
+  def test_ec2_transit_gateway_id(self):
+    """
+    Tests ec2_transit_gateway_id to see if it returns a transit gateway id based on matching transit gateway arn
+
+    Returns:
+      None
+
+    Raises:
+      AssertionError if any of the assert checks fail
+    """
+    target_transit_gateway_id = "tgw-0011"
+    transit_gateway_response = {
+      "TransitGateways": [
+        {
+          "TransitGatewayId": target_transit_gateway_id,
+          "TransitGatewayArn": "target_transit_gateway_arn"
+        }
+      ]
+    }
+    self._clients["ec2"].describe_transit_gateways.return_value = transit_gateway_response
+    ef_aws_resolver = EFAwsResolver(self._clients)
+    result = ef_aws_resolver.lookup("ec2:transit-gateway/transit-gateway-id,target_transit_gateway_arn")
+    self.assertEquals(target_transit_gateway_id, result)
+
+  def test_ec2_transit_gateway_id_no_match(self):
+    """
+    Tests ec2_transit_gateway_id to see if it returns None when there is no match
+
+    Returns:
+      None
+
+    Raises:
+      AssertionError if any of the assert checks fail
+    """
+    transit_gateway_response = {
+      "TransitGateways": []
+    }
+    self._clients["ec2"].describe_transit_gateways.return_value = transit_gateway_response
+    ef_aws_resolver = EFAwsResolver(self._clients)
+    result = ef_aws_resolver.lookup("ec2:transit-gateway/transit-gateway-id,cant_possibly_match")
     self.assertIsNone(result)
 
   @patch('ef_aws_resolver.EFAwsResolver.ec2_vpc_vpc_id')
@@ -2204,3 +2248,87 @@ class TestEFAwsResolver(unittest.TestCase):
     self.assertEqual(
       ef_aws_resolver.lookup("elbv2:target-group/arn-suffix,%s" % tg_name),
       tg_arn_suffix)
+
+  def test_ram_resource_share_arn(self):
+    """
+    Tests ram_resource_share_arn to see if it returns a resource share arn based on matching resource share name
+
+    Returns:
+      None
+
+    Raises:
+      AssertionError if any of the assert checks fail
+    """
+    target_resource_share_arn = "ram-0011"
+    resource_share_response = {
+      "resourceShares": [
+        {
+          "resourceShareArn": target_resource_share_arn,
+          "name": "target_resource_share_name"
+        }
+      ]
+    }
+    self._clients["ram"].get_resource_shares.return_value = resource_share_response
+    ef_aws_resolver = EFAwsResolver(self._clients)
+    result = ef_aws_resolver.lookup("ram:resource-share/resource-share-arn,target_resource_share_name")
+    self.assertEquals(target_resource_share_arn, result)
+
+  def test_ram_resource_share_arn_no_match(self):
+    """
+    Tests ram_resource_share_arn to see if it returns None when there is no match
+
+    Returns:
+      None
+
+    Raises:
+      AssertionError if any of the assert checks fail
+    """
+    resource_share_response = {
+      "resourceShares": []
+    }
+    self._clients["ram"].get_resource_shares.return_value = resource_share_response
+    ef_aws_resolver = EFAwsResolver(self._clients)
+    result = ef_aws_resolver.lookup("ram:resource-share/resource-share-arn,cant_possibly_match")
+    self.assertIsNone(result)
+
+  def test_ram_resource_arn(self):
+    """
+    Tests ram_resource_arn to see if it returns a resource arn based on matching resource share arn
+
+    Returns:
+      None
+
+    Raises:
+      AssertionError if any of the assert checks fail
+    """
+    target_resource_arn = "foo-0011"
+    resource_response = {
+      "resources": [
+        {
+          "arn": target_resource_arn,
+          "resourceShareArn": "target_resource_share_arn"
+        }
+      ]
+    }
+    self._clients["ram"].list_resources.return_value = resource_response
+    ef_aws_resolver = EFAwsResolver(self._clients)
+    result = ef_aws_resolver.lookup("ram:resource-share/resource-arn,target_resource_share_arn")
+    self.assertEquals(target_resource_arn, result)
+
+  def test_ram_resource_arn_no_match(self):
+    """
+    Tests ram_resource_arn to see if it returns None when there is no match
+
+    Returns:
+      None
+
+    Raises:
+      AssertionError if any of the assert checks fail
+    """
+    resource_response = {
+      "resources": []
+    }
+    self._clients["ram"].list_resources.return_value = resource_response
+    ef_aws_resolver = EFAwsResolver(self._clients)
+    result = ef_aws_resolver.lookup("ram:resource-share/resource-arn,cant_possibly_match")
+    self.assertIsNone(result)
