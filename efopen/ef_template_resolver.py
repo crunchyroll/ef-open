@@ -237,6 +237,7 @@ class EFTemplateResolver(object):
       "iam",
       "kms",
       "lambda",
+      "ram",
       "route53",
       "s3",
       "sts",

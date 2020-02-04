@@ -249,24 +249,6 @@ class EFAwsResolver(object):
     else:
       return default
 
-  def ec2_transit_gateway_id(self, lookup, default=None):
-    """
-    Args:
-      lookup: the friendly name of the transit gateway to look up
-      default: the optional value to return if lookup failed; returns None if not set
-    Returns:
-      The ID of the first transit gateway found with a label matching 'lookup' or default/None if no match found
-    """
-    transit_gateways = EFAwsResolver.__CLIENTS["ec2"].describe_transit_gateways(Filters=[{
-      'Name': 'tag:Name',
-      'Values': [lookup]
-    }])
-    
-    if len(transit_gateways.get("TransitGateways")) > 0:
-      return transit_gateways["TransitGateways"][0]["TransitGatewayId"]
-    else:
-      return default
-
   def ec2_vpc_availabilityzones(self, lookup, default=None):
     """
     Args:
@@ -738,6 +720,56 @@ class EFAwsResolver(object):
     key_arn = ef_utils.kms_key_arn(EFAwsResolver.__CLIENTS["kms"], lookup)
     return key_arn
 
+  def ram_resource_share_arn(self, lookup, default=None):
+    """
+    Args:
+      lookup: the name of the resource share to look up
+      default: the optional value to return if lookup failed; returns None if not set
+    Returns:
+      The arn of the first resource share found with a label matching 'lookup' or default/None if no match found
+    """
+    resource_shares = EFAwsResolver.__CLIENTS["ram"].get_resource_shares(
+      resourceOwner="OTHER-ACCOUNTS",
+      name=lookup)
+    
+    if len(resource_shares.get("resourceShares")) > 0:
+      return resource_shares["resourceShares"][0]["resourceShareArn"]
+    else:
+      return default
+
+  def ram_resource_arn(self, lookup, default=None):
+    """
+    Args:
+      lookup: the resource share arn to look up 
+      default: the optional value to return if lookup failed; returns None if not set
+    Returns:
+      The arn of the first resource found with a label matching 'lookup' or default/None if no match found
+    """
+    resources = EFAwsResolver.__CLIENTS["ram"].list_resources(
+      resourceOwner="OTHER-ACCOUNTS",
+      resourceShareArns=[lookup])
+    
+    if len(resources.get("resources")) > 0:
+      return resources["resources"][0]["arn"]
+    else:
+      return default
+
+  def ec2_transit_gateway_id(self, lookup, default=None):
+    """
+    Args:
+      lookup: the arn of the transit gateway to look up
+      default: the optional value to return if lookup failed; returns None if not set
+    Returns:
+      The id of the first transit gateway found with a label matching 'lookup' or default/None if no match found
+    """
+    transit_gateways = EFAwsResolver.__CLIENTS["ec2"].describe_transit_gateways()
+    
+    if len(transit_gateways.get("TransitGateways")) > 0:
+      transit_gateways = [i for i in transit_gateways["TransitGateways"] if (i["TransitGatewayArn"] == lookup)]
+      return transit_gateways[0]["TransitGatewayId"]
+    else:
+      return default
+  
   def lookup(self, token):
     try:
       kv = token.split(",")
@@ -801,6 +833,10 @@ class EFAwsResolver(object):
       return self.kms_decrypt_value(*kv[1:])
     elif kv[0] == "kms:key_arn":
       return self.kms_key_arn(*kv[1:])
+    elif kv[0] == "ram:resource-share/resource-share-arn":
+      return self.ram_resource_share_arn(*kv[1:])
+    elif kv[0] == "ram:resource-share/resource-arn":
+      return self.ram_resource_arn(*kv[1:])
     elif kv[0] == "route53:private-hosted-zone-id":
       return self.route53_private_hosted_zone_id(*kv[1:])
     elif kv[0] == "route53:public-hosted-zone-id":
