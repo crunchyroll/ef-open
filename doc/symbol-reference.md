@@ -209,6 +209,14 @@ which is looked up in 'proto3' as:<br>
 returns:<br>
 ```subnet-be2d211a```<br>
 
+#### {{aws:ec2:transit-gateway/transit-gateway-id,\<transit_gateway_arn>.}}
+Returns: Transit gateway id<br>
+Needs: Transit gateway arn<br>
+Example:<br>
+```{{aws:ec2:transit-gateway/transit-gateway-id,arn:aws:ec2:us-west-2:0123456789:transit-gateway/tgw-12348d1df0123430f}}```<br>
+returns:<br>
+```tgw-12348d1df0123430f```
+
 #### {{aws:ec2:vpc/availabilityzones,\<vpc_friendly_name>}}
 Returns: Comma-separated list of availability zones that contain subnets within the VPC, with internal double-quotes (external double-quotes come from the template)<br>
 Needs: Friendly name of the VPC serving the target environment, which is always "vpc-\<env>"<br>
@@ -312,6 +320,24 @@ params:
 
 #### {{aws:kms:key_arn,\<kms_encrypted_data>}}
 TODO:
+
+#### {{aws:ram:resource-share/resource-share-arn,\<resource_share_name>.}}
+Returns: Resource share arn<br>
+Needs: Name of resource share<br>
+Example:<br>
+```{{aws:ram:resource-share/resource-share-arn,{{ENV}}-transit-gateway}}```<br>
+which is looked up in 'proto3' as:<br>
+```{{aws:ram:resource-share/resource-share-arn,proto3-transit-gateway}}```<br>
+returns:<br>
+```arn:aws:ram:us-west-2:0123456789:resource-share/01b67c87-16ae-cda1-f0c5-6laks99f0bd6```
+
+#### {{aws:ram:resource-share/resource-arn,\<resource_share_arn>.}}
+Returns: Resource arn associated with a given resource share<br>
+Needs: Resource share arn<br>
+Example:<br>
+```{{aws:ram:resource-share/resource-arn,arn:aws:ram:us-west-2:0123456789:resource-share/01b67c87-16ae-cda1-f0c5-6laks99f0bd6}}```<br>
+returns:<br>
+```arn:aws:ec2:us-west-2:0123456789:transit-gateway/tgw-12348d1df0123430f```
 
 #### {{aws:route53:private-hosted-zone-id,\<zone_name>.}}
 Returns: Private Hosted Zone's ID in Route53<br>
