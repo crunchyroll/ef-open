@@ -339,7 +339,7 @@ class EFAwsResolver(object):
       "Name": "tag:Name",
       "Values": [lookup]
     }])
-    if len(vpc_endpoints) > 0:
+    if len(vpc_endpoints.get("VpcEndpoints")) > 0:
       return vpc_endpoints["VpcEndpoints"][0]["VpcEndpointId"]
     else:
       return default
