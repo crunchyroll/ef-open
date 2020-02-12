@@ -912,6 +912,50 @@ class TestEFAwsResolver(unittest.TestCase):
     result = ef_aws_resolver.lookup("ec2:vpc/vpc-id,target_vpc_name")
     self.assertIsNone(result)
 
+  def test_ec2_vpc_endpoint_id(self):
+    """
+    Tests that this function returns the vpc endpoint id when it finds a 
+    resource with the right tag.
+
+    Returns:
+      None
+
+    Raises:
+      AssertionError if any of the assert checks fail
+    """
+    expected_vpce_id = "vpce-123"
+    describe_vpce_response = {
+      "VpcEndpoints": [
+        {
+          "VpcEndpointId": "vpce-123",
+          "VpcEndpointType": "Interface",
+          "VpcId": "vpc-01"
+        }
+      ]
+    }
+    self._clients["ec2"].describe_vpc_endpoints.return_value = describe_vpce_response
+    ef_aws_resolver = EFAwsResolver(self._clients)
+    result = ef_aws_resolver.lookup("ec2:vpc-endpoint/vpc-endpoint-id,target_vpc_endpoint_name")
+    self.assertEquals(expected_vpce_id, result)
+
+  def test_ec2_vpc_endpoint_id_none(self):
+    """
+    Tests that this function returns None if it can't find a match
+
+    Returns:
+      None
+
+    Raises:
+      AssertionError if any of the assert checks fail
+    """
+    describe_vpce_response = {
+      "VpcEndpoints": []
+    }
+    self._clients["ec2"].describe_vpc_endpoints.return_value = describe_vpce_response
+    ef_aws_resolver = EFAwsResolver(self._clients)
+    result = ef_aws_resolver.lookup("ec2:vpc-endpoint/vpc-endpoint-id,target_vpc_endpoint_name")
+    self.assertIsNone(result)
+
   def test_ec2_vpc_vpn_gateway_id(self):
     """
     Tests VPN Gateway ID lookup

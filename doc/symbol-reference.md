@@ -259,6 +259,16 @@ which is looked in 'proto3' as:<br>
 returns:<br>
 ```vpc-21ac3315```<br>
 
+#### {{aws:ec2:vpc-endpoint/vpc-endpoint-id,\<vpc_endpoint_friendly_name>}}
+Returns: VPC Endpoint ID<br>
+Needs: VPC Endpoint's friendly name, which is generally "vpce-\<env>"<br>
+Example:<br>
+```{{aws:ec2:vpc-endpoint/vpc-endpoint-id,vpce-{{ENV}}}}```<br>
+which is looked in 'proto3' as:<br>
+```{{aws:ec2:vpc-endpoint/vpc-endpoint-id,vpce-proto3}}```<br>
+returns:<br>
+```vpce-123```
+
 #### {{aws:ec2:vpc/vpn-gateway-id,\<vgw_friendly_name>}}
 Returns: Virtual Private Gateway's ID<br>
 Needs: VPN Gateway's friendly name, which is always "vgw-\<az>"<br>
