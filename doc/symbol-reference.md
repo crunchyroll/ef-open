@@ -260,7 +260,7 @@ returns:<br>
 ```vpc-21ac3315```<br>
 
 #### {{aws:ec2:vpc-endpoint/vpc-endpoint-id,\<vpc_endpoint_friendly_name>}}
-Returns: VPC Endpoint ID
+Returns: VPC Endpoint ID<br>
 Needs: VPC Endpoint's friendly name, which is generally "vpce-\<env>"<br>
 Example:<br>
 ```{{aws:ec2:vpc-endpoint/vpc-endpoint-id,vpce-{{ENV}}}}```<br>
