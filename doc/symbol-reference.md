@@ -269,6 +269,16 @@ which is looked in 'proto3' as:<br>
 returns:<br>
 ```vpce-123```
 
+#### {{aws:ec2:vpc-endpoint/vpc-endpoint-id-by-vpc-service,\<vpc_name/service_name>}}
+Returns: VPC Endpoint ID<br>
+Needs: VPC friendly name and service name<br>
+Example:<br>
+```{{aws:ec2:vpc-endpoint/vpc-endpoint-id,vpc-{{ENV}}/execute-api}}```<br>
+which is looked in 'proto3' as:<br>
+```{{aws:ec2:vpc-endpoint/vpc-endpoint-id,vpc-proto3/execute-api}}```<br>
+returns:<br>
+```vpce-123```
+
 #### {{aws:ec2:vpc/vpn-gateway-id,\<vgw_friendly_name>}}
 Returns: Virtual Private Gateway's ID<br>
 Needs: VPN Gateway's friendly name, which is always "vgw-\<az>"<br>

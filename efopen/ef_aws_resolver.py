@@ -344,6 +344,32 @@ class EFAwsResolver(object):
     else:
       return default
 
+  def ec2_vpc_endpoint_id_by_vpc_service(self, lookup, default=None):
+    """
+    Args:
+      lookup: a forward-slash-delimited string of [vpc-name, service-name] "vpc-name/service-name"
+      default: the optional value to return if lookup failed; returns None if not set
+    Returns:
+      The ID of the OLDEST VPC endpoint found in the given VPC for the given service
+    """
+    vpc_name, service_name = lookup.split("/")
+    vpc_id = self.ec2_vpc_vpc_id(vpc_name)
+    if vpc_id is None:
+      return default
+
+    vpc_endpoints = EFAwsResolver.__CLIENTS["ec2"].describe_vpc_endpoints(Filters=[
+      {"Name": "vpc-id", "Values":[vpc_id]},
+      {"Name": "service-name", "Values":[service_name]}
+    ])
+    if len(vpc_endpoints.get("VpcEndpoints")) < 1:
+      return default
+    
+    oldest = None
+    for vpce in vpc_endpoints.get("VpcEndpoints"):
+      if oldest is None or vpce["CreationTimestamp"] < oldest["CreationTimestamp"]:
+        oldest = vpce
+    return oldest["VpcEndpointId"]
+
   def ec2_vpc_vpn_gateway_id(self, lookup, default=None):
     """
     Args:
@@ -838,6 +864,8 @@ class EFAwsResolver(object):
       return self.ec2_vpc_vpc_id(*kv[1:])
     elif kv[0] == "ec2:vpc-endpoint/vpc-endpoint-id":
       return self.ec2_vpc_endpoint_id(*kv[1:])
+    elif kv[0] == "ec2:vpc-endpoint/vpc-endpoint-id/by-vpc-service":
+      return self.ec2_vpc_endpoint_id_by_vpc_service(*kv[1:])
     elif kv[0] == "ec2:vpc/vpn-gateway-id":
       return self.ec2_vpc_vpn_gateway_id(*kv[1:])
     elif kv[0] == "elbv2:load-balancer/dns-name":

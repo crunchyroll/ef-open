@@ -956,6 +956,154 @@ class TestEFAwsResolver(unittest.TestCase):
     result = ef_aws_resolver.lookup("ec2:vpc-endpoint/vpc-endpoint-id,target_vpc_endpoint_name")
     self.assertIsNone(result)
 
+  def test_ec2_vpc_endpoint_id_by_vpc_service_one_vpce(self):
+    """
+    Tests that this function returns the VPC endpoint ID when it finds the VPC ID,
+    and a single VPC endpoint matching the VPC ID + service.
+
+    Returns:
+      None
+
+    Raises:
+      AssertionError if any of the assert checks fail
+    """
+    expected_vpce_id = "vpce-456"
+    describe_vpc_response = {
+      "Vpcs": [
+        {
+          "VpcId": "vpc-123"
+        }
+      ]
+    }
+    describe_vpce_response = {
+      "VpcEndpoints": [
+        {
+          "VpcEndpointId": "vpce-456",
+          "VpcEndpointType": "Interface",
+          "VpcId": "vpc-123",
+          "CreationTimestamp": datetime.datetime(2020,1,2),
+          "ServiceName": "target_service_name"
+        }
+      ]
+    }
+    self._clients["ec2"].describe_vpcs.return_value = describe_vpc_response
+    self._clients["ec2"].describe_vpc_endpoints.return_value = describe_vpce_response
+    ef_aws_resolver = EFAwsResolver(self._clients)
+    result = ef_aws_resolver.lookup("ec2:vpc-endpoint/vpc-endpoint-id/by-vpc-service,target_vpc_name/target_service_name")
+    self.assertEquals(expected_vpce_id, result)
+
+  def test_ec2_vpc_endpoint_id_by_vpc_service_3_vpces(self):
+    """
+    Tests that this function returns the ID of the oldest VPC endpoint when it finds multiple
+    VPC endpoints in this VPC for this service.
+
+    Returns:
+      None
+
+    Raises:
+      AssertionError if any of the assert checks fail
+    """
+    expected_vpce_id = "vpce-2" # Oldest creation timestamp
+    describe_vpc_response = {
+      "Vpcs": [
+        {
+          "VpcId": "vpc-123"
+        }
+      ]
+    }
+    describe_vpce_response = {
+      "VpcEndpoints": [
+        {
+          "VpcEndpointId": "vpce-1",
+          "VpcEndpointType": "Interface",
+          "VpcId": "vpc-123",
+          "CreationTimestamp": datetime.datetime(2020,1,2),
+          "ServiceName": "target_service_name"
+        },
+        {
+          "VpcEndpointId": "vpce-2",
+          "VpcEndpointType": "Interface",
+          "VpcId": "vpc-123",
+          "CreationTimestamp": datetime.datetime(2019,12,2),
+          "ServiceName": "target_service_name"
+        },
+        {
+          "VpcEndpointId": "vpce-3",
+          "VpcEndpointType": "Interface",
+          "VpcId": "vpc-123",
+          "CreationTimestamp": datetime.datetime(2020,3,2),
+          "ServiceName": "target_service_name"
+        }
+      ]
+    }
+    self._clients["ec2"].describe_vpcs.return_value = describe_vpc_response
+    self._clients["ec2"].describe_vpc_endpoints.return_value = describe_vpce_response
+    ef_aws_resolver = EFAwsResolver(self._clients)
+    result = ef_aws_resolver.lookup("ec2:vpc-endpoint/vpc-endpoint-id/by-vpc-service,target_vpc_name/target_service_name")
+    self.assertEquals(expected_vpce_id, result)
+
+  def test_ec2_vpc_endpoint_id_by_vpc_service_no_vpc_id(self):
+    """
+    Tests that this function returns the default value if no VPC ID could be found.
+
+    Returns:
+      None
+
+    Raises:
+      AssertionError if any of the assert checks fail
+    """
+    describe_vpc_response = {
+      "Vpcs": []
+    }
+    self._clients["ec2"].describe_vpcs.return_value = describe_vpc_response
+    ef_aws_resolver = EFAwsResolver(self._clients)
+    result = ef_aws_resolver.lookup("ec2:vpc-endpoint/vpc-endpoint-id/by-vpc-service,target_vpc_name/target_service_name,default-value")
+    self.assertEquals("default-value", result)
+
+  def test_ec2_vpc_endpoint_id_by_vpc_service_no_vpce(self):
+    """
+    Tests that this function returns the default value if no VPC endpoints are found.
+
+    Returns:
+      None
+
+    Raises:
+      AssertionError if any of the assert checks fail
+    """
+    expected_vpce_id = "vpce-456"
+    describe_vpc_response = {
+      "Vpcs": [
+        {
+          "VpcId": "vpc-123"
+        }
+      ]
+    }
+    describe_vpce_response = {
+      "VpcEndpoints": []
+    }
+    self._clients["ec2"].describe_vpcs.return_value = describe_vpc_response
+    self._clients["ec2"].describe_vpc_endpoints.return_value = describe_vpce_response
+    ef_aws_resolver = EFAwsResolver(self._clients)
+    result = ef_aws_resolver.lookup("ec2:vpc-endpoint/vpc-endpoint-id/by-vpc-service,target_vpc_name/target_service_name,default-value")
+    self.assertEquals("default-value", result)
+
+  def test_ec2_vpc_endpoint_id_by_vpc_service_missing_args(self):
+    """
+    Tests that this function raises an Error if the vpc name or the service name are not provided.
+
+    Returns:
+      None
+
+    Raises:
+      AssertionError if any of the assert checks fail
+    """
+    ef_aws_resolver = EFAwsResolver(self._clients)
+    try:
+      ef_aws_resolver.lookup("ec2:vpc-endpoint/vpc-endpoint-id/by-vpc-service,target_vpc_name,default-value")
+      self.assertIsNone("Should have raised an error")
+    except:
+      self.assertTrue(True)
+
   def test_ec2_vpc_vpn_gateway_id(self):
     """
     Tests VPN Gateway ID lookup
