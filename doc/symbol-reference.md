@@ -273,9 +273,9 @@ returns:<br>
 Returns: VPC Endpoint ID<br>
 Needs: VPC friendly name and service name<br>
 Example:<br>
-```{{aws:ec2:vpc-endpoint/vpc-endpoint-id/by-vpc-service,vpc-{{ENV}}/execute-api}}```<br>
+```{{aws:ec2:vpc-endpoint/vpc-endpoint-id/by-vpc-service,vpc-{{ENV}}/com.amazonaws.{{REGION}}.execute-api}}```<br>
 which is looked in 'proto3' as:<br>
-```{{aws:ec2:vpc-endpoint/vpc-endpoint-id/by-vpc-service,vpc-proto3/execute-api}}```<br>
+```{{aws:ec2:vpc-endpoint/vpc-endpoint-id/by-vpc-service,vpc-proto3/com.amazonaws.us-east-1.execute-api}}```<br>
 returns:<br>
 ```vpce-123```
 
