@@ -733,3 +733,22 @@ class TestEFUtilsKMS(unittest.TestCase):
     self.mock_kms.decrypt.side_effect = self.client_error
     with self.assertRaises(SystemExit):
       ef_utils.kms_decrypt(self.mock_kms, self.secret)
+
+  def test_get_kms_key_alias(self):
+    """Test that kms_key_alias can get a key_alias by arn"""
+    service_key_alias = 'service-name'
+    key_arn = 'random-ARN'
+    self.mock_kms.list_aliases.return_value = {
+      "Aliases": [ {"AliasName": "alias/{}".format(service_key_alias)} ]
+    }
+    aliases = ef_utils.kms_key_alias(self.mock_kms, key_arn)
+    self.assertIn(service_key_alias, aliases)
+    self.mock_kms.list_aliases.assert_called_once_with(KeyId=key_arn)
+
+  def test_get_kms_key_alias_client_error(self):
+    """Test that kms_key_alias can get a key_alias by arn"""
+    service_key_alias = 'service-name'
+    key_arn = 'random-ARN'
+    self.mock_kms.list_aliases.side_effect = self.client_error
+    with self.assertRaises(RuntimeError):
+      aliases = ef_utils.kms_key_alias(self.mock_kms, key_arn)

@@ -267,7 +267,7 @@ def kms_key_alias(kms_client, key_arn):
     key_aliases = [key_data["AliasName"] for key_data in response["Aliases"]]
     clean_aliases = [alias.split('/', 1)[1] for alias in key_aliases]
   except ClientError as error:
-    raise RuntimeError("Failed to obtain key arn for alias {}, error: {}".format(alias, error.response["Error"]["Message"]))
+    raise RuntimeError("Failed to obtain key alias for arn {}, error: {}".format(key_arn, error.response["Error"]["Message"]))
 
   return clean_aliases
 
