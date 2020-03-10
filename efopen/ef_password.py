@@ -155,7 +155,7 @@ def handle_args_and_set_context(args):
       RuntimeError: if branch isn't as spec'd in ef_config.EF_REPO_BRANCH
       ValueError: if a parameter is invalid
   """
-  parser = argparse.ArgumentParser()
+  parser = argparse.ArgumentParser(description="Encrypt/decrypt template secrets.")
   parser.add_argument("service", help="name of service password is being generated for")
   parser.add_argument("env", help=", ".join(EFConfig.ENV_LIST))
   group = parser.add_mutually_exclusive_group()

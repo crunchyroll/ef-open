@@ -410,6 +410,7 @@ def scan_dir_for_template_files(search_dir):
                    "the template(s) with the last pushed version.")
 @click.version_option()
 def main(repo_root, sr, env, template_file, raw_text):
+    """Generate a diff based on cloudformation template specified and what's currently deployed."""
     global service_registry
     service_registry = EFServiceRegistry(sr)
 

@@ -113,7 +113,10 @@ def handle_args_and_set_context(args):
     RuntimeError: if branch isn't as spec'd in ef_config.EF_REPO_BRANCH
     CalledProcessError: if 'git rev-parse' command to find repo root could not be run
   """
-  parser = argparse.ArgumentParser()
+  parser = argparse.ArgumentParser(
+    description="Generate a security group, IAM role, instance profile, attache managed, custom, or inline "
+                "generated policies to a role, create KMS keys, and create newrelic alerts for a service based "
+                "on the information specified in the service_registry.json.")
   parser.add_argument("env", help=", ".join(EFConfig.ENV_LIST))
   parser.add_argument("--sr", help="optional /path/to/service_registry_file.json", default=None)
   parser.add_argument("--commit", help="Make changes in AWS (dry run if omitted)", action="store_true", default=False)

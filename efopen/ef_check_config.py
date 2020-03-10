@@ -41,7 +41,7 @@ def handle_args(args):
   Raises:
     Exception if the config path wasn't explicitly state and dead reckoning based on script location fails
   """
-  parser = argparse.ArgumentParser()
+  parser = argparse.ArgumentParser(description="Check if a late bind config is valid or not.")
   parser.add_argument("configpath", default=None, nargs="?",
                       help="/path/to/configs (always a directory; if omitted, all /configs are checked")
   parser.add_argument("--verbose", action="store_true", default=False)

@@ -259,7 +259,8 @@ def handle_args_and_set_context(args):
   Returns:
     a populated EFVersionContext object
   """
-  parser = argparse.ArgumentParser()
+  parser = argparse.ArgumentParser(description="Perform version tracking of a key for a service in the "
+                                               "service_registry.json")
   parser.add_argument("service_name", help="name of the service")
   parser.add_argument("key", help="version key to look up for <service_name> such as 'ami-id' (list in EF_Config)")
   parser.add_argument("env", help=", ".join(EFConfig.ENV_LIST))
