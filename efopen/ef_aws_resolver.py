@@ -363,7 +363,7 @@ class EFAwsResolver(object):
     ])
     if len(vpc_endpoints.get("VpcEndpoints")) < 1:
       return default
-    
+
     oldest = None
     for vpce in vpc_endpoints.get("VpcEndpoints"):
       if oldest is None or vpce["CreationTimestamp"] < oldest["CreationTimestamp"]:
@@ -774,7 +774,7 @@ class EFAwsResolver(object):
     resource_shares = EFAwsResolver.__CLIENTS["ram"].get_resource_shares(
       resourceOwner="OTHER-ACCOUNTS",
       name=lookup)
-    
+
     if len(resource_shares.get("resourceShares")) > 0:
       return resource_shares["resourceShares"][0]["resourceShareArn"]
     else:
@@ -783,7 +783,7 @@ class EFAwsResolver(object):
   def ram_resource_arn(self, lookup, default=None):
     """
     Args:
-      lookup: the resource share arn to look up 
+      lookup: the resource share arn to look up
       default: the optional value to return if lookup failed; returns None if not set
     Returns:
       The arn of the first resource found with a label matching 'lookup' or default/None if no match found
@@ -791,7 +791,7 @@ class EFAwsResolver(object):
     resources = EFAwsResolver.__CLIENTS["ram"].list_resources(
       resourceOwner="OTHER-ACCOUNTS",
       resourceShareArns=[lookup])
-    
+
     if len(resources.get("resources")) > 0:
       return resources["resources"][0]["arn"]
     else:
@@ -806,10 +806,18 @@ class EFAwsResolver(object):
       The id of the first transit gateway found with a label matching 'lookup' or default/None if no match found
     """
     transit_gateways = EFAwsResolver.__CLIENTS["ec2"].describe_transit_gateways()
-    
+
     if len(transit_gateways.get("TransitGateways")) > 0:
       transit_gateways = [i for i in transit_gateways["TransitGateways"] if (i["TransitGatewayArn"] == lookup)]
       return transit_gateways[0]["TransitGatewayId"]
+    else:
+      return default
+
+  def ecr_repository_image_name(self, lookup, default=None):
+    repositories = EFAwsResolver.__CLIENTS["ecr"].describe_repositories(repositoryNames=[ lookup ])
+
+    if len(repositories.get("repositories")) > 0:
+      return repositories.get("repositories")[0]["repositoryUri"]
     else:
       return default
 
@@ -868,6 +876,8 @@ class EFAwsResolver(object):
       return self.ec2_vpc_endpoint_id_by_vpc_service(*kv[1:])
     elif kv[0] == "ec2:vpc/vpn-gateway-id":
       return self.ec2_vpc_vpn_gateway_id(*kv[1:])
+    elif kv[0] == "ecr:repository/image-name":
+      return self.ecr_repository_image_name(*kv[1:])
     elif kv[0] == "elbv2:load-balancer/dns-name":
       return self.elbv2_load_balancer_dns_name(*kv[1:])
     elif kv[0] == "elbv2:load-balancer/hosted-zone":

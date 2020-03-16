@@ -233,6 +233,7 @@ class EFTemplateResolver(object):
       "cognito-identity",
       "cognito-idp",
       "ec2",
+      "ecr",
       "elbv2",
       "iam",
       "kms",
