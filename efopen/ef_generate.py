@@ -583,11 +583,11 @@ def main():
   try:
     # If running in EC2, always use instance credentials. One day we'll have "lambda" in there too, so use "in" w/ list
     if CONTEXT.whereami == "ec2":
-      CLIENTS = create_aws_clients(EFConfig.DEFAULT_REGION, None, "ec2", "iam", "kms")
+      CLIENTS = create_aws_clients(EFConfig.DEFAULT_REGION, None, "cloudfront", "ec2", "iam", "kms")
       CONTEXT.account_id = str(json.loads(http_get_metadata('iam/info'))["InstanceProfileArn"].split(":")[4])
     else:
       # Otherwise, we use local user creds based on the account alias
-      CLIENTS = create_aws_clients(EFConfig.DEFAULT_REGION, CONTEXT.account_alias, "ec2", "iam", "kms", "sts")
+      CLIENTS = create_aws_clients(EFConfig.DEFAULT_REGION, CONTEXT.account_alias, "cloudfront", "ec2", "iam", "kms", "sts")
       CONTEXT.account_id = get_account_id(CLIENTS["sts"])
   except RuntimeError:
     fail("Exception creating AWS clients in region {} with profile {}".format(
