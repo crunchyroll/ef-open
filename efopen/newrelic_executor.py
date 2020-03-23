@@ -39,44 +39,44 @@ class NewRelicAlerts(object):
       condition_obj = convert_string(condition_obj)
     return condition_obj
 
-  def create_policy(self, newrelic, service_name):
+  def create_policy(self, service_name):
     policy = AlertPolicy(env=self.context.env, service=service_name)
 
     # Create service alert policy if it doesn't already exist
-    if not newrelic.alert_policy_exists(policy.name):
-      newrelic.create_alert_policy(policy.name)
+    if not self.newrelic.alert_policy_exists(policy.name):
+      self.newrelic.create_alert_policy(policy.name)
       logger.info("create alert policy {}".format(policy.name))
-    policy.id = next(alert['id'] for alert in newrelic.all_alerts if alert['name'] == policy.name)
+    policy.id = next(alert['id'] for alert in self.newrelic.all_alerts if alert['name'] == policy.name)
     policy.notification_channels = self.all_notification_channels[self.context.env]
-    policy.conditions = newrelic.get_policy_alert_conditions(policy.id)
+    policy.conditions = self.newrelic.get_policy_alert_conditions(policy.id)
     policy.config_conditions = deepcopy(self.conditions)
     return policy
 
-  def remove_redundant_policy_conditions(self, newrelic, policy):
+  def remove_redundant_policy_conditions(self, policy):
     # Remove conditions with values that differ from config
     for condition in policy.conditions:
       if condition['name'] in policy.config_conditions:
         config_condition = policy.config_conditions[condition['name']]
         for k, v in config_condition.items():
           if condition[k] != v:
-            newrelic.delete_policy_alert_condition(condition['id'])
-            policy.conditions = newrelic.get_policy_alert_conditions(policy.id)
+            self.newrelic.delete_policy_alert_condition(condition['id'])
+            policy.conditions = self.newrelic.get_policy_alert_conditions(policy.id)
             logger.info("delete condition {} from policy {}. ".format(condition['name'], policy.name) + \
                         "current value differs from config")
             break
 
     return policy
 
-  def create_policy_conditions(self, newrelic, policy):
+  def create_policy_conditions(self, policy):
     # Create alert conditions for policies
     for key, value in policy.config_conditions.items():
       if not any(d['name'] == key for d in policy.conditions):
-        newrelic.create_alert_cond(policy.config_conditions[key])
+        self.newrelic.create_alert_cond(policy.config_conditions[key])
         logger.info("create condition {} for policy {}".format(key, policy.name))
 
-  def update_cloudfront_policy(self, token):
+  def update_cloudfront_policy(self):
+    # Update Cloudfront alert policies
     logger.info("update cloudfront alert policy")
-    newrelic = NewRelic(self.admin_token)
     cloudfront = self.clients['cloudfront']
     distribution_list = cloudfront.list_distributions()['DistributionList']
     map_function = lambda x: (x['Id'], ', '.join(x['Aliases']['Items']))
@@ -110,7 +110,7 @@ class NewRelicAlerts(object):
       'type': 'infra_metric',
     }
 
-    policy = self.create_policy(newrelic, 'cloudfront')
+    policy = self.create_policy('cloudfront')
     conditions = {}
     for id, alias in queue:
       conditions['cloudfront-{}-{}'.format(id, '4xxErrorRate')] = meta(
@@ -120,23 +120,22 @@ class NewRelicAlerts(object):
 
     policy.config_conditions = deepcopy(conditions)
 
-    policy = self.remove_redundant_policy_conditions(newrelic, policy)
-    self.create_policy_conditions(newrelic, policy)
+    policy = self.remove_redundant_policy_conditions(policy)
+    self.create_policy_conditions(policy)
 
-  def update_application_services_policies(self, token):
-    newrelic = NewRelic(self.admin_token)
+  def update_application_services_policies(self):
     for service in self.context.service_registry.iter_services(service_group="application_services"):
       service_name = service[0]
       service_environments = service[1]['environments']
       service_alert_overrides = service[1]['alerts'] if "alerts" in service[1] else {}
       if self.context.env in service_environments:
 
-        policy = self.create_policy(newrelic, service_name)
+        policy = self.create_policy(service_name)
 
         # Add alert policy to notification channels if missing
-        for channel in newrelic.all_channels:
+        for channel in self.newrelic.all_channels:
           if channel['name'] in policy.notification_channels and policy.id not in channel['links']['policy_ids']:
-            newrelic.add_policy_channels(policy.id, [channel['id']])
+            self.newrelic.add_policy_channels(policy.id, [channel['id']])
             logger.info("add channel_ids {} to policy {}".format(policy.name, channel['id']))
 
         # Replace symbols in config alert conditions
@@ -154,15 +153,16 @@ class NewRelicAlerts(object):
                 policy.config_conditions[condition_name][override_key] = override_value
         logger.debug("Policy {} alert condition values:\n{}".format(policy.name, policy.config_conditions))
 
-        policy = self.remove_redundant_conditions(newrelic, policy)
-        self.create_policy_conditions(newrelic, policy)
+        policy = self.remove_redundant_conditions(policy)
+        self.create_policy_conditions(policy)
 
   def run(self):
     if self.context.env in self.all_notification_channels.keys():
       if self.config['token_kms_encrypted']:
         self.admin_token = kms_decrypt(self.clients['kms'], self.admin_token).plaintext
 
-      self.update_application_services_policies(self.admin_token)
+      self.newrelic = NewRelic(self.admin_token)
+      self.update_application_services_policies()
 
-    if "prod" in self.context.env:
-      self.update_cloudfront_policy(self.admin_token)
+      if self.context.env in ["prod"]:
+        self.update_cloudfront_policy()
