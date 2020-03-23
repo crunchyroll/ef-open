@@ -153,7 +153,7 @@ class NewRelicAlerts(object):
                 policy.config_conditions[condition_name][override_key] = override_value
         logger.debug("Policy {} alert condition values:\n{}".format(policy.name, policy.config_conditions))
 
-        policy = self.remove_redundant_conditions(policy)
+        policy = self.remove_redundant_policy_conditions(policy)
         self.create_policy_conditions(policy)
 
   def run(self):
