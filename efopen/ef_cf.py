@@ -324,7 +324,7 @@ def main():
     modify_template = json.loads(template)
     for key in modify_template["Resources"]:
       if modify_template["Resources"][key]["Type"] == "AWS::AutoScaling::AutoScalingGroup":
-        if "UpdatePolicy" in modify_template["Resources"][key].keys():
+        if "UpdatePolicy" in modify_template["Resources"][key]:
           autoscaling_group = modify_template["Resources"][key]["Properties"]
           service = autoscaling_group["Tags"][0]["Value"]
           autoscaling_group_properties = get_autoscaling_group_properties(clients["autoscaling"], service.split("-")[0], "-".join(service.split("-")[1:]))
