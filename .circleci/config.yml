@@ -7,6 +7,7 @@ jobs:
     steps:
       - checkout
       - run: sudo pip install .
+      - run: sudo pip install mock
       - run: sudo python -m unittest discover
       - run:
           command: python setup.py test
