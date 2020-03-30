@@ -3,10 +3,11 @@ version: 2.1
 jobs:
   build-and-test:
     docker:
-      - image: circleci/python:3.7.7
+      - image: circleci/python:2.7
     steps:
       - checkout
       - run: sudo pip install .
+      - run: sudo python -m unittest discover
       - run:
           command: python setup.py test
           name: Unit Test
