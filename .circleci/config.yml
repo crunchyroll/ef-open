@@ -6,10 +6,10 @@ jobs:
       - image: circleci/python:2.7
     steps:
       - checkout
-      - run: sudo pip install .
-      - run: sudo pip install mock pylint
+      - run: pip install .
+      - run: pip install mock pylint
       - run:
-          command: sudo python -m unittest discover
+          command: python -m unittest discover
           name: Run Unit Test
       - run:
           command: pylint --rcfile=./pylintrc --disable=C,W,R ./efopen
