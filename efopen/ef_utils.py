@@ -252,6 +252,37 @@ def kms_decrypt(kms_client, secret):
       fail("boto3 exception occurred while performing kms decrypt operation.", error)
   return decrypted_secret
 
+def kms_re_encrypt(kms_client, service, env, secret):
+  """
+  Re-encrypt the secret for a new service. Don't need to know the plaintext
+  Args:
+    kms_client (boto3 kms client object): Instantiated kms client object. Usually created through create_aws_clients.
+    service (string): name of the service that the secret is being encrypted for.
+    env (string): environment that the secret is being encrypted for.
+    secret (string): base64 encoded value to be reencrypted
+  Returns:
+    a populated EFPWContext object
+  Raises:
+    SystemExit(1): If there is an error with the boto3 encryption call (ex. missing kms key)
+  """
+  # Converting all periods to underscores because they are invalid in KMS alias names
+  key_alias = '{}-{}'.format(env, service.replace('.', '_'))
+
+  try:
+    response = kms_client.re_encrypt(
+      DestinationKeyId='alias/{}'.format(key_alias),
+      CiphertextBlob=base64.b64decode(secret)
+    )
+  except TypeError as e:
+    fail("Malformed base64 string data: {}".format(e))
+  except ClientError as error:
+    if error.response['Error']['Code'] == "NotFoundException":
+      fail("Key '{}' not found. You may need to run ef-generate for this environment.".format(key_alias), error)
+    else:
+      fail("boto3 exception occurred while performing kms encrypt operation.", error)
+  encrypted_secret = base64.b64encode(response['CiphertextBlob'])
+  return encrypted_secret
+
 def kms_key_alias(kms_client, key_arn):
   """
   Obtain the key aliases based on the key arn provided
