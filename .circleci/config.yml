@@ -6,6 +6,7 @@ jobs:
       - image: circleci/python:3.7.7
     steps:
       - checkout
+      - run: sudo pip install ef-open
       - run:
           command: python setup.py test
           name: Unit Test
