@@ -814,6 +814,13 @@ class EFAwsResolver(object):
       return default
 
   def ecr_repository_image_name(self, lookup, default=None):
+    """
+    Args:
+      lookup: the arn of the Docker image to look up
+      default: the optional value to return if lookup failed; returns None if not set
+    Returns:
+      The id of the first image found with a label matching 'lookup' or default/None if no match found
+    """
     repositories = EFAwsResolver.__CLIENTS["ecr"].describe_repositories(repositoryNames=[ lookup ])
 
     if len(repositories.get("repositories")) > 0:
