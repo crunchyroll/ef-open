@@ -7,15 +7,13 @@ jobs:
     steps:
       - checkout
       - run: sudo pip install .
-      - run: sudo pip install mock
-      - run: sudo python -m unittest discover
+      - run: sudo pip install mock pylint
       - run:
-          command: python setup.py test
-          name: Unit Test
+          command: sudo python -m unittest discover
+          name: Run Unit Test
       - run:
           command: pylint --rcfile=./pylintrc ./efopn
-          name: Pylint Test
-
+          name: Run Pylint
 workflows:
   main:
     jobs:
