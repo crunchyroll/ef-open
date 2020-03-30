@@ -12,7 +12,7 @@ jobs:
           command: sudo python -m unittest discover
           name: Run Unit Test
       - run:
-          command: pylint --rcfile=./pylintrc ./efopn
+          command: pylint --rcfile=./pylintrc ./efopen
           name: Run Pylint
 workflows:
   main:
