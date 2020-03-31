@@ -1,0 +1,19 @@
+version: 2.1
+
+jobs:
+  build-and-test:
+    docker:
+      - image: circleci/python:2.7
+    steps:
+      - checkout
+      - run: pip install '.[test]'
+      - run:
+          command: python -m unittest discover
+          name: Unit Tests
+      - run:
+          command: pylint --rcfile=./pylintrc --disable=C,W,R ./efopen
+          name: Pylint
+workflows:
+  main:
+    jobs:
+      - build-and-test
