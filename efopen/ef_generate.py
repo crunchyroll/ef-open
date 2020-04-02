@@ -76,7 +76,7 @@ SERVICE_TYPE_ROLE = {
   "aws_ec2": "ec2.amazonaws.com",
   "aws_lambda": "lambda.amazonaws.com",
   "aws_role": None, # Bare role requires a custom assume role policy ("assume_role_policy": "name_of_policy")
-  "http_service": ["ec2.amazonaws.com", "ecs-tasks.amazonaws.com", "ecs-tasks.amazonaws.com"]
+  "http_service": ["ec2.amazonaws.com", "ecs.amazonaws.com", "ecs-tasks.amazonaws.com"]
 }
 
 # these service types get Security Groups
