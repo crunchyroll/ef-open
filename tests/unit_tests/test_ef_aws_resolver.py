@@ -2339,7 +2339,7 @@ class TestEFAwsResolver(unittest.TestCase):
     self._clients["ecr"].describe_repositories.return_value = \
       {
         'repositories': [{
-          'repositoryArn': 'arn:aws:ecr:region:account-id:respository/{}'.format(image_name),
+          'repositoryArn': 'arn:aws:ecr:region:account-id:repository/{}'.format(image_name),
           'repositoryName': image_name,
           'repositoryUri': repository_uri,
         }]
