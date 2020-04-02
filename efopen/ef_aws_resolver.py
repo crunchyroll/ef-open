@@ -816,7 +816,7 @@ class EFAwsResolver(object):
   def ecr_repository_uri(self, lookup, default=None):
     """
     Args:
-      lookup: the arn of the Docker image to look up
+      lookup: the name of the Docker image to look up
       default: the optional value to return if lookup failed; returns None if not set
     Returns:
       The id of the first image found with a label matching 'lookup' or default/None if no match found
