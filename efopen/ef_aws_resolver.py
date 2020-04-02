@@ -813,7 +813,7 @@ class EFAwsResolver(object):
     else:
       return default
 
-  def ecr_repository_image_name(self, lookup, default=None):
+  def ecr_repository_uri(self, lookup, default=None):
     """
     Args:
       lookup: the arn of the Docker image to look up
@@ -883,8 +883,8 @@ class EFAwsResolver(object):
       return self.ec2_vpc_endpoint_id_by_vpc_service(*kv[1:])
     elif kv[0] == "ec2:vpc/vpn-gateway-id":
       return self.ec2_vpc_vpn_gateway_id(*kv[1:])
-    elif kv[0] == "ecr:repository/image-name":
-      return self.ecr_repository_image_name(*kv[1:])
+    elif kv[0] == "ecr:repository/repository-uri":
+      return self.ecr_repository_uri(*kv[1:])
     elif kv[0] == "elbv2:load-balancer/dns-name":
       return self.elbv2_load_balancer_dns_name(*kv[1:])
     elif kv[0] == "elbv2:load-balancer/hosted-zone":

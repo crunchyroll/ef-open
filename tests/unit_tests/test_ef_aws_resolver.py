@@ -2330,7 +2330,7 @@ class TestEFAwsResolver(unittest.TestCase):
     with self.assertRaises(RuntimeError):
       ef_aws_resolver.lookup("kms:key_arn,alias/key_no_exist")
 
-  def test_ecr_repository_image_name(self):
+  def test_ecr_repository_uri(self):
     """
     Tests for ECR Image name lookup
     """
@@ -2346,11 +2346,11 @@ class TestEFAwsResolver(unittest.TestCase):
       }
     ef_aws_resolver = EFAwsResolver(self._clients)
     self.assertEqual(
-      ef_aws_resolver.lookup("ecr:repository/image-name,%s" % image_name),
+      ef_aws_resolver.lookup("ecr:repository/repository-uri,%s" % image_name),
       repository_uri
     )
 
-  def test_ecr_repository_image_name_no_such_repository(self):
+  def test_ecr_repository_uri_no_such_repository(self):
     """
     Tests for ECR Image name lookup
     """
@@ -2361,7 +2361,7 @@ class TestEFAwsResolver(unittest.TestCase):
         'repositories': []
       }
     ef_aws_resolver = EFAwsResolver(self._clients)
-    self.assertIsNone(ef_aws_resolver.lookup("ecr:repository/image-name,%s" % image_name))
+    self.assertIsNone(ef_aws_resolver.lookup("ecr:repository/repository-uri,%s" % image_name))
 
   def test_elbv2_load_balancer_hosted_zone(self):
     """
