@@ -821,11 +821,13 @@ class EFAwsResolver(object):
     Returns:
       The id of the first image found with a label matching 'lookup' or default/None if no match found
     """
-    repositories = EFAwsResolver.__CLIENTS["ecr"].describe_repositories(repositoryNames=[ lookup ])
-
-    if len(repositories.get("repositories")) > 0:
-      return repositories.get("repositories")[0]["repositoryUri"]
-    else:
+    try:
+      repositories = EFAwsResolver.__CLIENTS["ecr"].describe_repositories(repositoryNames=[ lookup ])
+      if len(repositories.get("repositories")) > 0:
+        return repositories.get("repositories")[0]["repositoryUri"]
+      else:
+        return default
+    except ClientError:
       return default
 
   def lookup(self, token):
