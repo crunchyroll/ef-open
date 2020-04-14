@@ -2356,10 +2356,17 @@ class TestEFAwsResolver(unittest.TestCase):
     """
     image_name = "service-ecr"
     repository_uri = 'account-id.dkr.ecr.us-west-2.amazonaws.com/{}'.format(image_name)
-    self._clients["ecr"].describe_repositories.return_value = \
+    self._clients["ecr"].describe_repositories.side_effect = ClientError(
       {
-        'repositories': []
-      }
+        'Error':
+          {
+            'Code': 400,
+            'Message': "The specified repository could not be found.",
+            'Type': "RepositoryNotFoundException"
+          }
+      },
+      'describe_repositories'
+    )
     ef_aws_resolver = EFAwsResolver(self._clients)
     self.assertIsNone(ef_aws_resolver.lookup("ecr:repository/repository-uri,%s" % image_name))
 
