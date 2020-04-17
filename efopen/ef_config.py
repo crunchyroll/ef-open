@@ -100,6 +100,10 @@ class EFConfig(object):
           "allow_latest": True,
           "allowed_types": ["aws_ec2", "http_service"]
       },
+      "image-tag": {
+        "allow_latest": True,
+        "allowed_types": ["http_service"]
+      },
       "config": {},
       "dist-hash": {
           "allowed_types": ["dist_static", "aws_lambda"]

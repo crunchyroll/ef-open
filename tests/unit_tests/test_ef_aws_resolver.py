@@ -46,6 +46,7 @@ class TestEFAwsResolver(unittest.TestCase):
     mock_cognito_identity_client = Mock(name="Mock Cognito Identity Client")
     mock_cognito_idp_client = Mock(name="Mock Cognito IDP Client")
     mock_ec2_client = Mock(name="Mock EC2 Client")
+    mock_ecr_client = Mock(name="Mock ECR Client")
     mock_route_53_client = Mock(name="Mock Route 53 Client")
     mock_waf_client = Mock(name="Mock WAF Client")
     mock_session = Mock(name="Mock Client")
@@ -59,6 +60,7 @@ class TestEFAwsResolver(unittest.TestCase):
       "cognito-identity": mock_cognito_identity_client,
       "cognito-idp": mock_cognito_idp_client,
       "ec2": mock_ec2_client,
+      "ecr": mock_ecr_client,
       "route53": mock_route_53_client,
       "waf": mock_waf_client,
       "SESSION": mock_session,
@@ -665,7 +667,7 @@ class TestEFAwsResolver(unittest.TestCase):
     ef_aws_resolver = EFAwsResolver(self._clients)
     result = ef_aws_resolver.lookup("ec2:subnet/subnet-id,cant_possibly_match")
     self.assertIsNone(result)
-  
+
   def test_ec2_transit_gateway_id(self):
     """
     Tests ec2_transit_gateway_id to see if it returns a transit gateway id based on matching transit gateway arn
@@ -914,7 +916,7 @@ class TestEFAwsResolver(unittest.TestCase):
 
   def test_ec2_vpc_endpoint_id(self):
     """
-    Tests that this function returns the vpc endpoint id when it finds a 
+    Tests that this function returns the vpc endpoint id when it finds a
     resource with the right tag.
 
     Returns:
@@ -2327,6 +2329,46 @@ class TestEFAwsResolver(unittest.TestCase):
     ef_aws_resolver = EFAwsResolver(self._clients)
     with self.assertRaises(RuntimeError):
       ef_aws_resolver.lookup("kms:key_arn,alias/key_no_exist")
+
+  def test_ecr_repository_uri(self):
+    """
+    Tests for ECR Image name lookup
+    """
+    image_name = "service-ecr"
+    repository_uri = 'account-id.dkr.ecr.us-west-2.amazonaws.com/{}'.format(image_name)
+    self._clients["ecr"].describe_repositories.return_value = \
+      {
+        'repositories': [{
+          'repositoryArn': 'arn:aws:ecr:region:account-id:repository/{}'.format(image_name),
+          'repositoryName': image_name,
+          'repositoryUri': repository_uri,
+        }]
+      }
+    ef_aws_resolver = EFAwsResolver(self._clients)
+    self.assertEqual(
+      ef_aws_resolver.lookup("ecr:repository/repository-uri,%s" % image_name),
+      repository_uri
+    )
+
+  def test_ecr_repository_uri_no_such_repository(self):
+    """
+    Tests for ECR Image name lookup
+    """
+    image_name = "service-ecr"
+    repository_uri = 'account-id.dkr.ecr.us-west-2.amazonaws.com/{}'.format(image_name)
+    self._clients["ecr"].describe_repositories.side_effect = ClientError(
+      {
+        'Error':
+          {
+            'Code': 400,
+            'Message': "The specified repository could not be found.",
+            'Type': "RepositoryNotFoundException"
+          }
+      },
+      'describe_repositories'
+    )
+    ef_aws_resolver = EFAwsResolver(self._clients)
+    self.assertIsNone(ef_aws_resolver.lookup("ecr:repository/repository-uri,%s" % image_name))
 
   def test_elbv2_load_balancer_hosted_zone(self):
     """
