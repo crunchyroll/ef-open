@@ -37,9 +37,9 @@ class EFPWContext(EFContext):
   @property
   def re_encrypt(self):
     """String value if the tool should re_encrypt rather than generating a new encrypted secret"""
-    return self._decrypt
+    return self._re_encrypt
 
-  @decrypt.setter
+  @re_encrypt.setter
   def re_encrypt(self, value):
     if type(value) is not str:
       raise TypeError("re_encrypt value must be str")
