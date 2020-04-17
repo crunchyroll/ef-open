@@ -1,3 +1,5 @@
+[![crunchyroll](https://circleci.com/gh/crunchyroll/ef-open.svg?style=svg)](https://circleci.com/gh/crunchyroll/ef-open)
+
 # ef_open
 EllationFormation: CloudFormation Tools for AWS by Ellation
 
@@ -18,8 +20,8 @@ If you have the ef-open installed and want to upgrade to the latest version you 
 
     $ pip install --upgrade ef-open
 
-# Python version 
-You may need to use python3 on your local system this may map to: 
+# Python version
+You may need to use python3 on your local system this may map to:
     $ pip3 install ef-open
 
 # Use
