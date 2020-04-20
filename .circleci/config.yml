@@ -21,7 +21,7 @@ jobs:
       - aws-cli/setup:
           aws-access-key-id: AWS_ACCESS_KEY_ID_ELLATION
           aws-region: AWS_DEFAULT_REGION
-          aws-secret-access-key: AWS_SECRET_ACCESS_KEY_ELLATIONENG
+          aws-secret-access-key: AWS_SECRET_ACCESS_KEY_ELLATION
       - run:
           command: aws s3 ls
           name: Test ellation aws
