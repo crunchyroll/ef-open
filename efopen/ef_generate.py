@@ -72,9 +72,9 @@ GLOBAL_SERVICE_TYPES = [
 # If value is not None, the role can get a default AssumeRolePolicy document listing that AWS service as principal
 # If value is None, the service registry entry must include "assume_role_policy": with an AssumeRole policy doc
 SERVICE_TYPE_ROLE = {
-  "aws_cloudtrail": "cloudtrail.amazonaws.com",
-  "aws_ec2": "ec2.amazonaws.com",
-  "aws_lambda": "lambda.amazonaws.com",
+  "aws_cloudtrail": ["cloudtrail.amazonaws.com"],
+  "aws_ec2": ["ec2.amazonaws.com"],
+  "aws_lambda": ["lambda.amazonaws.com"],
   "aws_role": None, # Bare role requires a custom assume role policy ("assume_role_policy": "name_of_policy")
   "http_service": ["ec2.amazonaws.com", "ecs.amazonaws.com", "ecs-tasks.amazonaws.com"]
 }
@@ -289,7 +289,7 @@ def conditionally_create_role(role_name, sr_entry):
     # which must list a service type to use this capacity (most do)
     if SERVICE_TYPE_ROLE[service_type] is None:
       fail("service_type: {} does not have a default service-type AssumeRole policy".format(service_type))
-    formatted_principals = '"Service": "{}"'.format(SERVICE_TYPE_ROLE[service_type])
+    formatted_principals = "\"Service\": {}".format(json.dumps(SERVICE_TYPE_ROLE[service_type]))
     assume_role_policy_document = '''{
       "Version" : "2012-10-17",
       "Statement": [{
