@@ -12,10 +12,19 @@ jobs:
           name: Unit Tests
       - aws-cli/install
       - aws-cli/setup:
-          profile-name:
           aws-access-key-id: AWS_ACCESS_KEY_ID_ELLATIONENG
           aws-region: AWS_DEFAULT_REGION
           aws-secret-access-key: AWS_SECRET_ACCESS_KEY_ELLATIONENG
+      - run:
+          command: aws s3 ls
+          name: Test ellationeng aws
+      - aws-cli/setup:
+          aws-access-key-id: AWS_ACCESS_KEY_ID_ELLATION
+          aws-region: AWS_DEFAULT_REGION
+          aws-secret-access-key: AWS_SECRET_ACCESS_KEY_ELLATIONENG
+      - run:
+          command: aws s3 ls
+          name: Test ellation aws
 orbs:
   aws-cli: circleci/aws-cli@1.0.0
 workflows:
