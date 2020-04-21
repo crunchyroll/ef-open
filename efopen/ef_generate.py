@@ -289,15 +289,16 @@ def conditionally_create_role(role_name, sr_entry):
     # which must list a service type to use this capacity (most do)
     if SERVICE_TYPE_ROLE[service_type] is None:
       fail("service_type: {} does not have a default service-type AssumeRole policy".format(service_type))
-    formatted_principals = '"Service": "{}"'.format(SERVICE_TYPE_ROLE[service_type])
-    assume_role_policy_document = '''{
+    service_principals = {"Service": SERVICE_TYPE_ROLE[service_type]}
+    assume_role_policy = {
       "Version" : "2012-10-17",
       "Statement": [{
         "Effect": "Allow",
-        "Principal": { ''' + formatted_principals + ''' },
+        "Principal": service_principals,
         "Action": [ "sts:AssumeRole" ]
       }]
-    }'''
+    }
+    assume_role_policy_document = json.dumps(assume_role_policy, indent=2)
   if not get_role_id(role_name):
     print("Create role: {}".format(role_name))
     print_if_verbose("AssumeRole policy document:\n{}".format(assume_role_policy_document))
