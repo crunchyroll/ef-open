@@ -11,10 +11,11 @@ jobs:
           command: python -m unittest discover
           name: Unit Tests
       - add_ssh_keys:
-        fingerprints:
-          - "d4:9b:bb:11:ac:cc:d0:19:e1:aa:5c:ea:fb:95:b6:96"
+          fingerprints:
+            - "d4:9b:bb:11:ac:cc:d0:19:e1:aa:5c:ea:fb:95:b6:96"
       - run:
           command: git clone git@github.com:crunchyroll/ellation_formation.git
+          name: Test git
 orbs:
   aws-cli: circleci/aws-cli@1.0.0
 workflows:
