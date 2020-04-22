@@ -15,21 +15,6 @@ jobs:
           - "d4:9b:bb:11:ac:cc:d0:19:e1:aa:5c:ea:fb:95:b6:96"
       - run:
         command: git clone git@github.com:crunchyroll/ellation_formation.git
-      # - aws-cli/install
-      # - aws-cli/setup:
-      #     aws-access-key-id: AWS_ACCESS_KEY_ID_ELLATIONENG
-      #     aws-region: AWS_DEFAULT_REGION
-      #     aws-secret-access-key: AWS_SECRET_ACCESS_KEY_ELLATIONENG
-      # - run:
-      #     command: aws s3 ls
-      #     name: Test ellationeng aws
-      # - aws-cli/setup:
-      #     aws-access-key-id: AWS_ACCESS_KEY_ID_ELLATION
-      #     aws-region: AWS_DEFAULT_REGION
-      #     aws-secret-access-key: AWS_SECRET_ACCESS_KEY_ELLATION
-      # - run:
-      #     command: aws s3 ls
-      #     name: Test ellation aws
 orbs:
   aws-cli: circleci/aws-cli@1.0.0
 workflows:
