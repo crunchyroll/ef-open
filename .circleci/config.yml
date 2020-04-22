@@ -6,9 +6,6 @@ jobs:
       - image: circleci/python:2.7
     steps:
       - checkout
-      - add_ssh_keys:
-          fingerprints:
-            - "d4:9b:bb:11:ac:cc:d0:19:e1:aa:5c:ea:fb:95:b6:96"
       - run:
           command: git clone git@github.com:crunchyroll/cx-user-content-flags.git
           name: Test git
