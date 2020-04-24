@@ -1106,6 +1106,366 @@ class TestEFAwsResolver(unittest.TestCase):
     except:
       self.assertTrue(True)
 
+  def test_ec2_vpc_endpoint_dns_name(self):
+    """
+    Tests that this function returns the first dns name when it finds a
+    vpc endpoint with the right tag.
+
+    Returns:
+      None
+
+    Raises:
+      AssertionError if any of the assert checks fail
+    """
+    expected_dns_name = "vpce-123.dns-name-1"
+    describe_vpce_response = {
+      "VpcEndpoints": [
+        {
+          "VpcEndpointId": "vpce-123",
+          "VpcEndpointType": "Interface",
+          "VpcId": "vpc-01",
+          "DnsEntries": [
+            {
+              "DnsName": "vpce-123.dns-name-1",
+              "HostedZoneId": "hosted-zone"
+            },
+            {
+              "DnsName": "vpce-123.dns-name-2",
+              "HostedZoneId": "hosted-zone"
+            },
+            {
+              "DnsName": "vpce-123.dns-name-3",
+              "HostedZoneId": "hosted-zone"
+            }
+          ]
+        }
+      ]
+    }
+    self._clients["ec2"].describe_vpc_endpoints.return_value = describe_vpce_response
+    ef_aws_resolver = EFAwsResolver(self._clients)
+    result = ef_aws_resolver.lookup("ec2:vpc-endpoint/dns-name,target_vpc_endpoint_name")
+    self.assertEquals(expected_dns_name, result)
+
+  def test_ec2_vpc_endpoint_dns_name_no_dns_entries(self):
+    """
+    Tests that this function returns None if the VPC Endpoint has no DNS entries
+
+    Returns:
+      None
+
+    Raises:
+      AssertionError if any of the assert checks fail
+    """
+    describe_vpce_response = {
+      "VpcEndpoints": [
+        {
+          "VpcEndpointId": "vpce-123",
+          "VpcEndpointType": "Interface",
+          "VpcId": "vpc-01",
+          "DnsEntries": []
+        }
+      ]
+    }
+    self._clients["ec2"].describe_vpc_endpoints.return_value = describe_vpce_response
+    ef_aws_resolver = EFAwsResolver(self._clients)
+    result = ef_aws_resolver.lookup("ec2:vpc-endpoint/dns-name,target_vpc_endpoint_name")
+    self.assertIsNone(result)
+
+  def test_ec2_vpc_endpoint_dns_name_none(self):
+    """
+    Tests that this function returns None if it can't find a match for the VPC Endpoint
+
+    Returns:
+      None
+
+    Raises:
+      AssertionError if any of the assert checks fail
+    """
+    describe_vpce_response = {
+      "VpcEndpoints": []
+    }
+    self._clients["ec2"].describe_vpc_endpoints.return_value = describe_vpce_response
+    ef_aws_resolver = EFAwsResolver(self._clients)
+    result = ef_aws_resolver.lookup("ec2:vpc-endpoint/dns-name,target_vpc_endpoint_name")
+    self.assertIsNone(result)
+
+  def test_ec2_vpc_endpoint_dns_name_by_vpc_service_one_vpce(self):
+    """
+    Tests that this function returns the correct DNS name when it finds the VPC ID,
+    and a single VPC endpoint matching the VPC ID + service.
+
+    Returns:
+      None
+
+    Raises:
+      AssertionError if any of the assert checks fail
+    """
+    expected_dns_name = "vpce-456.dns-name-1"
+    describe_vpc_response = {
+      "Vpcs": [
+        {
+          "VpcId": "vpc-123",
+        }
+      ]
+    }
+    describe_vpce_response = {
+      "VpcEndpoints": [
+        {
+          "VpcEndpointId": "vpce-456",
+          "VpcEndpointType": "Interface",
+          "VpcId": "vpc-123",
+          "DnsEntries": [
+            {
+              "DnsName": "vpce-456.dns-name-1",
+              "HostedZoneId": "hosted-zone"
+            },
+            {
+              "DnsName": "vpce-456.dns-name-2",
+              "HostedZoneId": "hosted-zone"
+            },
+            {
+              "DnsName": "vpce-456.dns-name-3",
+              "HostedZoneId": "hosted-zone"
+            }
+          ],
+          "CreationTimestamp": datetime.datetime(2020,1,2),
+          "ServiceName": "target_service_name"
+        }
+      ]
+    }
+    self._clients["ec2"].describe_vpcs.return_value = describe_vpc_response
+    self._clients["ec2"].describe_vpc_endpoints.return_value = describe_vpce_response
+    ef_aws_resolver = EFAwsResolver(self._clients)
+    result = ef_aws_resolver.lookup("ec2:vpc-endpoint/dns-name/by-vpc-service,target_vpc_name/target_service_name")
+    self.assertEquals(expected_dns_name, result)
+
+  def test_ec2_vpc_endpoint_dns_name_by_vpc_service_no_dns_entries(self):
+    """
+    Tests that this function returns None  when it finds the VPC ID, and a single
+    VPC endpoint matching the VPC ID + service, but it contains no DNS entries.
+
+    Returns:
+      None
+
+    Raises:
+      AssertionError if any of the assert checks fail
+    """
+    describe_vpc_response = {
+      "Vpcs": [
+        {
+          "VpcId": "vpc-123",
+        }
+      ]
+    }
+    describe_vpce_response = {
+      "VpcEndpoints": [
+        {
+          "VpcEndpointId": "vpce-456",
+          "VpcEndpointType": "Interface",
+          "VpcId": "vpc-123",
+          "DnsEntries": [],
+          "CreationTimestamp": datetime.datetime(2020,1,2),
+          "ServiceName": "target_service_name"
+        }
+      ]
+    }
+    self._clients["ec2"].describe_vpcs.return_value = describe_vpc_response
+    self._clients["ec2"].describe_vpc_endpoints.return_value = describe_vpce_response
+    ef_aws_resolver = EFAwsResolver(self._clients)
+    result = ef_aws_resolver.lookup("ec2:vpc-endpoint/dns-name/by-vpc-service,target_vpc_name/target_service_name")
+    self.assertIsNone(result)
+
+  def test_ec2_vpc_endpoint_dns_name_by_vpc_service_3_vpces(self):
+    """
+    Tests that this function returns the DNS name of the oldest VPC endpoint
+    when it finds multiple VPC endpoints in this VPC for this service.
+
+    Returns:
+      None
+
+    Raises:
+      AssertionError if any of the assert checks fail
+    """
+    expected_dns_name = "vpce-2.dns-name-1" # Oldest creation timestamp
+    describe_vpc_response = {
+      "Vpcs": [
+        {
+          "VpcId": "vpc-123"
+        }
+      ]
+    }
+    describe_vpce_response = {
+      "VpcEndpoints": [
+        {
+          "VpcEndpointId": "vpce-1",
+          "VpcEndpointType": "Interface",
+          "VpcId": "vpc-123",
+          "DnsEntries": [
+            {
+              "DnsName": "vpce-1.dns-name-1",
+              "HostedZoneId": "hosted-zone"
+            }
+          ],
+          "CreationTimestamp": datetime.datetime(2020,1,2),
+          "ServiceName": "target_service_name"
+        },
+        {
+          "VpcEndpointId": "vpce-2",
+          "VpcEndpointType": "Interface",
+          "VpcId": "vpc-123",
+          "DnsEntries": [
+            {
+              "DnsName": "vpce-2.dns-name-1",
+              "HostedZoneId": "hosted-zone"
+            }
+          ],
+          "CreationTimestamp": datetime.datetime(2019,12,2),
+          "ServiceName": "target_service_name"
+        },
+        {
+          "VpcEndpointId": "vpce-3",
+          "VpcEndpointType": "Interface",
+          "VpcId": "vpc-123",
+          "DnsEntries": [
+            {
+              "DnsName": "vpce-3.dns-name-1",
+              "HostedZoneId": "hosted-zone"
+            }
+          ],
+          "CreationTimestamp": datetime.datetime(2020,3,2),
+          "ServiceName": "target_service_name"
+        }
+      ]
+    }
+    self._clients["ec2"].describe_vpcs.return_value = describe_vpc_response
+    self._clients["ec2"].describe_vpc_endpoints.return_value = describe_vpce_response
+    ef_aws_resolver = EFAwsResolver(self._clients)
+    result = ef_aws_resolver.lookup("ec2:vpc-endpoint/dns-name/by-vpc-service,target_vpc_name/target_service_name")
+    self.assertEquals(expected_dns_name, result)
+
+  def test_ec2_vpc_endpoint_dns_name_by_vpc_service_3_vpces_no_dns_entries(self):
+    """
+    Tests that this function returns None if the oldest VPC endpoint
+    has no DNS entries, even when it matches multiple VPC endpoints.
+
+    Returns:
+      None
+
+    Raises:
+      AssertionError if any of the assert checks fail
+    """
+    describe_vpc_response = {
+      "Vpcs": [
+        {
+          "VpcId": "vpc-123"
+        }
+      ]
+    }
+    describe_vpce_response = {
+      "VpcEndpoints": [
+        {
+          "VpcEndpointId": "vpce-1",
+          "VpcEndpointType": "Interface",
+          "VpcId": "vpc-123",
+          "DnsEntries": [
+            {
+              "DnsName": "vpce-1.dns-name-1",
+              "HostedZoneId": "hosted-zone"
+            }
+          ],
+          "CreationTimestamp": datetime.datetime(2020,1,2),
+          "ServiceName": "target_service_name"
+        },
+        {
+          "VpcEndpointId": "vpce-2",
+          "VpcEndpointType": "Interface",
+          "VpcId": "vpc-123",
+          "DnsEntries": [],
+          "CreationTimestamp": datetime.datetime(2019,12,2),
+          "ServiceName": "target_service_name"
+        },
+        {
+          "VpcEndpointId": "vpce-3",
+          "VpcEndpointType": "Interface",
+          "VpcId": "vpc-123",
+          "DnsEntries": [
+            {
+              "DnsName": "vpce-3.dns-name-1",
+              "HostedZoneId": "hosted-zone"
+            }
+          ],
+          "CreationTimestamp": datetime.datetime(2020,3,2),
+          "ServiceName": "target_service_name"
+        }
+      ]
+    }
+    self._clients["ec2"].describe_vpcs.return_value = describe_vpc_response
+    self._clients["ec2"].describe_vpc_endpoints.return_value = describe_vpce_response
+    ef_aws_resolver = EFAwsResolver(self._clients)
+    result = ef_aws_resolver.lookup("ec2:vpc-endpoint/dns-name/by-vpc-service,target_vpc_name/target_service_name")
+    self.assertIsNone(result)
+
+  def test_ec2_vpc_endpoint_dns_name_by_vpc_service_no_vpc_id(self):
+    """
+    Tests that this function returns the default value if no VPC ID could be found.
+
+    Returns:
+      None
+
+    Raises:
+      AssertionError if any of the assert checks fail
+    """
+    describe_vpc_response = {
+      "Vpcs": []
+    }
+    self._clients["ec2"].describe_vpcs.return_value = describe_vpc_response
+    ef_aws_resolver = EFAwsResolver(self._clients)
+    result = ef_aws_resolver.lookup("ec2:vpc-endpoint/dns-name/by-vpc-service,target_vpc_name/target_service_name,default-value")
+    self.assertEquals("default-value", result)
+
+  def test_ec2_vpc_endpoint_dns_name_by_vpc_service_no_vpce(self):
+    """
+    Tests that this function returns the default value if no VPC endpoints are found.
+
+    Returns:
+      None
+
+    Raises:
+      AssertionError if any of the assert checks fail
+    """
+    describe_vpc_response = {
+      "Vpcs": [
+        {
+          "VpcId": "vpc-123"
+        }
+      ]
+    }
+    describe_vpce_response = {
+      "VpcEndpoints": []
+    }
+    self._clients["ec2"].describe_vpcs.return_value = describe_vpc_response
+    self._clients["ec2"].describe_vpc_endpoints.return_value = describe_vpce_response
+    ef_aws_resolver = EFAwsResolver(self._clients)
+    result = ef_aws_resolver.lookup("ec2:vpc-endpoint/dns-name/by-vpc-service,target_vpc_name/target_service_name,default-value")
+    self.assertEquals("default-value", result)
+
+  def test_ec2_vpc_endpoint_dns_name_by_vpc_service_missing_args(self):
+    """
+    Tests that this function raises an Error if the vpc name or the service name are not provided.
+
+    Returns:
+      None
+
+    Raises:
+      AssertionError if any of the assert checks fail
+    """
+    ef_aws_resolver = EFAwsResolver(self._clients)
+    try:
+      ef_aws_resolver.lookup("ec2:vpc-endpoint/dns-name/by-vpc-service,target_vpc_name,default-value")
+      self.assertIsNone("Should have raised an error")
+    except:
+      self.assertTrue(True)
+
   def test_ec2_vpc_vpn_gateway_id(self):
     """
     Tests VPN Gateway ID lookup
