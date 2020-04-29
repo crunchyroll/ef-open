@@ -18,6 +18,9 @@ jobs:
       - run:
           command: git clone git@github.com:crunchyroll/cx-user-content-flags.git
           name: Test git again and again and again
+      - run:
+          command: echo "${MY_SECRET}"
+          name: Test if env var is available without any additional work
 workflows:
   main:
     jobs:
