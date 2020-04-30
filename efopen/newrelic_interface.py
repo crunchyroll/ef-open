@@ -145,25 +145,25 @@ class NewRelic(object):
     delete_channel.raise_for_status()
     return
 
-  def create_alert_cond(self, condition):
+  def create_alert_cond(self, policy_id, condition):
     add_condition = requests.post(
-      url='https://infra-api.newrelic.com/v2/alerts/conditions',
+      url='https://api.newrelic.com/v2/alerts_conditions/policies/{}.json'.format(policy_id),
       headers=self.auth_header,
       data=json.dumps({"data": condition})
     )
     add_condition.raise_for_status()
-    return add_condition.json()['data']['id']
+    return
 
   def get_policy_alert_conditions(self, policy_id):
     return self.iterative_get(
-      endpoint_url='https://infra-api.newrelic.com/v2/alerts/conditions',
+      endpoint_url='https://api.newrelic.com/v2/alerts_conditions.json',
       response_key='data',
       params={'policy_id': policy_id}
     )
 
   def delete_policy_alert_condition(self, condition_id):
     delete_condition = requests.delete(
-      url='https://infra-api.newrelic.com/v2/alerts/conditions/{}'.format(condition_id),
+      url='https://api.newrelic.com/v2/alerts_conditions/{}.json'.format(condition_id),
       headers=self.auth_header
     )
     delete_condition.raise_for_status()
@@ -175,3 +175,4 @@ class NewRelic(object):
       headers=self.auth_header
     )
     delete_policy.raise_for_status()
+    return

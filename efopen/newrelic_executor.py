@@ -71,7 +71,7 @@ class NewRelicAlerts(object):
     # Create alert conditions for policies
     for key, value in policy.config_conditions.items():
       if not any(d['name'] == key for d in policy.conditions):
-        self.newrelic.create_alert_cond(policy.config_conditions[key])
+        self.newrelic.create_alert_cond(policy.id, policy.config_conditions[key])
         logger.info("create condition {} for policy {}".format(key, policy.name))
 
   def update_cloudfront_policy(self):
