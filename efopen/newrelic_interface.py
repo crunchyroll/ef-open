@@ -16,6 +16,7 @@ class AlertPolicy(object):
     self.notification_channels = None
     self.config_conditions = None
     self.conditions = None
+    self.nrql_alert_conditions = None
     self.symbols = None
     self.set_name()
     self.set_symbols()
@@ -185,10 +186,11 @@ class NewRelic(object):
       params={'policy_id': policy_id}
     )
 
-  def put_policy_alert_nrql_condition(self, condition_id):
-    delete_condition = requests.delete(
-      url='https://infra-api.newrelic.com/v2/alerts/conditions/{}'.format(condition_id),
-      headers=self.auth_header
+  def put_policy_alert_nrql_condition(self, condition_id, condition):
+    put_condition = requests.put(
+      url='https://api.newrelic.com/v2/alerts_nrql_conditions/{}.json'.format(condition_id),
+      headers=self.auth_header,
+      data=json.dumps({"nrql_conditions": condition})
     )
-    delete_condition.raise_for_status()
+    put_condition.raise_for_status()
     return

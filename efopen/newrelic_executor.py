@@ -50,6 +50,7 @@ class NewRelicAlerts(object):
     policy.notification_channels = self.all_notification_channels[self.context.env]
     policy.conditions = self.newrelic.get_policy_alert_conditions(policy.id)
     policy.config_conditions = deepcopy(self.conditions)
+    policy.nrql_alert_conditions = self.newrelic.get_policy_alert_nrql_conditions(self, policy.id)
     return policy
 
   def delete_conditions_not_matching_config_values(self, policy):
