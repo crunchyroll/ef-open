@@ -39,7 +39,7 @@ class NewRelicAlerts(object):
       condition_obj = convert_string(condition_obj)
     return condition_obj
 
-  def create_policy(self, service_name):
+  def create_alert_policy(self, service_name):
     policy = AlertPolicy(env=self.context.env, service=service_name)
 
     # Create service alert policy if it doesn't already exist
@@ -67,7 +67,7 @@ class NewRelicAlerts(object):
 
     return policy
 
-  def create_policy_conditions(self, policy):
+  def create_infra_alert_conditions(self, policy):
     # Create alert conditions for policies
     for key, value in policy.config_conditions.items():
       if not any(d['name'] == key for d in policy.conditions):
@@ -110,7 +110,7 @@ class NewRelicAlerts(object):
       'type': 'infra_metric',
     }
 
-    policy = self.create_policy('cloudfront')
+    policy = self.create_alert_policy('cloudfront')
     conditions = {}
     for id, alias in queue:
       conditions['cloudfront-{}-{}'.format(id, '4xxErrorRate')] = meta(
@@ -121,40 +121,52 @@ class NewRelicAlerts(object):
     policy.config_conditions = deepcopy(conditions)
 
     policy = self.remove_redundant_policy_conditions(policy)
-    self.create_policy_conditions(policy)
+    self.create_infra_alert_conditions(policy)
+
+  def add_alert_policy_to_notification_channels(self, policy):
+    # Add alert policy to notification channels if missing
+    for channel in self.newrelic.all_channels:
+      if channel['name'] in policy.notification_channels and policy.id not in channel['links']['policy_ids']:
+        self.newrelic.add_policy_channels(policy.id, [channel['id']])
+        logger.info("add channel_ids {} to policy {}".format(policy.name, channel['id']))
+
+  def replace_symbols_in_condition(self, policy):
+    # Replace symbols in config alert conditions
+    for key, value in policy.config_conditions.items():
+      policy.config_conditions[key] = self.replace_symbols(value, policy.symbols)
+
+    return policy
+
+  def override_infra_alert_condition_values(self, policy, service_alert_overrides):
+    # Update policy.config_conditions with overrides from service_registry
+    for condition_name, override_obj in service_alert_overrides.items():
+      if condition_name in policy.config_conditions.keys():
+        for override_key, override_value in override_obj.items():
+          if isinstance(override_value, dict):
+            for inner_key, inner_val in override_value.items():
+              policy.config_conditions[condition_name][override_key][inner_key] = inner_val
+          else:
+            policy.config_conditions[condition_name][override_key] = override_value
+    logger.debug("Policy {} alert condition values:\n{}".format(policy.name, policy.config_conditions))
+
+    return self.remove_redundant_policy_conditions(policy)
 
   def update_application_services_policies(self):
     for service in self.context.service_registry.iter_services(service_group="application_services"):
       service_name = service[0]
       service_environments = service[1]['environments']
       service_alert_overrides = service[1]['alerts'] if "alerts" in service[1] else {}
+
       if self.context.env in service_environments:
+        policy = self.create_alert_policy(service_name)
+        self.add_alert_policy_to_notification_channels(policy)
+        policy = self.replace_symbols_in_condition(policy)
 
-        policy = self.create_policy(service_name)
+        # Infra alert conditions
+        policy = self.override_infra_alert_condition_values(policy, service_alert_overrides)
+        self.create_infra_alert_conditions(policy)
+        # NRQL alert conditions
 
-        # Add alert policy to notification channels if missing
-        for channel in self.newrelic.all_channels:
-          if channel['name'] in policy.notification_channels and policy.id not in channel['links']['policy_ids']:
-            self.newrelic.add_policy_channels(policy.id, [channel['id']])
-            logger.info("add channel_ids {} to policy {}".format(policy.name, channel['id']))
-
-        # Replace symbols in config alert conditions
-        for key, value in policy.config_conditions.items():
-          policy.config_conditions[key] = self.replace_symbols(value, policy.symbols)
-
-        # Update policy.config_conditions with overrides from service_registry
-        for condition_name, override_obj in service_alert_overrides.items():
-          if condition_name in policy.config_conditions.keys():
-            for override_key, override_value in override_obj.items():
-              if isinstance(override_value, dict):
-                for inner_key, inner_val in override_value.items():
-                  policy.config_conditions[condition_name][override_key][inner_key] = inner_val
-              else:
-                policy.config_conditions[condition_name][override_key] = override_value
-        logger.debug("Policy {} alert condition values:\n{}".format(policy.name, policy.config_conditions))
-
-        policy = self.remove_redundant_policy_conditions(policy)
-        self.create_policy_conditions(policy)
 
   def run(self):
     if self.context.env in self.all_notification_channels.keys():
