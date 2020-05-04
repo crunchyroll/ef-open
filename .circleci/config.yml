@@ -1,5 +1,20 @@
 version: 2.1
 
+orbs:
+  latebind-orb:
+    executors:
+      default:
+        docker:
+          - image: circleci/golang:1.14
+    commands:
+      install:
+        description: Install resolve-config
+        steps:
+          - run:
+              command: |
+                curl https://ellation-cx-global-dist.s3-us-west-2.amazonaws.com/latebind/resolve-config -o resolve-config
+              name: Download resolve-config
+
 jobs:
   build-and-test:
     docker:
@@ -10,6 +25,7 @@ jobs:
       - run:
           command: python -m unittest discover
           name: Unit Tests
+      - my-orb/install
 workflows:
   main:
     jobs:
