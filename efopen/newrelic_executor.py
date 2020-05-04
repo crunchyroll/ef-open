@@ -71,7 +71,7 @@ class NewRelicAlerts(object):
     # Create alert conditions for policies
     for key, value in policy.config_conditions.items():
       if not any(d['name'] == key for d in policy.conditions):
-        self.newrelic.create_alert_cond(policy.id, policy.config_conditions[key])
+        self.newrelic.create_alert_cond(policy.config_conditions[key])
         logger.info("create condition {} for policy {}".format(key, policy.name))
 
   def update_cloudfront_policy(self):
@@ -147,7 +147,7 @@ class NewRelicAlerts(object):
               policy.config_conditions[condition_name][override_key][inner_key] = inner_val
           else:
             policy.config_conditions[condition_name][override_key] = override_value
-    logger.debug("Policy {} alert condition values:\n{}".format(policy.name, policy.config_conditions))
+    logger.info("Policy {} alert condition values:\n{}".format(policy.name, policy.config_conditions))
 
     return self.remove_redundant_policy_conditions(policy)
 
@@ -165,6 +165,7 @@ class NewRelicAlerts(object):
         # Infra alert conditions
         policy = self.override_infra_alert_condition_values(policy, service_alert_overrides)
         self.create_infra_alert_conditions(policy)
+
         # NRQL alert conditions
 
 
