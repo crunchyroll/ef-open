@@ -52,7 +52,7 @@ class NewRelicAlerts(object):
     policy.config_conditions = deepcopy(self.conditions)
     return policy
 
-  def remove_redundant_policy_conditions(self, policy):
+  def delete_conditions_not_matching_config_values(self, policy):
     # Remove conditions with values that differ from config
     for condition in policy.conditions:
       if condition['name'] in policy.config_conditions:
@@ -70,7 +70,7 @@ class NewRelicAlerts(object):
   def create_infra_alert_conditions(self, policy):
     # Create alert conditions for policies
     for key, value in policy.config_conditions.items():
-      if not any(d['name'] == key for d in policy.conditions):
+      if not any(condition['name'] == key for condition in policy.conditions):
         self.newrelic.create_alert_cond(policy.config_conditions[key])
         logger.info("create condition {} for policy {}".format(key, policy.name))
 
@@ -120,7 +120,7 @@ class NewRelicAlerts(object):
 
     policy.config_conditions = deepcopy(conditions)
 
-    policy = self.remove_redundant_policy_conditions(policy)
+    policy = self.delete_conditions_not_matching_config_values(policy)
     self.create_infra_alert_conditions(policy)
 
   def add_alert_policy_to_notification_channels(self, policy):
@@ -147,9 +147,9 @@ class NewRelicAlerts(object):
               policy.config_conditions[condition_name][override_key][inner_key] = inner_val
           else:
             policy.config_conditions[condition_name][override_key] = override_value
-    logger.info("Policy {} alert condition values:\n{}".format(policy.name, policy.config_conditions))
+    logger.debug("Policy {} alert condition values:\n{}".format(policy.name, policy.config_conditions))
 
-    return self.remove_redundant_policy_conditions(policy)
+    return policy
 
   def update_application_services_policies(self):
     for service in self.context.service_registry.iter_services(service_group="application_services"):
@@ -164,6 +164,7 @@ class NewRelicAlerts(object):
 
         # Infra alert conditions
         policy = self.override_infra_alert_condition_values(policy, service_alert_overrides)
+        policy = self.delete_conditions_not_matching_config_values(policy)
         self.create_infra_alert_conditions(policy)
 
         # NRQL alert conditions
