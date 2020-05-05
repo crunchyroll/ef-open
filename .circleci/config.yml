@@ -16,8 +16,8 @@ jobs:
           aws-secret-access-key: AWS_SECRET_ACCESS_KEY_ELLATION
       - run:
           command: |
-          aws s3 cp https://ellation-cx-global-dist.s3-us-west-2.amazonaws.com/latebind/resolve-config ./resolve-config
-          chmod +x resolve-config
+            aws s3 cp https://ellation-cx-global-dist.s3-us-west-2.amazonaws.com/latebind/resolve-config ./resolve-config
+            chmod +x resolve-config
           name: List s3 buckets in ellationeng
 orbs:
   aws-cli: circleci/aws-cli@1.0.0
