@@ -13,16 +13,16 @@
       "secret": "dev_secret"
     },
     "alpha0": {
-      "secret": "{{aws:kms:decrypt,AQICAHgCMI8FWACAMQErtHRn5dOyPO2+fgITKFAkSbzIWoXrdAHWIqr9+/bvn3BvXruBMxWNAAAAcTBvBgkqhkiG9w0BBwagYjBgAgEAMFsGCSqGSIb3DQEHATAeBglghkgBZQMEAS4wEQQM1RnG0G4eLJ2QOuJuAgEQgC4EwrHo1NG2ImuNfG879odniaAJRLK67BJ87Rm+leDddhloQCdWckJY3DAirtST}}"
+      "secret": "kms:AQICAHgCMI8FWACAMQErtHRn5dOyPO2+fgITKFAkSbzIWoXrdAHWIqr9+/bvn3BvXruBMxWNAAAAcTBvBgkqhkiG9w0BBwagYjBgAgEAMFsGCSqGSIb3DQEHATAeBglghkgBZQMEAS4wEQQM1RnG0G4eLJ2QOuJuAgEQgC4EwrHo1NG2ImuNfG879odniaAJRLK67BJ87Rm+leDddhloQCdWckJY3DAirtST"
     },
     "proto0": {
-      "secret": "{{aws:kms:decrypt,AQICAHirVWOYed4lqv0b+HGK7d0aQyhoc1utUUPXKYJEQQi5IwEdXa+VbdB2w1GL6kyuvCgtAAAAdjB0BgkqhkiG9w0BBwagZzBlAgEAMGAGCSqGSIb3DQEHATAeBglghkgBZQMEAS4wEQQMqgdNiN5+U9NCKUb+AgEQgDP91CWm7l/fNq1zjIw3++c/fxy1t4PFncrvsmJMcQMCJRqxPfCN8BRHo2HpcA/V+2zlR1Y=}}"
+      "secret": "kms:AQICAHirVWOYed4lqv0b+HGK7d0aQyhoc1utUUPXKYJEQQi5IwEdXa+VbdB2w1GL6kyuvCgtAAAAdjB0BgkqhkiG9w0BBwagZzBlAgEAMGAGCSqGSIb3DQEHATAeBglghkgBZQMEAS4wEQQMqgdNiN5+U9NCKUb+AgEQgDP91CWm7l/fNq1zjIw3++c/fxy1t4PFncrvsmJMcQMCJRqxPfCN8BRHo2HpcA/V+2zlR1Y="
     },
     "staging": {
-      "secret": "{{aws:kms:decrypt,AQICAHg+8vhVtq9e3en2ci4R/WEoyp2pd3GlRu7KJaG0vYvs3AG4haioX5xER4cx+bMlrVxUAAAAfjB8BgkqhkiG9w0BBwagbzBtAgEAMGgGCSqGSIb3DQEHATAeBglghkgBZQMEAS4wEQQMGxRmCtUGP6WfVeCOAgEQgDuk+X98oqT+R+o6KVvRMjOcrK+MlJQkvMY5rkIk665cTKfrPCA5Tt5HIYvThGwKZPtbU2nHVPgOXeI2mA==}}"
+      "secret": "kms:AQICAHg+8vhVtq9e3en2ci4R/WEoyp2pd3GlRu7KJaG0vYvs3AG4haioX5xER4cx+bMlrVxUAAAAfjB8BgkqhkiG9w0BBwagbzBtAgEAMGgGCSqGSIb3DQEHATAeBglghkgBZQMEAS4wEQQMGxRmCtUGP6WfVeCOAgEQgDuk+X98oqT+R+o6KVvRMjOcrK+MlJQkvMY5rkIk665cTKfrPCA5Tt5HIYvThGwKZPtbU2nHVPgOXeI2mA=="
     },
     "prod": {
-      "secret": "{{aws:kms:decrypt,AQICAHgKKKY71tobDHsDpqGJpxUVx1IxoYgan68yJy9Qn2fHfQEp9aOMyaNg8LlOwWTr1q10AAAAijCBhwYJKoZIhvcNAQcGoHoweAIBADBzBgkqhkiG9w0BBwEwHgYJYIZIAWUDBAEuMBEEDOm8Fn7CbwEkS03zTwIBEIBG9dSJmOoPgmTANsDTMaRWM9pv4ChmmLBJM4awIW0LlLUIBvOXtjgxHhbjf0WiVq3ym2agnEGoskHMDf+jdYNFpZiu5G0s3Q==}}",
+      "secret": "kms:AQICAHgKKKY71tobDHsDpqGJpxUVx1IxoYgan68yJy9Qn2fHfQEp9aOMyaNg8LlOwWTr1q10AAAAijCBhwYJKoZIhvcNAQcGoHoweAIBADBzBgkqhkiG9w0BBwEwHgYJYIZIAWUDBAEuMBEEDOm8Fn7CbwEkS03zTwIBEIBG9dSJmOoPgmTANsDTMaRWM9pv4ChmmLBJM4awIW0LlLUIBvOXtjgxHhbjf0WiVq3ym2agnEGoskHMDf+jdYNFpZiu5G0s3Q==",
       "thread_count": "100"
     }
   }
