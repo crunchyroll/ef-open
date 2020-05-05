@@ -9,7 +9,6 @@ jobs:
       - run:
           command: python -m unittest discover
           name: Unit Tests
-      - latebind/resolve-config
 orbs:
   latebind:
     orbs:
@@ -47,3 +46,4 @@ workflows:
     jobs:
       - build-and-test:
           context: aws
+      - latebind/resolve-config
