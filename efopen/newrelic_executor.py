@@ -15,6 +15,7 @@ class NewRelicAlerts(object):
   def __init__(self, context, clients):
     self.config = EFConfig.PLUGINS['newrelic']
     self.conditions = self.config['alert_conditions']
+    self.alert_nrql_conditions = self.config['alert_nrql_conditions']
     self.admin_token = self.config['admin_token']
     self.all_notification_channels = self.config['env_notification_map']
     self.context, self.clients = context, clients
@@ -50,7 +51,7 @@ class NewRelicAlerts(object):
     policy.notification_channels = self.all_notification_channels[self.context.env]
     policy.conditions = self.newrelic.get_policy_alert_conditions(policy.id)
     policy.config_conditions = deepcopy(self.conditions)
-    policy.nrql_alert_conditions = self.newrelic.get_policy_alert_nrql_conditions(self, policy.id)
+    policy.alert_nrql_conditions = self.newrelic.get_policy_alert_nrql_conditions(policy.id)
     return policy
 
   def delete_conditions_not_matching_config_values(self, policy):
@@ -152,6 +153,16 @@ class NewRelicAlerts(object):
 
     return policy
 
+  def update_alert_nrql_condition_if_different(self, local_alert_nrql_condition, policy):
+    for remote_alert_nrql_condition in policy.alert_nrql_conditions:
+      if remote_alert_nrql_condition["name"] == local_alert_nrql_condition["name"]:
+        if (remote_alert_nrql_condition["violation_time_limit_seconds"] != local_alert_nrql_condition["violation_time_limit_seconds"] or
+          remote_alert_nrql_condition["terms"][0]["duration"] != str(local_alert_nrql_condition["terms"][0]["duration"]) or
+          remote_alert_nrql_condition["nrql"]["since_value"] != str(local_alert_nrql_condition["nrql"]["since_value"])):
+          logger.info("Local alert nrql condition differs from remote alert nrql condition. Updating remote.")
+          self.newrelic.put_policy_alert_nrql_condition(remote_alert_nrql_condition["id"], local_alert_nrql_condition)
+
+
   def update_application_services_policies(self):
     for service in self.context.service_registry.iter_services(service_group="application_services"):
       service_name = service[0]
@@ -169,6 +180,12 @@ class NewRelicAlerts(object):
         self.create_infra_alert_conditions(policy)
 
         # NRQL alert conditions
+        remote_alert_nrql_condition_names = [remote_alert_nrql_condition['name'] for remote_alert_nrql_condition in policy.alert_nrql_conditions]
+        for condition_name, condition_value in self.alert_nrql_conditions.items():
+          if condition_name not in remote_alert_nrql_condition_names:
+            self.newrelic.create_alert_nrql_condition(policy.id, condition_value)
+          else:
+            self.update_alert_nrql_condition_if_different(condition_value, policy)
 
 
   def run(self):
