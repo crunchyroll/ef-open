@@ -15,8 +15,8 @@ class AlertPolicy(object):
     self.name = None
     self.notification_channels = None
     self.config_conditions = None
-    self.conditions = None
-    self.alert_nrql_conditions = None
+    self.remote_conditions = None
+    self.remote_alert_nrql_conditions = None
     self.symbols = None
     self.set_name()
     self.set_symbols()

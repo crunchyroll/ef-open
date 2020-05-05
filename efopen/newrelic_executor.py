@@ -15,7 +15,7 @@ class NewRelicAlerts(object):
   def __init__(self, context, clients):
     self.config = EFConfig.PLUGINS['newrelic']
     self.conditions = self.config['alert_conditions']
-    self.alert_nrql_conditions = self.config['alert_nrql_conditions']
+    self.local_alert_nrql_conditions = self.config['alert_nrql_conditions']
     self.admin_token = self.config['admin_token']
     self.all_notification_channels = self.config['env_notification_map']
     self.context, self.clients = context, clients
@@ -49,19 +49,19 @@ class NewRelicAlerts(object):
   def populate_alert_policy_values(self, policy):
     policy.id = next(alert['id'] for alert in self.newrelic.all_alert_policies if alert['name'] == policy.name)
     policy.notification_channels = self.all_notification_channels[self.context.env]
-    policy.conditions = self.newrelic.get_policy_alert_conditions(policy.id)
+    policy.remote_conditions = self.newrelic.get_policy_alert_conditions(policy.id)
     policy.config_conditions = deepcopy(self.conditions)
-    policy.alert_nrql_conditions = self.newrelic.get_policy_alert_nrql_conditions(policy.id)
+    policy.remote_alert_nrql_conditions = self.newrelic.get_policy_alert_nrql_conditions(policy.id)
 
   def delete_conditions_not_matching_config_values(self, policy):
     # Remove conditions with values that differ from config
-    for condition in policy.conditions:
+    for condition in policy.remote_conditions:
       if condition['name'] in policy.config_conditions:
         config_condition = policy.config_conditions[condition['name']]
         for k, v in config_condition.items():
           if condition[k] != v:
             self.newrelic.delete_policy_alert_condition(condition['id'])
-            policy.conditions = self.newrelic.get_policy_alert_conditions(policy.id)
+            policy.remote_conditions = self.newrelic.get_policy_alert_conditions(policy.id)
             logger.info("delete condition {} from policy {}. ".format(condition['name'], policy.name) + \
                         "current value differs from config")
             break
@@ -71,7 +71,7 @@ class NewRelicAlerts(object):
   def create_infra_alert_conditions(self, policy):
     # Create alert conditions for policies
     for key, value in policy.config_conditions.items():
-      if not any(condition['name'] == key for condition in policy.conditions):
+      if not any(condition['name'] == key for condition in policy.remote_conditions):
         self.newrelic.create_alert_condition(policy.config_conditions[key])
         logger.info("create condition {} for policy {}".format(key, policy.name))
 
@@ -155,7 +155,7 @@ class NewRelicAlerts(object):
     return policy
 
   def update_alert_nrql_condition_if_different(self, local_alert_nrql_condition, policy):
-    for remote_alert_nrql_condition in policy.alert_nrql_conditions:
+    for remote_alert_nrql_condition in policy.remote_alert_nrql_conditions:
       if remote_alert_nrql_condition["name"] == local_alert_nrql_condition["name"]:
         # Add fields that exist in the remote alert condition object but not in the local alert condition object.
         # This is done so that we can test equality.
@@ -193,8 +193,8 @@ class NewRelicAlerts(object):
         self.create_infra_alert_conditions(policy)
 
         # NRQL alert conditions
-        remote_alert_nrql_condition_names = [remote_alert_nrql_condition['name'] for remote_alert_nrql_condition in policy.alert_nrql_conditions]
-        for condition_name, condition_value in self.alert_nrql_conditions.items():
+        remote_alert_nrql_condition_names = [remote_alert_nrql_condition['name'] for remote_alert_nrql_condition in policy.remote_alert_nrql_conditions]
+        for condition_name, condition_value in self.local_alert_nrql_conditions.items():
           if condition_name not in remote_alert_nrql_condition_names:
             self.newrelic.create_alert_nrql_condition(policy.id, condition_value)
           else:
