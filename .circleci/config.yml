@@ -1,17 +1,35 @@
 version: 2.1
 
-
 jobs:
   build-and-test:
     docker:
-      - image: golang:1.14
+      - image: circleci/python:2.7
     steps:
       - checkout
+      # - run: pip install '.[test]'
+      # - run:
+      #     command: python -m unittest discover
+      #     name: Unit Tests
+  resolve-config:
+    docker:
+      - image: circleci/python:2.7
+    steps:
+      - aws-cli/install
+      - aws-cli/setup:
+        aws-access-key-id: AWS_ACCESS_KEY_ID_ELLATION
+        aws-region: AWS_DEFAULT_REGION
+        aws-secret-access-key: AWS_SECRET_ACCESS_KEY_ELLATION
       - run:
           command: |
-            curl https://ellation-cx-global-dist.s3-us-west-2.amazonaws.com/latebind/resolve-config -o resolve-config
+            aws s3 cp https://ellation-cx-global-dist.s3-us-west-2.amazonaws.com/latebind/resolve-config ./resolve-config
             chmod +x resolve-config
+
+# We will need the aws cli orb to download resolve-config
+orbs:
+  aws-cli: circleci/aws-cli@1.0.0
+
 workflows:
   main:
     jobs:
       - build-and-test
+        context: aws
