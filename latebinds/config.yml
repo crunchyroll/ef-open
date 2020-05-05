@@ -1,0 +1,19 @@
+api_server:
+  external:
+    port: 8001
+    protocol: http
+  internal:
+    port: 8000
+    protocol: http
+
+aws:
+  region: {{.REGION}}
+  queue_name:
+    core: {{.ENV}}-{{.aws_queue_name}}
+
+cache:
+  duration: {{.cache_duration}}
+
+database:
+  username: {{.db_username}}
+  password: {{.db_password}}
