@@ -1,0 +1,10 @@
+{
+  "dest": {
+    "path": "/etc/newrelic.ini",
+    "dir_perm": "755",
+    "file_perm": "644",
+    "user_group": "root:root"
+  },
+  "params": {
+  }
+}

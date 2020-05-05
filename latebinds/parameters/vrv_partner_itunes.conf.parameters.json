@@ -1,0 +1,15 @@
+{
+  "dest": {
+    "path": "/opt/flyway/conf/vrv_partner_itunes.conf",
+    "dir_perm": "755",
+    "file_perm": "644",
+    "user_group": "root:root"
+  },
+  "params": {
+    "default": {
+      "db_user": "testuser",
+      "db_password": "Password12345",
+      "db_name": "vrv_partner_itunes"
+    }
+  }
+}

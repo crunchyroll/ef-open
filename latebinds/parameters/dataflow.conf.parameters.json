@@ -1,0 +1,15 @@
+{
+  "dest": {
+    "path": "/opt/flyway/conf/dataflow.conf",
+    "dir_perm": "755",
+    "file_perm": "644",
+    "user_group": "root:root"
+  },
+  "params": {
+    "default": {
+      "db_user": "testuser",
+      "db_password": "Password12345",
+      "db_name": "dataflow"
+    }
+  }
+}
