@@ -24,12 +24,11 @@ jobs:
             aws s3 cp https://ellation-cx-global-dist.s3-us-west-2.amazonaws.com/latebind/resolve-config ./resolve-config
             chmod +x resolve-config
 
-# We will need the aws cli orb to download resolve-config
 orbs:
   aws-cli: circleci/aws-cli@1.0.0
 
 workflows:
   main:
     jobs:
-      - build-and-test
+      - build-and-test:
         context: aws
