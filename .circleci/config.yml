@@ -20,6 +20,7 @@ orbs:
           - image: circleci/python:2.7.0
     jobs:
       resolve-config:
+        executor: default
         steps:
           - aws-cli/install
           - aws-cli/setup:
