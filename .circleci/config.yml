@@ -46,4 +46,4 @@ workflows:
   main:
     jobs:
       - build-and-test:
-        context: aws
+          context: aws
