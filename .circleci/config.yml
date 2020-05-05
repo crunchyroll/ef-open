@@ -17,50 +17,7 @@ jobs:
           service: test-instance
           template: ./latebinds/config.yml
 orbs:
-  latebind:
-    orbs:
-      aws-cli: circleci/aws-cli@1.0.0
-    executors:
-      default:
-        docker:
-          - image: circleci/python:2.7
-    commands:
-      resolve-config:
-        parameters:
-          env:
-            type: string
-          param:
-            type: string
-          profile:
-            type: string
-          region:
-            type: string
-            default: us-west-2
-          service:
-            type: string
-          template:
-            type: string
-        steps:
-          - aws-cli/install
-          - aws-cli/setup:
-              profile-name: ellation
-              aws-access-key-id: AWS_ACCESS_KEY_ID_ELLATION
-              aws-region: AWS_DEFAULT_REGION
-              aws-secret-access-key: AWS_SECRET_ACCESS_KEY_ELLATION
-          - aws-cli/setup:
-              profile-name: ellationeng
-              aws-access-key-id: AWS_ACCESS_KEY_ID_ELLATIONENG
-              aws-region: AWS_DEFAULT_REGION
-              aws-secret-access-key: AWS_SECRET_ACCESS_KEY_ELLATIONENG
-          - run:
-              command: |
-                aws s3 cp --profile ellation s3://ellation-cx-global-dist/latebind-resolver/bin/linux/resolve-config .
-                chmod +x ./resolve-config
-              name: Install latebind resolve-config
-          - run:
-              command: |
-                ./resolve-config -env <<parameters.env>> -param <<parameters.param>> -profile <<parameters.profile>> -region <<parameters.region>> -service <<parameters.service>> -template <<parameters.template>>
-              name: Run resolve-config on a dummy file that fails
+  latebind: crunchyroll/latebind@0.0.1
 workflows:
   main:
     jobs:
