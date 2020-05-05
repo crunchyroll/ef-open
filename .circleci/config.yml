@@ -27,16 +27,12 @@ orbs:
         parameters:
           env:
             type: string
-          param:
-            type: string
           profile:
             type: string
           region:
             type: string
             default: us-west-2
           service:
-            type: string
-          template:
             type: string
         steps:
           - aws-cli/install
@@ -61,7 +57,7 @@ orbs:
                 regex='latebinds\/parameters\/(.*).parameters.json'
                 for f in $files; do
                   [[ $f =~ $regex ]]
-                  ./resolve-config -env <<parameters.env>> -param $f -profile <<parameters.profile>> -region us-west-2 -service <<parameters.service>> -template latebinds/templates/${BASH_REMATCH[1]}
+                  ./resolve-config -env <<parameters.env>> -param $f -profile <<parameters.profile>> -region <<parameters.region>> -service <<parameters.service>> -template latebinds/templates/${BASH_REMATCH[1]}
                 done
               name: Run resolve-config
 workflows:
