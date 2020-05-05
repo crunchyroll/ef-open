@@ -18,7 +18,7 @@ orbs:
       default:
         docker:
           - image: circleci/python:2.7
-    jobs:
+    commands:
       resolve-config:
         executor: default
         steps:
