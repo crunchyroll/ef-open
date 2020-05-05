@@ -1,32 +1,10 @@
 version: 2.1
 
-orbs:
-  latebind-orb:
-    executors:
-      golang:
-        docker:
-          - image: circleci/golang:1.14
-      python:
-        docker:
-          - image: circleci/python:2.7
-    commands:
-      install:
-        description: Install resolve-config
-        steps:
-          - run:
-              command: |
-                curl https://ellation-cx-global-dist.s3-us-west-2.amazonaws.com/latebind/resolve-config -o resolve-config
-                chmod +x resolve-config
-              name: Download resolve-config
-          - run:
-              command: |
-                ./resolve-config
-
 
 jobs:
   build-and-test:
     docker:
-      - image: circleci/golang:1.14
+      - image: golang:1.14
     steps:
       - checkout
       - run:
