@@ -6,10 +6,6 @@ jobs:
       - image: circleci/python:2.7
     steps:
       - checkout
-      # - run: pip install '.[test]'
-      # - run:
-      #     command: python -m unittest discover
-      #     name: Unit Tests
   resolve-config:
     docker:
       - image: circleci/python:2.7
