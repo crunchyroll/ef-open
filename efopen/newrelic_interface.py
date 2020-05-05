@@ -74,11 +74,11 @@ class NewRelic(object):
 
   def __init__(self, admin_token):
     self.admin_token = admin_token
-    self.auth_header =  {'X-Api-Key': self.admin_token, 'Content-Type': 'application/json'}
-    self.all_alerts = None
-    self.all_channels = None
-    self.refresh_all_alerts()
-    self.refresh_all_channels()
+    self.auth_header = {'X-Api-Key': self.admin_token, 'Content-Type': 'application/json'}
+    self.all_alert_policies = None
+    self.all_notification_channels = None
+    self.refresh_alert_policies()
+    self.refresh_notification_channels()
 
   def iterative_get(self, endpoint_url, response_key, params=None):
     params = params if params else {}
@@ -97,21 +97,21 @@ class NewRelic(object):
         break
     return response
 
-  def refresh_all_alerts(self):
-    self.all_alerts = self.iterative_get(
+  def refresh_alert_policies(self):
+    self.all_alert_policies = self.iterative_get(
       endpoint_url='https://api.newrelic.com/v2/alerts_policies.json',
       response_key='policies'
     )
 
-  def refresh_all_channels(self):
-    self.all_channels = self.iterative_get(
+  def refresh_notification_channels(self):
+    self.all_notification_channels = self.iterative_get(
       endpoint_url='https://api.newrelic.com/v2/alerts_channels.json',
       response_key='channels'
     )
 
   def alert_policy_exists(self, policy_name):
     """Check to see if an alert policy exists in NewRelic. Return True if so, False if not"""
-    if next((policy for policy in self.all_alerts if policy['name'] == policy_name), False):
+    if next((policy for policy in self.all_alert_policies if policy['name'] == policy_name), False):
       return True
 
   def create_alert_policy(self, policy_name):
@@ -123,7 +123,7 @@ class NewRelic(object):
       data=json.dumps(policy_data))
     create_policy.raise_for_status()
     policy_id = create_policy.json()['policy']['id']
-    self.refresh_all_alerts()
+    self.refresh_alert_policies()
     return policy_id
 
   def add_policy_channels(self, policy_id, channel_ids):
@@ -190,7 +190,7 @@ class NewRelic(object):
     put_condition = requests.put(
       url='https://api.newrelic.com/v2/alerts_nrql_conditions/{}.json'.format(condition_id),
       headers=self.auth_header,
-      data=json.dumps({"nrql_conditions": condition})
+      data=json.dumps({"nrql_condition": condition})
     )
     put_condition.raise_for_status()
     return

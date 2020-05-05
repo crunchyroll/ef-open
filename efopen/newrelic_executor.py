@@ -40,19 +40,18 @@ class NewRelicAlerts(object):
       condition_obj = convert_string(condition_obj)
     return condition_obj
 
-  def create_alert_policy(self, service_name):
-    policy = AlertPolicy(env=self.context.env, service=service_name)
-
-    # Create service alert policy if it doesn't already exist
+  def create_alert_policy(self, policy):
     if not self.newrelic.alert_policy_exists(policy.name):
       self.newrelic.create_alert_policy(policy.name)
       logger.info("create alert policy {}".format(policy.name))
-    policy.id = next(alert['id'] for alert in self.newrelic.all_alerts if alert['name'] == policy.name)
+    return policy
+
+  def populate_alert_policy_values(self, policy):
+    policy.id = next(alert['id'] for alert in self.newrelic.all_alert_policies if alert['name'] == policy.name)
     policy.notification_channels = self.all_notification_channels[self.context.env]
     policy.conditions = self.newrelic.get_policy_alert_conditions(policy.id)
     policy.config_conditions = deepcopy(self.conditions)
     policy.alert_nrql_conditions = self.newrelic.get_policy_alert_nrql_conditions(policy.id)
-    return policy
 
   def delete_conditions_not_matching_config_values(self, policy):
     # Remove conditions with values that differ from config
@@ -112,7 +111,7 @@ class NewRelicAlerts(object):
       'type': 'infra_metric',
     }
 
-    policy = self.create_alert_policy('cloudfront')
+    policy = self.populate_alert_policy_values('cloudfront')
     conditions = {}
     for id, alias in queue:
       conditions['cloudfront-{}-{}'.format(id, '4xxErrorRate')] = meta(
@@ -127,7 +126,7 @@ class NewRelicAlerts(object):
 
   def add_alert_policy_to_notification_channels(self, policy):
     # Add alert policy to notification channels if missing
-    for channel in self.newrelic.all_channels:
+    for channel in self.newrelic.all_notification_channels:
       if channel['name'] in policy.notification_channels and policy.id not in channel['links']['policy_ids']:
         self.newrelic.add_policy_channels(policy.id, [channel['id']])
         logger.info("add channel_ids {} to policy {}".format(policy.name, channel['id']))
@@ -137,7 +136,9 @@ class NewRelicAlerts(object):
     for key, value in policy.config_conditions.items():
       policy.config_conditions[key] = self.replace_symbols(value, policy.symbols)
 
-    return policy
+    # Replace symbols in config alert conditions
+    for key, value in policy.config_conditions.items():
+      policy.config_conditions[key] = self.replace_symbols(value, policy.symbols)
 
   def override_infra_alert_condition_values(self, policy, service_alert_overrides):
     # Update policy.config_conditions with overrides from service_registry
@@ -156,10 +157,14 @@ class NewRelicAlerts(object):
   def update_alert_nrql_condition_if_different(self, local_alert_nrql_condition, policy):
     for remote_alert_nrql_condition in policy.alert_nrql_conditions:
       if remote_alert_nrql_condition["name"] == local_alert_nrql_condition["name"]:
-        if (remote_alert_nrql_condition["violation_time_limit_seconds"] != local_alert_nrql_condition["violation_time_limit_seconds"] or
-          remote_alert_nrql_condition["terms"][0]["duration"] != str(local_alert_nrql_condition["terms"][0]["duration"]) or
-          remote_alert_nrql_condition["nrql"]["since_value"] != str(local_alert_nrql_condition["nrql"]["since_value"])):
+        # Add fields that exist in the remote alert condition object but not in the local alert condition object.
+        # This is done so that we can test equality.
+        local_alert_nrql_condition['id'] = remote_alert_nrql_condition['id']
+        local_alert_nrql_condition['type'] = remote_alert_nrql_condition['type']
+
+        if local_alert_nrql_condition != remote_alert_nrql_condition:
           logger.info("Local alert nrql condition differs from remote alert nrql condition. Updating remote.")
+          logger.debug("Local: {}\nRemote: {}".format(local_alert_nrql_condition, remote_alert_nrql_condition))
           self.newrelic.put_policy_alert_nrql_condition(remote_alert_nrql_condition["id"], local_alert_nrql_condition)
 
 
@@ -170,9 +175,17 @@ class NewRelicAlerts(object):
       service_alert_overrides = service[1]['alerts'] if "alerts" in service[1] else {}
 
       if self.context.env in service_environments:
-        policy = self.create_alert_policy(service_name)
+        policy = AlertPolicy(env=self.context.env, service=service_name)
+
+        # Create service alert policy if it doesn't already exist
+        if not self.newrelic.alert_policy_exists(policy.name):
+          self.newrelic.create_alert_policy(policy.name)
+          logger.info("create alert policy {}".format(policy.name))
+
+        # Update AlertPolicy object
+        self.populate_alert_policy_values(policy)
         self.add_alert_policy_to_notification_channels(policy)
-        policy = self.replace_symbols_in_condition(policy)
+        self.replace_symbols_in_condition(policy)
 
         # Infra alert conditions
         policy = self.override_infra_alert_condition_values(policy, service_alert_overrides)
