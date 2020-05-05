@@ -10,6 +10,12 @@ jobs:
           command: python -m unittest discover
           name: Unit Tests
       - latebind/resolve-config
+          env: staging
+          param: ./latebinds/config.yaml.parameters.json
+          profile: ellationeng
+          region: us-west-2
+          service: test-instance
+          template: ./latebinds/config.yml
 orbs:
   latebind:
     orbs:
@@ -20,6 +26,20 @@ orbs:
           - image: circleci/python:2.7
     commands:
       resolve-config:
+        parameters:
+          env:
+            type: string
+          param:
+            type: string
+          profile:
+            type: string
+          region:
+            type: string
+            default: us-west-2
+          service:
+            type: string
+          template:
+            type: string
         steps:
           - aws-cli/install
           - aws-cli/setup:
@@ -39,8 +59,8 @@ orbs:
               name: Install latebind resolve-config
           - run:
               command: |
-                ./resolve-config -env staging -param ./latebinds/config.yaml.parameters.json -profile ellationeng -region us-west-2 -service test-instance -template ./latebinds/config.yml
-              name: Run resolve-config on a dummy file
+                ./resolve-config -env <<parameters.env>> -param <<parameters.param>> -profile <<parameters.profile>> -region <<parameters.region>> -service <<parameters.service>> -template <<parameters.template>>
+              name: Run resolve-config on a dummy file that fails
 workflows:
   main:
     jobs:
