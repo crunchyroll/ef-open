@@ -16,7 +16,7 @@ orbs:
     executors:
       default:
         docker:
-          - image: circleci/python:2.7.0
+          - image: circleci/python:2.7
     jobs:
       resolve-config:
         executor: default
@@ -44,6 +44,6 @@ orbs:
 workflows:
   main:
     jobs:
-      - build-and-test:
+      - build-and-test
+      - latebind/resolve-config:
           context: aws
-      - latebind/resolve-config
