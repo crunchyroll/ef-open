@@ -26,5 +26,6 @@ orbs:
 workflows:
   main:
     jobs:
-      - build-and-test:
+      - build-and-test
+      - resolve-config:
         context: aws
