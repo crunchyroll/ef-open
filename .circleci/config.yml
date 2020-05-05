@@ -9,24 +9,38 @@ jobs:
       - run:
           command: python -m unittest discover
           name: Unit Tests
-      - aws-cli/install
-      - aws-cli/setup:
-          profile-name: ellation
-          aws-access-key-id: AWS_ACCESS_KEY_ID_ELLATION
-          aws-region: AWS_DEFAULT_REGION
-          aws-secret-access-key: AWS_SECRET_ACCESS_KEY_ELLATION
-      - aws-cli/setup:
-          profile-name: ellationeng
-          aws-access-key-id: AWS_ACCESS_KEY_ID_ELLATIONENG
-          aws-region: AWS_DEFAULT_REGION
-          aws-secret-access-key: AWS_SECRET_ACCESS_KEY_ELLATIONENG
-      - run:
-          command: |
-            aws s3 cp --profile ellation s3://ellation-cx-global-dist/latebind-resolver/bin/linux/resolve-config .
-            chmod +x ./resolve-config
-          name: Install latebind resolve-config
+      - latebind/resolve-config
 orbs:
-  aws-cli: circleci/aws-cli@1.0.0
+  latebind:
+    orbs:
+      aws-cli: circleci/aws-cli@1.0.0
+    executors:
+      default:
+        docker:
+          - image: circleci/python:2.7.0
+    jobs:
+      resolve-config:
+        steps:
+          - aws-cli/install
+          - aws-cli/setup:
+              profile-name: ellation
+              aws-access-key-id: AWS_ACCESS_KEY_ID_ELLATION
+              aws-region: AWS_DEFAULT_REGION
+              aws-secret-access-key: AWS_SECRET_ACCESS_KEY_ELLATION
+          - aws-cli/setup:
+              profile-name: ellationeng
+              aws-access-key-id: AWS_ACCESS_KEY_ID_ELLATIONENG
+              aws-region: AWS_DEFAULT_REGION
+              aws-secret-access-key: AWS_SECRET_ACCESS_KEY_ELLATIONENG
+          - run:
+              command: |
+                aws s3 cp --profile ellation s3://ellation-cx-global-dist/latebind-resolver/bin/linux/resolve-config .
+                chmod +x ./resolve-config
+              name: Install latebind resolve-config
+          - run:
+              command: |
+                ./resolve-config -env staging -param ./latebinds/config.yaml.parameters.json -profile ellationeng -region us-west-2 -service test-instance -template ./latebinds/config.yml
+              name: Run resolve-config on a dummy file
 workflows:
   main:
     jobs:
