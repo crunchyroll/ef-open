@@ -11,16 +11,18 @@ jobs:
           name: Unit Tests
       - aws-cli/install
       - aws-cli/setup:
+          profile-name: ellation
           aws-access-key-id: AWS_ACCESS_KEY_ID_ELLATION
           aws-region: AWS_DEFAULT_REGION
           aws-secret-access-key: AWS_SECRET_ACCESS_KEY_ELLATION
       - aws-cli/setup:
+          profile-name: ellationeng
           aws-access-key-id: AWS_ACCESS_KEY_ID_ELLATIONENG
           aws-region: AWS_DEFAULT_REGION
           aws-secret-access-key: AWS_SECRET_ACCESS_KEY_ELLATIONENG
       - run:
           command: |
-            aws s3 cp s3://ellation-cx-global-dist/latebind-resolver/bin/linux/resolve-config .
+            aws s3 cp --profile ellation s3://ellation-cx-global-dist/latebind-resolver/bin/linux/resolve-config .
             chmod +x ./resolve-config
           name: Install latebind resolve-config
 orbs:
