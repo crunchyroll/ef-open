@@ -12,59 +12,7 @@ jobs:
       - latebind/resolve-config:
           service: test-instance
 orbs:
-  latebind:
-    orbs:
-      aws-cli: circleci/aws-cli@1.0.0
-    executors:
-      default:
-        docker:
-          - image: circleci/python:2.7
-    commands:
-      resolve-config:
-        parameters:
-          service:
-            type: string
-        steps:
-          - aws-cli/install
-          - aws-cli/setup:
-              profile-name: ellation
-              aws-access-key-id: AWS_ACCESS_KEY_ID_ELLATION
-              aws-region: AWS_DEFAULT_REGION
-              aws-secret-access-key: AWS_SECRET_ACCESS_KEY_ELLATION
-          - aws-cli/setup:
-              profile-name: ellationeng
-              aws-access-key-id: AWS_ACCESS_KEY_ID_ELLATIONENG
-              aws-region: AWS_DEFAULT_REGION
-              aws-secret-access-key: AWS_SECRET_ACCESS_KEY_ELLATIONENG
-          - run:
-              command: |
-                aws s3 cp --profile ellation s3://ellation-cx-global-dist/latebind-resolver/bin/linux/resolve-config .
-                chmod +x ./resolve-config
-                aws s3 cp --profile ellation s3://ellation-cx-global-dist/latebind-resolver/bin/linux/validate-secrets .
-                chmod +x ./validate-secrets
-              name: Install latebind resolve-config and validate-secrets
-          - run:
-              command: |
-                files=`find latebinds -name "*.parameters.json"`
-                regex='latebinds\/parameters\/(.*).parameters.json'
-                envs=(proto0 staging prod)
-                export AWS_REGION=us-west-2
-                for f in $files; do
-                  [[ $f =~ $regex ]]
-                  for e in "${envs[@]}"; do
-                    if [ "$e" == "proto0" ] || [ "$e" == "staging" ]; then
-                      p='ellationeng'
-                    else
-                      p='ellation'
-                    fi
-                    echo "running: ./resolve-config --env $e --param $f --profile $p --region us-west-2 --service <<parameters.service>> --template latebinds/templates/${BASH_REMATCH[1]}"
-                    ./resolve-config --env $e --param $f --profile $p --region us-west-2 --service <<parameters.service>> --template latebinds/templates/${BASH_REMATCH[1]}
-                    echo "running: ./validate-secrets --environment $e --service <<parameters.service>> $f"
-                    export AWS_PROFILE=$p
-                    ./validate-secrets --environment $e --service <<parameters.service>> $f
-                  done
-                done
-              name: Run resolve-config
+  latebind: crunchyroll/latebind@0.0.3
 workflows:
   main:
     jobs:
