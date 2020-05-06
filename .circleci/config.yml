@@ -51,7 +51,7 @@ orbs:
                 export AWS_REGION=us-west-2
                 for f in $files; do
                   [[ $f =~ $regex ]]
-                  for e in $envs; do
+                  for e in "${envs[@]}"; do
                     if [ "$e" == "proto0" ] || [ "$e" == "staging" ]; then
                       p='ellationeng'
                     else
