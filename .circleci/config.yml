@@ -59,6 +59,7 @@ orbs:
                     echo "running: ./resolve-config --env $e --param $f --profile $p --region us-west-2 --service <<parameters.service>> --template latebinds/templates/${BASH_REMATCH[1]}"
                     ./resolve-config --env $e --param $f --profile $p --region us-west-2 --service <<parameters.service>> --template latebinds/templates/${BASH_REMATCH[1]}
                     echo "running: ./validate-secrets --environment $e --service <<parameters.service>> $f"
+                    export AWS_PROFILE=$p
                     ./validate-secrets --environment $e --service <<parameters.service>> $f
                   done
                 done
