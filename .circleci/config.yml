@@ -48,6 +48,7 @@ orbs:
                 files=`find latebinds -name "*.parameters.json"`
                 regex='latebinds\/parameters\/(.*).parameters.json'
                 envs=(proto0 staging prod)
+                export AWS_REGION=us-west-2
                 for f in $files; do
                   [[ $f =~ $regex ]]
                   for e in $envs; do
