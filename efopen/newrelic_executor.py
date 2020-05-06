@@ -137,8 +137,8 @@ class NewRelicAlerts(object):
       policy.config_conditions[key] = self.replace_symbols(value, policy.symbols)
 
     # Replace symbols in config alert conditions
-    for key, value in policy.config_conditions.items():
-      policy.config_conditions[key] = self.replace_symbols(value, policy.symbols)
+    for key, value in self.local_alert_nrql_conditions.items():
+      self.local_alert_nrql_conditions[key] = self.replace_symbols(value, policy.symbols)
 
   def override_infra_alert_condition_values(self, policy, service_alert_overrides):
     # Update policy.config_conditions with overrides from service_registry
