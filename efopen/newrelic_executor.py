@@ -14,10 +14,10 @@ class NewRelicAlerts(object):
 
   def __init__(self, context, clients):
     self.config = EFConfig.PLUGINS['newrelic']
-    self.conditions = self.config['alert_conditions']
-    self.local_alert_nrql_conditions = self.config['alert_nrql_conditions']
-    self.admin_token = self.config['admin_token']
-    self.all_notification_channels = self.config['env_notification_map']
+    self.conditions = self.config.get('alert_conditions', {})
+    self.local_alert_nrql_conditions = self.config.get('alert_nrql_conditions', {})
+    self.admin_token = self.config.get('admin_token', "")
+    self.all_notification_channels = self.config.get('env_notification_map', {})
     self.context, self.clients = context, clients
 
   @classmethod
