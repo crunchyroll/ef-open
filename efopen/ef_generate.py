@@ -395,7 +395,11 @@ def conditionally_attach_aws_managed_policies(role_name, sr_entry):
       except NameError:
         fail("Exception attaching managed policy '{}'. Could not retrieve policy arn.".format(policy_name))
 
-      CLIENTS["iam"].attach_role_policy(RoleName=role_name, PolicyArn=policy_arn)
+      try:
+        CLIENTS["iam"].attach_role_policy(RoleName=role_name, PolicyArn=policy_arn)
+      except:
+        fail("Exception putting policy: {} onto role: {}".format(policy_name, role_name), sys.exc_info())
+
       print_if_verbose("Attached managed policy '{}'".format(policy_name))
 
 
