@@ -355,7 +355,7 @@ def get_managed_policy_arn(policy_name):
   """
   try:
     arn = 'arn:aws:iam::aws:policy/{}'.format(policy_name)
-    CLIENTS["iam"].get_policy(PolicyArn='arn:aws:iam::aws:policy/{}'.format(policy_name))
+    CLIENTS["iam"].get_policy(PolicyArn=arn)
     return arn
   except CLIENTS["iam"].exceptions.NoSuchEntityException:
     pass
