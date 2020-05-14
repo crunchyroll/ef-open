@@ -344,6 +344,34 @@ def conditionally_create_profile(role_name, service_type):
   else:
     print_if_verbose("instance profile already contains role: {}".format(role_name))
 
+
+def get_managed_policy_arn(policy_name):
+  """
+  Retrieves the ARN of an AWS managed policy specified in the aws_managed_policies field of the service_registry.
+  Args:
+    policy_name: name of the policy whose ARN we want to retrieve
+  Raises:
+    NameError: no ARN could be found for the specified policy name
+  """
+  try:
+    arn = 'arn:aws:iam::aws:policy/{}'.format(policy_name)
+    CLIENTS["iam"].get_policy(PolicyArn=arn)
+    return arn
+  except CLIENTS["iam"].exceptions.NoSuchEntityException:
+    pass
+
+  role_types = ['job-function', 'service-role']
+  for type in role_types:
+    arn = 'arn:aws:iam::aws:policy/{}/{}'.format(type, policy_name)
+    try:
+      CLIENTS["iam"].get_policy(PolicyArn=arn)
+      return arn
+    except CLIENTS["iam"].exceptions.NoSuchEntityException:
+      continue
+
+  raise NameError
+
+
 def conditionally_attach_aws_managed_policies(role_name, sr_entry):
   """
   If 'aws_managed_policies' key lists the names of AWS managed policies to bind to the role,
@@ -363,14 +391,17 @@ def conditionally_attach_aws_managed_policies(role_name, sr_entry):
 
     if CONTEXT.commit:
       try:
-        CLIENTS["iam"].attach_role_policy(RoleName=role_name, PolicyArn='arn:aws:iam::aws:policy/' + policy_name)
-        print_if_verbose("Attached managed policy '{}'".format(policy_name))
-      except CLIENTS["iam"].exceptions.NoSuchEntityException:
-        CLIENTS["iam"].attach_role_policy(RoleName=role_name,
-                                          PolicyArn='arn:aws:iam::aws:policy/job-function/' + policy_name)
-        print_if_verbose("Attached managed job-function '{}'".format(policy_name))
+        policy_arn = get_managed_policy_arn(policy_name)
+      except NameError:
+        fail("Exception attaching managed policy '{}'. Could not retrieve policy arn.".format(policy_name))
+
+      try:
+        CLIENTS["iam"].attach_role_policy(RoleName=role_name, PolicyArn=policy_arn)
       except:
         fail("Exception putting policy: {} onto role: {}".format(policy_name, role_name), sys.exc_info())
+
+      print_if_verbose("Attached managed policy '{}'".format(policy_name))
+
 
 def conditionally_attach_customer_managed_policies(role_name, sr_entry):
   """
