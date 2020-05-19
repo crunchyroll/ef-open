@@ -189,7 +189,8 @@ def handle_args_and_set_context(args):
   context.decrypt = parsed_args["decrypt"]
   context.re_encrypt = parsed_args["re_encrypt"]
   context.length = parsed_args["length"]
-  context.plaintext = parsed_args["plaintext"]
+  # unescape any escapes that the shell might've added; e.g: \\n becomes \n
+  context.plaintext = parsed_args["plaintext"].decode("string_escape")
   context.secret_file = parsed_args["secret_file"]
   context.match = parsed_args["match"]
   if context.match or context.secret_file:
