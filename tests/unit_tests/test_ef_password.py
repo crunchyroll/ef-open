@@ -69,6 +69,21 @@ class TestEFPassword(unittest.TestCase):
     self.assertEqual(context.length, 10)
     self.assertEqual(context.plaintext, "test")
 
+  def test_args_plaintext_escape_sequences(self):
+    """
+    Test parsing args with all valid values and plaintext with escape sequences
+    When called from bash in this form `ef-password --plaintext "hello\nworld"`
+    the OS transforms the plaintext argument into `"hello\\nworld"`,
+    resulting in unexpected results on decryption
+    """
+    expected_plaintext = "hello\nworld"
+    args = [self.service, self.env, "--length", "10", "--plaintext", "hello\\nworld"]
+    context = ef_password.handle_args_and_set_context(args)
+    self.assertEqual(context.env, self.env)
+    self.assertEqual(context.service, self.service)
+    self.assertEqual(context.length, 10)
+    self.assertEqual(context.plaintext, expected_plaintext)
+
   def test_args_secret_file(self):
     """Test parsing args with all valid values (secret file)"""
     args = [self.service, self.env, "--length", "10", "--secret_file",
