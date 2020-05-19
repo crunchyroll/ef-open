@@ -173,10 +173,7 @@ def handle_args_and_set_context(args):
   context.service = parsed_args["service"]
   context.decrypt = parsed_args["decrypt"]
   context.length = parsed_args["length"]
-
-  # When called from bash in this form `ef-password --plaintext "hello\nworld"`
-  # the OS transforms the plaintext argument into `"hello\\nworld"`,
-  # resulting in unexpected results on decryption
+  # unescape any escapes that the shell might've added; e.g: \\n becomes \n
   context.plaintext = parsed_args["plaintext"].decode("string_escape")
   context.secret_file = parsed_args["secret_file"]
   context.match = parsed_args["match"]
