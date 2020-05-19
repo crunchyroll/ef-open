@@ -686,6 +686,7 @@ class TestEFUtilsKMS(unittest.TestCase):
     self.key_id = "AWS_key_id"
     self.mock_kms.encrypt.return_value = {"CiphertextBlob": self.bytes_return}
     self.mock_kms.decrypt.return_value = {"Plaintext": self.bytes_return, "KeyId": self.key_id}
+    self.mock_kms.re_encrypt.return_value = self.mock_kms.encrypt.return_value
 
   def test_kms_encrypt_call(self):
     """Validates basic kms call parameters"""
@@ -733,6 +734,25 @@ class TestEFUtilsKMS(unittest.TestCase):
     self.mock_kms.decrypt.side_effect = self.client_error
     with self.assertRaises(SystemExit):
       ef_utils.kms_decrypt(self.mock_kms, self.secret)
+
+  def test_kms_re_encrypt_call(self):
+    """Validates basic kms call parameters"""
+    b64_secret = base64.b64encode(self.secret)
+    ef_utils.kms_re_encrypt(self.mock_kms, self.service, self.env, b64_secret)
+    self.mock_kms.re_encrypt_called_once_with(CiphertextBlob=b64_secret)
+
+  def test_kms_re_encrypt_fails_without_b64_secret(self):
+    """Ensures that function fails when passed a non-base64 encoded secret"""
+    with self.assertRaises(SystemExit):
+      ef_utils.kms_re_encrypt(self.mock_kms, self.service, self.env, self.secret)
+
+  def test_kms_re_encrypt_fails_client_error(self):
+    """Ensures that function fails a generic ClientError despite any special handling for specific error codes"""
+    self.mock_kms.re_encrypt.side_effect = self.client_error
+    b64_secret = base64.b64encode(self.secret)
+    with self.assertRaises(SystemExit):
+      ef_utils.kms_re_encrypt(self.mock_kms, self.service, self.env, b64_secret)
+
 
   def test_get_kms_key_alias(self):
     """Test that kms_key_alias can get a key_alias by arn"""

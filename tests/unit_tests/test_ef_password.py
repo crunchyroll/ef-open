@@ -39,6 +39,7 @@ class TestEFPassword(unittest.TestCase):
     self.key_id = "AWS_KMS_KEY_ID"
     self.mock_kms.encrypt.return_value = {"CiphertextBlob": self.bytes_return, "KeyId": self.key_id}
     self.mock_kms.decrypt.return_value = {"Plaintext": self.bytes_return, "KeyId": self.key_id}
+    self.mock_kms.re_encrypt.return_value = { 'CiphertextBlob': self.bytes_return }
     self.mock_kms.list_aliases.return_value = {
       'Aliases': [ { 'AliasName': 'alias/staging-data-flow' } ]
     }
@@ -201,3 +202,19 @@ class TestEFPassword(unittest.TestCase):
     mock_dump.assert_called_once_with({'params': {'test': {'password': '{{aws:kms:decrypt,Y2lwaGVyX2Jsb2I=}}'}}},
                                       handle, indent=2, separators=(',', ': '))
     handle.write.assert_called_with('\n')
+
+  @patch('ef_password.generate_secret')
+  @patch('ef_utils.create_aws_clients')
+  @patch('ef_password.handle_args_and_set_context')
+  def test_main_decrypt(self, mock_context, mock_create_aws, mock_gen):
+    """Test valid main() call with service, env, and --decrypt.
+    Ensure decrypt is called with the correct parameters"""
+    context = ef_password.EFPWContext()
+    context.env, context.service, context.re_encrypt = self.env, self.service, base64.b64encode(self.secret)
+    mock_context.return_value = context
+    mock_create_aws.return_value = {"kms": self.mock_kms}
+    ef_password.main()
+    mock_gen.assert_not_called()
+    self.mock_kms.encrypt.assert_not_called()
+    expected_destination_key_id = "alias/{}-{}".format(context.env, context.service)
+    self.mock_kms.re_encrypt.assert_called_once_with(CiphertextBlob=self.secret, DestinationKeyId=expected_destination_key_id)

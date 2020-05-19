@@ -17,6 +17,7 @@ class EFPWContext(EFContext):
   def __init__(self):
     super(EFPWContext, self).__init__()
     self._decrypt = None
+    self._re_encrypt = None
     self._length = 32
     self._plaintext = None
     self._secret_file = None
@@ -32,6 +33,17 @@ class EFPWContext(EFContext):
     if type(value) is not str:
       raise TypeError("decrypt value must be str")
     self._decrypt = value
+
+  @property
+  def re_encrypt(self):
+    """String value if the tool should re_encrypt rather than generating a new encrypted secret"""
+    return self._re_encrypt
+
+  @re_encrypt.setter
+  def re_encrypt(self, value):
+    if type(value) is not str:
+      raise TypeError("re_encrypt value must be str")
+    self._re_encrypt = value
 
   @property
   def length(self):
@@ -160,18 +172,22 @@ def handle_args_and_set_context(args):
   parser.add_argument("env", help=", ".join(EFConfig.ENV_LIST))
   group = parser.add_mutually_exclusive_group()
   group.add_argument("--decrypt", help="encrypted string to be decrypted", default="")
+  group.add_argument("--re-encrypt", help="encrypted string to be re encrypted for a new service", default="")
   group.add_argument("--plaintext", help="secret to be encrypted rather than a randomly generated one", default="")
   group.add_argument("--secret_file", help="json file containing secrets to be encrypted", default="")
   parser.add_argument("--match", help="used in conjunction with --secret_file to match against keys to be encrypted", default="")
   parser.add_argument("--length", help="length of generated password (default 32)", default=32)
   parsed_args = vars(parser.parse_args(args))
   context = EFPWContext()
+
   try:
     context.env = parsed_args["env"]
   except ValueError as e:
     ef_utils.fail("Error in env: {}".format(e))
+
   context.service = parsed_args["service"]
   context.decrypt = parsed_args["decrypt"]
+  context.re_encrypt = parsed_args["re_encrypt"]
   context.length = parsed_args["length"]
   context.plaintext = parsed_args["plaintext"]
   context.secret_file = parsed_args["secret_file"]
@@ -203,6 +219,15 @@ def main():
     decrypted = ef_utils.kms_decrypt(kms_client=clients['kms'], secret=context.decrypt)
     key_aliases = ef_utils.kms_key_alias(clients['kms'], decrypted.key_id)
     print("Decrypted Secret: {}; Key: {}".format(decrypted.plaintext, ', '.join(key_aliases)))
+    return
+
+  if context.re_encrypt:
+    encrypted_password = ef_utils.kms_re_encrypt(
+      kms_client=clients['kms'],
+      service=context.service,
+      env=context.env,
+      secret=context.re_encrypt)
+    print(format_secret(encrypted_password))
     return
 
   if context.plaintext:
