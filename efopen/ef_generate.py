@@ -53,6 +53,8 @@ AWS_RESOLVER = None
 SUPPORTED_SERVICE_TYPES = [
   "aws_cloudtrail",
   "aws_ec2",
+  "aws_ecs",
+  "aws_ecs_http",
   "aws_fixture",
   "aws_lambda",
   "aws_role",
@@ -74,14 +76,18 @@ GLOBAL_SERVICE_TYPES = [
 SERVICE_TYPE_ROLE = {
   "aws_cloudtrail": "cloudtrail.amazonaws.com",
   "aws_ec2": "ec2.amazonaws.com",
+  "aws_ecs": ["ecs.amazonaws.com", "ecs-tasks.amazonaws.com"],
+  "aws_ecs_http": ["ecs.amazonaws.com", "ecs-tasks.amazonaws.com"],
   "aws_lambda": "lambda.amazonaws.com",
   "aws_role": None, # Bare role requires a custom assume role policy ("assume_role_policy": "name_of_policy")
-  "http_service": ["ec2.amazonaws.com", "ecs.amazonaws.com", "ecs-tasks.amazonaws.com"]
+  "http_service": "ec2.amazonaws.com"
 }
 
 # these service types get Security Groups
 SG_SERVICE_TYPES = [
   "aws_ec2",
+  "aws_ecs",
+  "aws_ecs_http",
   "aws_lambda",
   "aws_security_group",
   "http_service"
@@ -90,12 +96,16 @@ SG_SERVICE_TYPES = [
 # these service types get instance profiles (they have EC2 instances)
 INSTANCE_PROFILE_SERVICE_TYPES = [
   "aws_ec2",
+  "aws_ecs",
+  "aws_ecs_http",
   "http_service"
 ]
 
 # these service types get KMS Keys
 KMS_SERVICE_TYPES = [
   "aws_ec2",
+  "aws_ecs",
+  "aws_ecs_http",
   "aws_fixture",
   "aws_lambda",
   "http_service"
@@ -212,18 +222,19 @@ def conditionally_create_security_groups(env, service_name, service_type):
   Args:
     env: the environment the SG will be created in
     service_name: name of the service in service registry
-    service_type: service registry service type: 'aws_ec2', 'aws_lambda', 'aws_security_group', or 'http_service'
+    service_type: service registry service type: 'aws_ec2', 'aws_ecs', 'aws_ecs_http',
+                                 'aws_lambda', 'aws_security_group', or 'http_service'
   """
   if service_type not in SG_SERVICE_TYPES:
     print_if_verbose("not eligible for security group(s); service type: {}".format(service_type))
     return
 
   target_name = "{}-{}".format(env, service_name)
-  if service_type == "aws_ec2":
+  if (service_type == "aws_ec2") or (service_name == "aws_ecs"):
     sg_names = ["{}-ec2".format(target_name)]
   elif service_type == "aws_lambda":
     sg_names = ["{}-lambda".format(target_name)]
-  elif service_type == "http_service":
+  elif (service_type == "http_service") or (service_name == "aws_ecs_http"):
     sg_names = [
       "{}-ec2".format(target_name),
       "{}-elb".format(target_name)
@@ -465,7 +476,8 @@ def conditionally_create_kms_key(role_name, service_type):
   Create KMS Master Key for encryption/decryption of sensitive values in cf templates and latebind configs
   Args:
       role_name: name of the role that kms key is being created for; it will be given decrypt privileges.
-      service_type: service registry service type: 'aws_ec2', 'aws_fixture', 'aws_lambda', or 'http_service'
+      service_type: service registry service type: 'aws_ec2', 'aws_ecs', 'aws_ecs_http', 'aws_fixture',
+                                                   'aws_lambda', or 'http_service'
   """
   if service_type not in KMS_SERVICE_TYPES:
     print_if_verbose("not eligible for kms; service_type: {} is not valid for kms".format(service_type))
