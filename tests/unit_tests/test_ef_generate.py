@@ -46,6 +46,9 @@ class TestEFGenerate(unittest.TestCase):
     self.mock_kms = Mock(name="mocked kms client")
     self.mock_kms.create_key.return_value = {"KeyMetadata": {"KeyId": "1234"}}
     self.mock_kms.describe_key.side_effect = self.not_found_client_error
+    # This is literally what the official documentation states is the response, a bunch of ... as a placeholder
+    self.mock_kms.enable_key_rotation.return_value = {'ResponseMetadata': {'...': '...'}
+}
     ef_generate.CONTEXT = EFContext()
     ef_generate.CONTEXT.commit = True
     ef_generate.CONTEXT.account_id = "1234"
@@ -109,6 +112,7 @@ class TestEFGenerate(unittest.TestCase):
       AliasName='alias/{}'.format(self.service_name),
       TargetKeyId='1234'
     )
+    self.mock_kms.enable_key_rotation.assert_called()
 
   def test_create_kms_key_subservice(self):
     """
@@ -123,17 +127,19 @@ class TestEFGenerate(unittest.TestCase):
       AliasName='alias/{}'.format(self.service_name + "_subservice"),
       TargetKeyId='1234'
     )
+    self.mock_kms.enable_key_rotation.assert_called()
 
   def test_kms_key_already_exists(self):
     """
     Check that when an existing key is found the create key/alias methods are not called.
     """
     self.mock_kms.describe_key.side_effect = None
-    self.mock_kms.describe_key.return_value = Mock()
+    self.mock_kms.describe_key.return_value = {"KeyMetadata": {"KeyId": "1234"}}
     ef_generate.conditionally_create_kms_key(self.service_name, self.service_type)
 
     self.mock_kms.create_key.assert_not_called()
     self.mock_kms.create_alias.assert_not_called()
+    self.mock_kms.enable_key_rotation.assert_called()
 
   def test_kms_service_type_fixture(self):
     """
@@ -147,6 +153,7 @@ class TestEFGenerate(unittest.TestCase):
       AliasName='alias/{}'.format(self.service_name),
       TargetKeyId='1234'
     )
+    self.mock_kms.enable_key_rotation.assert_called()
 
   def test_not_kms_service_type(self):
     """
