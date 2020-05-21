@@ -230,13 +230,20 @@ def conditionally_create_security_groups(env, service_name, service_type):
     return
 
   target_name = "{}-{}".format(env, service_name)
-  if (service_type == "aws_ec2") or (service_name == "aws_ecs"):
+  if service_type == "aws_ec2":
     sg_names = ["{}-ec2".format(target_name)]
+  elif service_type == "aws_ecs":
+    sg_names = ["{}-ecs".format(target_name)]
   elif service_type == "aws_lambda":
     sg_names = ["{}-lambda".format(target_name)]
-  elif (service_type == "http_service") or (service_name == "aws_ecs_http"):
+  elif service_type == "http_service":
     sg_names = [
       "{}-ec2".format(target_name),
+      "{}-elb".format(target_name)
+    ]
+  elif service_type == "aws_ecs_http":
+    sg_names = [
+      "{}-ecs".format(target_name),
       "{}-elb".format(target_name)
     ]
   elif service_type == "aws_security_group":
