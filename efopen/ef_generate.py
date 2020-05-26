@@ -565,7 +565,7 @@ def conditionally_create_kms_key(role_name, service_type):
       create_key_failures = 0
       while create_key_failures <= 5:
         try:
-          new_kms_key = CLIENTS["kms"].create_key(
+          kms_key = CLIENTS["kms"].create_key(
             Policy=json.dumps(kms_key_policy, indent=4),
             Description='Master Key for {}'.format(role_name)
           )
@@ -584,12 +584,15 @@ def conditionally_create_kms_key(role_name, service_type):
       try:
         CLIENTS["kms"].create_alias(
           AliasName='alias/{}'.format(key_alias),
-          TargetKeyId=new_kms_key['KeyMetadata']['KeyId']
+          TargetKeyId=kms_key['KeyMetadata']['KeyId']
         )
       except ClientError as error:
         fail("Exception creating alias for kms key: {} {}".format(role_name, error))
   else:
     print_if_verbose("KMS key already exists: {}".format(key_alias))
+
+  # Enable KMS key rotation
+  CLIENTS["kms"].enable_key_rotation(KeyId=kms_key["KeyMetadata"]["KeyId"])
 
 
 def create_newrelic_alerts():

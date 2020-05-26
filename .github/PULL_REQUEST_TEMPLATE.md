@@ -1,8 +1,4 @@
-# Ready State and Ticket
-> Valid states are:
-> Ready - This PR is ready to be reviewed.
-> Not Ready - Please provide an explanation below.
-**Ready**
+# Ticket
 [OPS-XXXXX](https://ellation.atlassian.net/browse/OPS-XXXXX)
 
 # Details
