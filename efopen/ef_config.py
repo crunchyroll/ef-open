@@ -102,7 +102,7 @@ class EFConfig(object):
       },
       "image-tag": {
         "allow_latest": True,
-        "allowed_types": ["http_service"]
+        "allowed_types": ["aws_ecs", "aws_ecs_http"]
       },
       "config": {},
       "dist-hash": {
