@@ -706,7 +706,8 @@ def main():
     conditionally_inline_policies(target_name, sr_entry)
 
   # Create newrelic alerts for all "application_services" in the service registry
-  create_newrelic_alerts()
+  if "newrelic" in EFConfig.PLUGINS:
+    create_newrelic_alerts()
 
   print("Exit: success")
 
