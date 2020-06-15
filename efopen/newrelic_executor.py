@@ -112,7 +112,15 @@ class NewRelicAlerts(object):
       'type': 'infra_metric',
     }
 
-    policy = self.populate_alert_policy_values('cloudfront')
+    policy = AlertPolicy(env=self.context.env, service='cloudfront')
+
+    # Create cloudfront alert policy if it doesn't already exist
+    if not self.newrelic.alert_policy_exists(policy.name):
+      self.newrelic.create_alert_policy(policy.name)
+      logger.info("create alert policy {}".format(policy.name))
+
+    self.populate_alert_policy_values(policy)
+
     conditions = {}
     for id, alias in queue:
       conditions['cloudfront-{}-{}'.format(id, '4xxErrorRate')] = meta(
@@ -122,6 +130,7 @@ class NewRelicAlerts(object):
 
     policy.config_conditions = deepcopy(conditions)
 
+    # Infra alert conditions
     policy = self.delete_conditions_not_matching_config_values(policy)
     self.create_infra_alert_conditions(policy)
 
