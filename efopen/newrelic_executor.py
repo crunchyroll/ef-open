@@ -217,6 +217,6 @@ class NewRelicAlerts(object):
       self.newrelic = NewRelic(self.admin_token)
       self.update_application_services_policies()
 
-      # Fix the cloudfront code
+      # TODO: Fix the cloudfront code
       # if self.context.env in ["prod"]:
       #  self.update_cloudfront_policy()
