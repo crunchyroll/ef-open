@@ -95,6 +95,15 @@ class NewRelic(object):
       try:
         endpoint_url = r.links['next']['url']
       except KeyError:
+        # TODO - uncomment this when working on cloudfront feature, the response has the links inside the content String
+        # and not a separate field as expected above
+        # Calls to the cloudfront alert policies for some reason have the links and next inside the content
+        # instead of the links field in the dictionary
+        # try:
+        #   json_response = json.loads(r.content)
+        #   endpoint_url = json_response['links']['next']
+        # except KeyError:
+        #   break
         break
     return response
 

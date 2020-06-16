@@ -63,7 +63,7 @@ class NewRelicAlerts(object):
           if condition[k] != v:
             self.newrelic.delete_policy_alert_condition(condition['id'])
             policy.remote_conditions = self.newrelic.get_policy_alert_conditions(policy.id)
-            logger.info("delete condition {} from policy {}. ".format(condition['name'], policy.name) + \
+            logger.info("delete condition {} from policy {}. ".format(condition['name'], policy.name) +
                         "current value differs from config")
             break
 
@@ -112,16 +112,25 @@ class NewRelicAlerts(object):
       'type': 'infra_metric',
     }
 
-    policy = self.populate_alert_policy_values('cloudfront')
+    policy = AlertPolicy(env=self.context.env, service='cloudfront')
+
+    # Create cloudfront alert policy if it doesn't already exist
+    if not self.newrelic.alert_policy_exists(policy.name):
+      self.newrelic.create_alert_policy(policy.name)
+      logger.info("create alert policy {}".format(policy.name))
+
+    self.populate_alert_policy_values(policy)
+
     conditions = {}
     for id, alias in queue:
-      conditions['cloudfront-{}-{}'.format(id, '4xxErrorRate')] = meta(
+      conditions['4xx Average {}'.format(alias)] = meta(
         '4xxErrorRate', 10, id, '4xx Average {}'.format(alias), policy.id)
-      conditions['cloudfront-{}-{}'.format(id, '5xxErrorRate')] = meta(
+      conditions['5xx Average {}'.format(alias)] = meta(
         '5xxErrorRate', 5, id, '5xx Average {}'.format(alias), policy.id)
 
     policy.config_conditions = deepcopy(conditions)
 
+    # Infra alert conditions
     policy = self.delete_conditions_not_matching_config_values(policy)
     self.create_infra_alert_conditions(policy)
 
@@ -208,5 +217,6 @@ class NewRelicAlerts(object):
       self.newrelic = NewRelic(self.admin_token)
       self.update_application_services_policies()
 
-      if self.context.env in ["prod"]:
-        self.update_cloudfront_policy()
+      # TODO: Fix the cloudfront code
+      # if self.context.env in ["prod"]:
+      #  self.update_cloudfront_policy()
