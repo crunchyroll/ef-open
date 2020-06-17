@@ -611,7 +611,11 @@ def conditionally_create_kms_key(role_name, service_type):
     print_if_verbose("KMS key already exists: {}".format(key_alias))
 
   # Enable KMS key rotation
-  CLIENTS["kms"].enable_key_rotation(KeyId=kms_key["KeyMetadata"]["KeyId"])
+  if CONTEXT.commit:
+    try:
+      CLIENTS["kms"].enable_key_rotation(KeyId=kms_key["KeyMetadata"]["KeyId"])
+    except ClientError as error:
+      fail("Error in enabling key rotation: {} {}".format(role_name, error))
 
 
 def create_newrelic_alerts():
