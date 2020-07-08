@@ -379,65 +379,6 @@ class TestEFUtils(unittest.TestCase):
       ef_utils.http_get_instance_role()
     self.assertIn("Error looking up metadata:iam/info:", str(exception.exception))
 
-  @patch('ef_utils.http_get_metadata')
-  def test_get_instance_aws_context(self, mock_http_get_metadata):
-    """
-    Tests get_instance_aws_context to see if it produces a dict object with all the
-    data supplied in the metadata.
-
-    Args:
-      mock_http_get_metadata: MagicMock, returns valid responses in the order its called
-
-    Returns:
-      None
-
-    Raises:
-      AssertionError if any of the assert checks fail
-    """
-    mock_http_get_metadata.side_effect = ["us-west-2a", "i-00001111f"]
-    mock_ec2_client = Mock(name="mock-ec2-client")
-    mock_ec2_client.describe_instances.return_value = \
-      {
-        "Reservations": [
-          {
-            "OwnerId": "4444",
-            "Instances": [
-              {
-                "IamInstanceProfile": {
-                  "Arn": "arn:aws:iam::1234:instance-profile/alpha0-server-ftp"
-                }
-              }
-            ]
-          }
-        ]
-      }
-    result = ef_utils.get_instance_aws_context(mock_ec2_client)
-    self.assertEquals(result["account"], "4444")
-    self.assertEquals(result["instance_id"], "i-00001111f")
-    self.assertEquals(result["region"], "us-west-2")
-    self.assertEquals(result["role"], "alpha0-server-ftp")
-    self.assertEquals(result["service"], "server-ftp")
-
-  @patch('ef_utils.http_get_metadata')
-  def test_get_instance_aws_context_metadata_exception(self, mock_http_get_metadata):
-    """
-    Tests get_instance_aws_context to see if it throws an exception by giving it invalid metadata
-
-    Args:
-      mock_http_get_metadata: MagicMock, throws an IOError exception
-
-    Returns:
-      None
-
-    Raises:
-      AssertionError if any of the assert checks fail
-    """
-    mock_http_get_metadata.side_effect = IOError("No data")
-    mock_ec2_client = Mock(name="mock-ec2-client")
-    with self.assertRaises(IOError) as exception:
-      ef_utils.get_instance_aws_context(mock_ec2_client)
-    self.assertIn("Error looking up metadata:availability-zone or instance-id:", str(exception.exception))
-
   @patch('boto3.Session')
   def test_create_aws_clients(self, mock_session_constructor):
     """
