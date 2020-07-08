@@ -278,18 +278,11 @@ class EFTemplateResolver(object):
     # self-configuring EC2
     elif (not target_other) and (not lambda_context):
       self.resolved["INSTANCE_ID"] = get_metadata_or_fail('instance-id')
-      try:
-        instance_desc = EFTemplateResolver.__CLIENTS["ec2"].describe_instances(InstanceIds=[self.resolved["INSTANCE_ID"]])
-      except:
-        fail("Exception in describe_instances: ", sys.exc_info())
-      self.resolved["ACCOUNT"] = instance_desc["Reservations"][0]["OwnerId"]
-      arn = instance_desc["Reservations"][0]["Instances"][0]["IamInstanceProfile"]["Arn"]
-      self.resolved["ROLE"] = arn.split(":")[5].split("/")[1]
-      env = re.search("^({})-".format(EFConfig.VALID_ENV_REGEX), self.resolved["ROLE"])
-      if not env:
-        fail("Did not find environment in role name")
-      self.resolved["ENV"] = env.group(1)
-      self.resolved["SERVICE"] = "-".join(self.resolved["ROLE"].split("-")[1:])
+      profile_arn = str(json.loads(http_get_metadata('iam/info'))["InstanceProfileArn"])
+      self.resolved["ACCOUNT"] = profile_arn.split(":")[4]
+      self.resolved["ROLE"] = profile_arn.split("/")[-1]
+      self.resolved["ENV"] = self.resolved["ROLE"].split("-")[0]
+      self.resolved["SERVICE"] = "-".join(profile_arn.split("-")[1:])
 
     # target is "other"
     else:
