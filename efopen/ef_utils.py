@@ -351,27 +351,3 @@ def get_autoscaling_group_properties(asg_client, env, service):
       return response["AutoScalingGroups"]
   except ClientError as error:
     raise RuntimeError("Error in finding autoscaling group {} {}".format(env, service), error)
-
-def get_instance_aws_context(ec2_client): # marked, not used
-  """
-  Returns: a dictionary of aws context
-    dictionary will contain these entries:
-    region, instance_id, account, role, env, env_short, service
-  Raises: IOError if couldn't read metadata or lookup attempt failed
-  """
-  result = {}
-  try:
-    result["region"] = http_get_metadata("placement/availability-zone/")
-    result["region"] = result["region"][:-1]
-    result["instance_id"] = http_get_metadata('instance-id')
-  except IOError as error:
-    raise IOError("Error looking up metadata:availability-zone or instance-id: " + repr(error))
-  try:
-    instance_desc = ec2_client.describe_instances(InstanceIds=[result["instance_id"]])
-  except Exception as error:
-    raise IOError("Error calling describe_instances: " + repr(error))
-  result["account"] = instance_desc["Reservations"][0]["OwnerId"]
-  arn = instance_desc["Reservations"][0]["Instances"][0]["IamInstanceProfile"]["Arn"]
-  result["role"] = arn.split(":")[5].split("/")[1]
-  result["service"] = "-".join(result["role"].split("-")[1:])
-  return result
