@@ -131,7 +131,6 @@ class NewRelicAlerts(object):
         'error5xxErrorRate', 5, id, '5xx Average {}'.format(alias), policy.id)
 
     policy.config_conditions = deepcopy(conditions)
-
     # Infra alert conditions
     policy = self.delete_conditions_not_matching_config_values(policy)
     self.create_infra_alert_conditions(policy)
@@ -219,6 +218,5 @@ class NewRelicAlerts(object):
       self.newrelic = NewRelic(self.admin_token)
       self.update_application_services_policies()
 
-      # TODO: Fix the cloudfront code
-      # if self.context.env in ["prod"]:
-      #  self.update_cloudfront_policy()
+      if self.context.env in ["prod"]:
+        self.update_cloudfront_policy()
