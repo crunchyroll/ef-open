@@ -124,9 +124,9 @@ class NewRelicAlerts(object):
     conditions = {}
     for id, alias in queue:
       conditions['4xx Average {}'.format(alias)] = meta(
-        '4xxErrorRate', 10, id, '4xx Average {}'.format(alias), policy.id)
+        'error4xxErrorRate', 10, id, '4xx Average {}'.format(alias), policy.id)
       conditions['5xx Average {}'.format(alias)] = meta(
-        '5xxErrorRate', 5, id, '5xx Average {}'.format(alias), policy.id)
+        'error5xxErrorRate', 5, id, '5xx Average {}'.format(alias), policy.id)
 
     policy.config_conditions = deepcopy(conditions)
 
