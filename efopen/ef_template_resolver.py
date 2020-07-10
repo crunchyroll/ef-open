@@ -282,7 +282,7 @@ class EFTemplateResolver(object):
       self.resolved["ACCOUNT"] = profile_arn.split(":")[4]
       self.resolved["ROLE"] = profile_arn.split("/")[-1]
       self.resolved["ENV"] = self.resolved["ROLE"].split("-")[0]
-      self.resolved["SERVICE"] = "-".join(profile_arn.split("-")[1:])
+      self.resolved["SERVICE"] = "-".join(self.resolved["ROLE"].split("-")[1:])
 
     # target is "other"
     else:
