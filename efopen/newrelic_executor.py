@@ -122,6 +122,7 @@ class NewRelicAlerts(object):
       logger.info("create alert policy {}".format(policy.name))
 
     self.populate_alert_policy_values(policy)
+    self.add_alert_policy_to_notification_channels(policy)
 
     conditions = {}
     for id, alias in queue:
