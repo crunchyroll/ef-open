@@ -389,7 +389,7 @@ class EFTemplateResolver(object):
       result = self.parameters[self.resolved["ENV_FULL"]][symbol]
     return result
 
-  def render(self):
+  def render(self, skip_symbols={}):
     """
     Find {{}} tokens; resolve then replace them as described elsewhere
     Resolution is multi-pass: tokens may be nested to form parts of other tokens.
@@ -413,8 +413,12 @@ class EFTemplateResolver(object):
       # resolve and replace symbols
       for symbol in template_symbols:
         resolved_symbol = None
+
+        # Don't resolve symbols that are provided as skippable
+        if symbol.split(',')[0] in skip_symbols:
+          continue
         # Lookups in AWS, only if we have an EFAwsResolver
-        if symbol[:4] == "aws:" and EFTemplateResolver.__AWSR:
+        elif symbol[:4] == "aws:" and EFTemplateResolver.__AWSR:
           resolved_symbol = EFTemplateResolver.__AWSR.lookup(symbol[4:])
         # Lookups in credentials
         elif symbol[:12] == "credentials:":

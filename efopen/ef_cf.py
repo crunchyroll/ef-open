@@ -123,6 +123,7 @@ def handle_args_and_set_context(args):
                       type=int, default=False)
   parser.add_argument("--poll", help="Poll Cloudformation to check status of stack creation/updates",
                       action="store_true", default=False)
+  parser.add_argument("--skip_symbols", help="Skip resolving the provided symbols", nargs='+')
   parsed_args = vars(parser.parse_args(args))
   context = EFCFContext()
   try:
@@ -136,19 +137,20 @@ def handle_args_and_set_context(args):
   context.lint = parsed_args["lint"]
   context.percent = parsed_args["percent"]
   context.poll_status = parsed_args["poll"]
+  context.skip_symbols = parsed_args["skip_symbols"]
   context.verbose = parsed_args["verbose"]
   # Set up service registry and policy template path which depends on it
   context.service_registry = EFServiceRegistry(parsed_args["sr"])
   return context
 
-def resolve_template(template, profile, env, region, service, verbose):
+def resolve_template(template, profile, env, region, service, skip_symbols, verbose):
   # resolve {{SYMBOLS}} in the passed template file
   os.path.isfile(template) or fail("Not a file: {}".format(template))
   resolver = EFTemplateResolver(profile=profile, target_other=True, env=env,
                                 region=region, service=service, verbose=verbose)
   with open(template) as template_file:
     resolver.load(template_file)
-    resolver.render()
+    resolver.render(skip_symbols=skip_symbols)
 
   if verbose:
     print(resolver.template)
@@ -287,6 +289,7 @@ def main():
     env=context.env,
     region=region,
     service=service_name,
+    skip_symbols=context.skip_symbols,
     verbose=context.verbose
   )
 
@@ -310,6 +313,7 @@ def main():
       env=context.env,
       region=region,
       service=service_name,
+      skip_symbols=context.skip_symbols,
       verbose=context.verbose
     )
     try:
