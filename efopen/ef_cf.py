@@ -123,7 +123,7 @@ def handle_args_and_set_context(args):
                       type=int, default=False)
   parser.add_argument("--poll", help="Poll Cloudformation to check status of stack creation/updates",
                       action="store_true", default=False)
-  parser.add_argument("--skip_symbols", help="Skip resolving the provided symbols", nargs='+')
+  parser.add_argument("--skip_symbols", help="Skip resolving the provided symbols", nargs='+', default=[])
   parsed_args = vars(parser.parse_args(args))
   context = EFCFContext()
   try:
@@ -147,10 +147,10 @@ def resolve_template(template, profile, env, region, service, skip_symbols, verb
   # resolve {{SYMBOLS}} in the passed template file
   os.path.isfile(template) or fail("Not a file: {}".format(template))
   resolver = EFTemplateResolver(profile=profile, target_other=True, env=env,
-                                region=region, service=service, verbose=verbose)
+                                region=region, service=service, skip_symbols=skip_symbols, verbose=verbose)
   with open(template) as template_file:
     resolver.load(template_file)
-    resolver.render(skip_symbols=skip_symbols)
+    resolver.render()
 
   if verbose:
     print(resolver.template)
