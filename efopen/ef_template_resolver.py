@@ -418,7 +418,7 @@ class EFTemplateResolver(object):
 
         # Don't resolve symbols that are provided as skippable
         if symbol.split(',')[0] in self.skip_symbols:
-          resolved_symbol = "NONE"
+          resolved_symbol = "SKIPPED_SYMBOL"
         # Lookups in AWS, only if we have an EFAwsResolver
         elif symbol[:4] == "aws:" and EFTemplateResolver.__AWSR:
           resolved_symbol = EFTemplateResolver.__AWSR.lookup(symbol[4:])
