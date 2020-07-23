@@ -43,7 +43,7 @@ from ef_conf_utils import get_account_alias
 
 
 class Context:
-  def __init__(self, profile, region, env, service, template_path, no_params, verbose, lint, silent):
+  def __init__(self, profile, region, env, service, template_path, no_params, verbose, lint, silent, skip_symbols):
     self.profile = profile
     self.region = region
     self.env = env
@@ -54,6 +54,7 @@ class Context:
     self.verbose = verbose
     self.lint = lint
     self.silent = silent
+    self.skip_symbols = skip_symbols
 
   def __str__(self):
     return("profile: {}\nregion: {}\nenv: {}\nservice: {}\ntemplate_path: {}\nparam_path: {}\nlint: {}".format(
@@ -74,6 +75,7 @@ def handle_args_and_set_context(args):
   parser.add_argument("--verbose", help="Output extra info", action="store_true", default=False)
   parser.add_argument("--lint", help="Test configs for valid JSON/YAML syntax", action="store_true", default=False)
   parser.add_argument("--silent", help="Suppress output of rendered template", action="store_true", default=False)
+  parser.add_argument("--skip_symbols", help="Skip resolving the provided symbols", nargs='+', default=[])
   parsed = vars(parser.parse_args(args))
   path_to_template = abspath(parsed["path_to_template"])
   service = path_to_template.split('/')[-3]
@@ -87,7 +89,8 @@ def handle_args_and_set_context(args):
       parsed["no_params"],
       parsed["verbose"],
       parsed["lint"],
-      parsed["silent"]
+      parsed["silent"],
+      parsed["skip_symbols"]
   )
 
 
@@ -102,7 +105,8 @@ def merge_files(context):
       profile=context.profile,
       region=context.region,
       env=context.env,
-      service=context.service
+      service=context.service,
+      skip_symbols=context.skip_symbols
   )
 
   try:

@@ -120,6 +120,7 @@ class EFTemplateResolver(object):
                profile=None, region=None,  # set both for user access mode
                lambda_context=None,  # set if target is 'self' and this is a lambda
                target_other=False, env=None, service=None,  # set env & service if target_other=True
+               skip_symbols={},
                verbose=False
                ):
     """
@@ -202,6 +203,7 @@ class EFTemplateResolver(object):
     # Sets of symbols found in the current template (only)
     # read back with self.symbols() and self.unresolved_symbols()
     self.symbols = set()
+    self.skip_symbols = skip_symbols
     # capture verbosity pref from constructor
     self.verbose = verbose
 
@@ -413,8 +415,12 @@ class EFTemplateResolver(object):
       # resolve and replace symbols
       for symbol in template_symbols:
         resolved_symbol = None
+
+        # Don't resolve symbols that are provided as skippable
+        if symbol.split(',')[0] in self.skip_symbols:
+          resolved_symbol = "SKIPPED_SYMBOL"
         # Lookups in AWS, only if we have an EFAwsResolver
-        if symbol[:4] == "aws:" and EFTemplateResolver.__AWSR:
+        elif symbol[:4] == "aws:" and EFTemplateResolver.__AWSR:
           resolved_symbol = EFTemplateResolver.__AWSR.lookup(symbol[4:])
         # Lookups in credentials
         elif symbol[:12] == "credentials:":
