@@ -71,10 +71,12 @@ class NewRelicAlerts(object):
 
   def create_infra_alert_conditions(self, policy):
     # Create alert conditions for policies
-    for key, value in policy.config_conditions.items():
-      if not any(condition['name'] == key for condition in policy.remote_conditions):
-        self.newrelic.create_alert_condition(policy.config_conditions[key])
-        logger.info("create condition {} for policy {}".format(key, policy.name))
+    remote_conditions = set([condition['name'] for condition in policy.remote_conditions])
+    conditions_to_create = set(policy.config_conditions.keys()).difference(remote_conditions)
+
+    for key in conditions_to_create:
+      self.newrelic.create_alert_condition(policy.config_conditions[key])
+      logger.info("create condition {} for policy {}".format(key, policy.name))
 
   def update_cloudfront_policy(self):
     # Update Cloudfront alert policies
@@ -120,16 +122,16 @@ class NewRelicAlerts(object):
       logger.info("create alert policy {}".format(policy.name))
 
     self.populate_alert_policy_values(policy)
+    self.add_alert_policy_to_notification_channels(policy)
 
     conditions = {}
     for id, alias in queue:
       conditions['4xx Average {}'.format(alias)] = meta(
-        '4xxErrorRate', 10, id, '4xx Average {}'.format(alias), policy.id)
+        'error4xxErrorRate', 10, id, '4xx Average {}'.format(alias), policy.id)
       conditions['5xx Average {}'.format(alias)] = meta(
-        '5xxErrorRate', 5, id, '5xx Average {}'.format(alias), policy.id)
+        'error5xxErrorRate', 5, id, '5xx Average {}'.format(alias), policy.id)
 
     policy.config_conditions = deepcopy(conditions)
-
     # Infra alert conditions
     policy = self.delete_conditions_not_matching_config_values(policy)
     self.create_infra_alert_conditions(policy)
@@ -217,6 +219,5 @@ class NewRelicAlerts(object):
       self.newrelic = NewRelic(self.admin_token)
       self.update_application_services_policies()
 
-      # TODO: Fix the cloudfront code
-      # if self.context.env in ["prod"]:
-      #  self.update_cloudfront_policy()
+      if self.context.env in ["prod"]:
+        self.update_cloudfront_policy()
