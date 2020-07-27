@@ -14,7 +14,8 @@ class NewRelicAlerts(object):
 
   def __init__(self, context, clients):
     self.config = EFConfig.PLUGINS['newrelic']
-    self.conditions = self.config.get('alert_conditions', {})
+    self.ec2_conditions = self.config.get('ec2_alert_conditions', {})
+    self.ecs_conditions = self.config.get('ecs_alert_conditions', {})
     self.local_alert_nrql_conditions = self.config.get('alert_nrql_conditions', {})
     self.admin_token = self.config.get('admin_token', "")
     self.all_notification_channels = self.config.get('env_notification_map', {})
@@ -46,11 +47,14 @@ class NewRelicAlerts(object):
       logger.info("create alert policy {}".format(policy.name))
     return policy
 
-  def populate_alert_policy_values(self, policy):
+  def populate_alert_policy_values(self, policy, service_type):
     policy.id = next(alert['id'] for alert in self.newrelic.all_alert_policies if alert['name'] == policy.name)
     policy.notification_channels = self.all_notification_channels[self.context.env]
     policy.remote_conditions = self.newrelic.get_policy_alert_conditions(policy.id)
-    policy.config_conditions = deepcopy(self.conditions)
+    if service_type in ['aws_ec2', 'http_service']:
+      policy.config_conditions = deepcopy(self.ec2_conditions)
+    elif service_type == 'aws_ecs':
+      policy.config_conditions = deepcopy(self.ecs_conditions)
     policy.remote_alert_nrql_conditions = self.newrelic.get_policy_alert_nrql_conditions(policy.id)
     policy.local_alert_nrql_conditions = deepcopy(self.local_alert_nrql_conditions)
 
@@ -121,7 +125,7 @@ class NewRelicAlerts(object):
       self.newrelic.create_alert_policy(policy.name)
       logger.info("create alert policy {}".format(policy.name))
 
-    self.populate_alert_policy_values(policy)
+    self.populate_alert_policy_values(policy, 'aws_fixture')
     self.add_alert_policy_to_notification_channels(policy)
 
     conditions = {}
@@ -184,6 +188,10 @@ class NewRelicAlerts(object):
       service_name = service[0]
       service_environments = service[1]['environments']
       service_alert_overrides = service[1]['alerts'] if "alerts" in service[1] else {}
+      service_type = service[1]['type']
+
+      if service_type not in ['aws_ec2', 'aws_ecs', 'aws_ecs_http', 'http_service']:
+        continue
 
       if self.context.env in service_environments:
         policy = AlertPolicy(env=self.context.env, service=service_name)
@@ -194,7 +202,7 @@ class NewRelicAlerts(object):
           logger.info("create alert policy {}".format(policy.name))
 
         # Update AlertPolicy object
-        self.populate_alert_policy_values(policy)
+        self.populate_alert_policy_values(policy, service_type)
         self.add_alert_policy_to_notification_channels(policy)
         self.replace_symbols_in_condition(policy)
 
