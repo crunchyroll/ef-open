@@ -53,7 +53,7 @@ class NewRelicAlerts(object):
     policy.remote_conditions = self.newrelic.get_policy_alert_conditions(policy.id)
     if service_type in ['aws_ec2', 'http_service']:
       policy.config_conditions = deepcopy(self.ec2_conditions)
-    elif service_type == 'aws_ecs':
+    elif service_type in ['aws_ecs', 'aws_ecs_http']:
       policy.config_conditions = deepcopy(self.ecs_conditions)
     policy.remote_alert_nrql_conditions = self.newrelic.get_policy_alert_nrql_conditions(policy.id)
     policy.local_alert_nrql_conditions = deepcopy(self.local_alert_nrql_conditions)
