@@ -190,37 +190,34 @@ class NewRelicAlerts(object):
     for service_name, service_config in self.context.service_registry.iter_services(service_group="application_services"):
       service_environments = service_config['environments']
       service_alert_overrides = service_config.get('alerts', {})
-      og_team = service_config.get("team_opsgenie", "")
+      opsgenie_team = service_config.get("team_opsgenie", "")
 
       if self.context.env in service_environments:
-        self.update_service_policy(self.context.env, service_name, service_alert_overrides, og_team)
+        policy = AlertPolicy(env=self.context.env, service=service_name)
 
-  def update_service_policy(self, env, service_name, alert_overrides, opsgenie_team):
-    policy = AlertPolicy(env=self.context.env, service=service_name)
+        # Create service alert policy if it doesn't already exist
+        if not self.newrelic.alert_policy_exists(policy.name):
+          self.newrelic.create_alert_policy(policy.name)
+          logger.info("create alert policy {}".format(policy.name))
 
-    # Create service alert policy if it doesn't already exist
-    if not self.newrelic.alert_policy_exists(policy.name):
-      self.newrelic.create_alert_policy(policy.name)
-      logger.info("create alert policy {}".format(policy.name))
+        # Update AlertPolicy object
+        self.populate_alert_policy_values(policy)
+        self.add_alert_policy_to_notification_channels(policy)
+        self.add_policy_to_opsgenie_channel(policy, opsgenie_team)
+        self.replace_symbols_in_condition(policy)
 
-    # Update AlertPolicy object
-    self.populate_alert_policy_values(policy)
-    self.add_alert_policy_to_notification_channels(policy)
-    self.add_policy_to_opsgenie_channel(policy, opsgenie_team)
-    self.replace_symbols_in_condition(policy)
+        # Infra alert conditions
+        policy = self.override_infra_alert_condition_values(policy, service_alert_overrides)
+        policy = self.delete_conditions_not_matching_config_values(policy)
+        self.create_infra_alert_conditions(policy)
 
-    # Infra alert conditions
-    policy = self.override_infra_alert_condition_values(policy, alert_overrides)
-    policy = self.delete_conditions_not_matching_config_values(policy)
-    self.create_infra_alert_conditions(policy)
-
-    # NRQL alert conditions
-    remote_alert_nrql_condition_names = [remote_alert_nrql_condition['name'] for remote_alert_nrql_condition in policy.remote_alert_nrql_conditions]
-    for condition_name, condition_value in policy.local_alert_nrql_conditions.items():
-      if condition_name not in remote_alert_nrql_condition_names:
-        self.newrelic.create_alert_nrql_condition(policy.id, condition_value)
-      else:
-        self.update_alert_nrql_condition_if_different(condition_value, policy)
+        # NRQL alert conditions
+        remote_alert_nrql_condition_names = [remote_alert_nrql_condition['name'] for remote_alert_nrql_condition in policy.remote_alert_nrql_conditions]
+        for condition_name, condition_value in policy.local_alert_nrql_conditions.items():
+          if condition_name not in remote_alert_nrql_condition_names:
+            self.newrelic.create_alert_nrql_condition(policy.id, condition_value)
+          else:
+            self.update_alert_nrql_condition_if_different(condition_value, policy)
 
   def run(self):
     if self.context.env in self.all_notification_channels.keys():
