@@ -208,7 +208,7 @@ class NewRelic(object):
         }
       })
     create_channel.raise_for_status()
-    return create_channel.json()['channels']
+    return create_channel.json()['channels'][0]
 
   def create_opsgenie_alert_channel(self, name, api_key, teams=(), tags=(), recipients=()):
     if any([isinstance(arg, basestring) for arg in [teams, tags, recipients]]):
