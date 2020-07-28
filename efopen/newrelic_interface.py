@@ -220,7 +220,7 @@ class NewRelic(object):
       'tags': ','.join(tags),
       'recipients': ','.join(recipients)
     }
-    self.create_alert_channel(name, 'opsgenie', og_channel_configuration)
+    return self.create_alert_channel(name, 'opsgenie', og_channel_configuration)
 
   def get_notification_channel_by_name(self, name):
     alert_channels = self.get_all_notification_channels()
