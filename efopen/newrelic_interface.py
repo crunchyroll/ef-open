@@ -208,7 +208,7 @@ class NewRelic(object):
         }
       })
     create_channel.raise_for_status()
-    return create_channel.json()["channel"]
+    return create_channel.json()['channels']
 
   def create_opsgenie_alert_channel(self, name, api_key, teams=(), tags=(), recipients=()):
     og_channel_configuration = {
