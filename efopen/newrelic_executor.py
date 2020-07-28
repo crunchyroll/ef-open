@@ -14,7 +14,8 @@ class NewRelicAlerts(object):
 
   def __init__(self, context, clients):
     self.config = EFConfig.PLUGINS['newrelic']
-    self.conditions = self.config.get('alert_conditions', {})
+    self.ec2_conditions = self.config.get('ec2_alert_conditions', {})
+    self.ecs_conditions = self.config.get('ecs_alert_conditions', {})
     self.local_alert_nrql_conditions = self.config.get('alert_nrql_conditions', {})
     self.admin_token = self.config.get('admin_token', "")
     self.all_notification_channels = self.config.get('env_notification_map', {})
@@ -47,11 +48,14 @@ class NewRelicAlerts(object):
       logger.info("create alert policy {}".format(policy.name))
     return policy
 
-  def populate_alert_policy_values(self, policy):
+  def populate_alert_policy_values(self, policy, service_type):
     policy.id = next(alert['id'] for alert in self.newrelic.all_alert_policies if alert['name'] == policy.name)
     policy.notification_channels = self.all_notification_channels[self.context.env]
     policy.remote_conditions = self.newrelic.get_policy_alert_conditions(policy.id)
-    policy.config_conditions = deepcopy(self.conditions)
+    if service_type in ['aws_ec2', 'http_service']:
+      policy.config_conditions = deepcopy(self.ec2_conditions)
+    elif service_type in ['aws_ecs', 'aws_ecs_http']:
+      policy.config_conditions = deepcopy(self.ecs_conditions)
     policy.remote_alert_nrql_conditions = self.newrelic.get_policy_alert_nrql_conditions(policy.id)
     policy.local_alert_nrql_conditions = deepcopy(self.local_alert_nrql_conditions)
 
@@ -64,7 +68,7 @@ class NewRelicAlerts(object):
           if condition[k] != v:
             self.newrelic.delete_policy_alert_condition(condition['id'])
             policy.remote_conditions = self.newrelic.get_policy_alert_conditions(policy.id)
-            logger.info("delete condition {} from policy {}. ".format(condition['name'], policy.name) + \
+            logger.info("delete condition {} from policy {}. ".format(condition['name'], policy.name) +
                         "current value differs from config")
             break
 
@@ -72,10 +76,12 @@ class NewRelicAlerts(object):
 
   def create_infra_alert_conditions(self, policy):
     # Create alert conditions for policies
-    for key, value in policy.config_conditions.items():
-      if not any(condition['name'] == key for condition in policy.remote_conditions):
-        self.newrelic.create_alert_condition(policy.config_conditions[key])
-        logger.info("create condition {} for policy {}".format(key, policy.name))
+    remote_conditions = set([condition['name'] for condition in policy.remote_conditions])
+    conditions_to_create = set(policy.config_conditions.keys()).difference(remote_conditions)
+
+    for key in conditions_to_create:
+      self.newrelic.create_alert_condition(policy.config_conditions[key])
+      logger.info("create condition {} for policy {}".format(key, policy.name))
 
   def update_cloudfront_policy(self):
     # Update Cloudfront alert policies
@@ -113,16 +119,25 @@ class NewRelicAlerts(object):
       'type': 'infra_metric',
     }
 
-    policy = self.populate_alert_policy_values('cloudfront')
+    policy = AlertPolicy(env=self.context.env, service='cloudfront')
+
+    # Create cloudfront alert policy if it doesn't already exist
+    if not self.newrelic.alert_policy_exists(policy.name):
+      self.newrelic.create_alert_policy(policy.name)
+      logger.info("create alert policy {}".format(policy.name))
+
+    self.populate_alert_policy_values(policy, 'aws_fixture')
+    self.add_alert_policy_to_notification_channels(policy)
+
     conditions = {}
     for id, alias in queue:
-      conditions['cloudfront-{}-{}'.format(id, '4xxErrorRate')] = meta(
-        '4xxErrorRate', 10, id, '4xx Average {}'.format(alias), policy.id)
-      conditions['cloudfront-{}-{}'.format(id, '5xxErrorRate')] = meta(
-        '5xxErrorRate', 5, id, '5xx Average {}'.format(alias), policy.id)
+      conditions['4xx Average {}'.format(alias)] = meta(
+        'error4xxErrorRate', 10, id, '4xx Average {}'.format(alias), policy.id)
+      conditions['5xx Average {}'.format(alias)] = meta(
+        'error5xxErrorRate', 5, id, '5xx Average {}'.format(alias), policy.id)
 
     policy.config_conditions = deepcopy(conditions)
-
+    # Infra alert conditions
     policy = self.delete_conditions_not_matching_config_values(policy)
     self.create_infra_alert_conditions(policy)
 
@@ -191,6 +206,10 @@ class NewRelicAlerts(object):
       service_environments = service_config['environments']
       service_alert_overrides = service_config.get('alerts', {})
       opsgenie_team = service_config.get("team_opsgenie", "")
+      service_type = service_config['type']
+
+      if service_type not in ['aws_ec2', 'aws_ecs', 'aws_ecs_http', 'http_service']:
+        continue
 
       if self.context.env in service_environments:
         policy = AlertPolicy(env=self.context.env, service=service_name)
@@ -201,7 +220,7 @@ class NewRelicAlerts(object):
           logger.info("create alert policy {}".format(policy.name))
 
         # Update AlertPolicy object
-        self.populate_alert_policy_values(policy)
+        self.populate_alert_policy_values(policy, service_type)
         self.add_alert_policy_to_notification_channels(policy)
         self.add_policy_to_opsgenie_channel(policy, opsgenie_team)
         self.replace_symbols_in_condition(policy)

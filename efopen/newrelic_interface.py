@@ -95,7 +95,17 @@ class NewRelic(object):
       try:
         endpoint_url = r.links['next']['url']
       except KeyError:
-        break
+        # This parameter comes only on GET https://infra-api.newrelic.com/v2/alerts/conditions
+        if 'meta' not in r.json():
+          break
+
+        meta = r.json()['meta']
+
+        new_offset = meta['offset'] + meta['limit']
+        if new_offset < meta['total']:
+          params['offset'] = new_offset
+        else:
+          break
     return response
 
   def refresh_alert_policies(self):

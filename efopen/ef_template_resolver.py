@@ -120,6 +120,7 @@ class EFTemplateResolver(object):
                profile=None, region=None,  # set both for user access mode
                lambda_context=None,  # set if target is 'self' and this is a lambda
                target_other=False, env=None, service=None,  # set env & service if target_other=True
+               skip_symbols={},
                verbose=False
                ):
     """
@@ -202,6 +203,7 @@ class EFTemplateResolver(object):
     # Sets of symbols found in the current template (only)
     # read back with self.symbols() and self.unresolved_symbols()
     self.symbols = set()
+    self.skip_symbols = skip_symbols
     # capture verbosity pref from constructor
     self.verbose = verbose
 
@@ -278,17 +280,10 @@ class EFTemplateResolver(object):
     # self-configuring EC2
     elif (not target_other) and (not lambda_context):
       self.resolved["INSTANCE_ID"] = get_metadata_or_fail('instance-id')
-      try:
-        instance_desc = EFTemplateResolver.__CLIENTS["ec2"].describe_instances(InstanceIds=[self.resolved["INSTANCE_ID"]])
-      except:
-        fail("Exception in describe_instances: ", sys.exc_info())
-      self.resolved["ACCOUNT"] = instance_desc["Reservations"][0]["OwnerId"]
-      arn = instance_desc["Reservations"][0]["Instances"][0]["IamInstanceProfile"]["Arn"]
-      self.resolved["ROLE"] = arn.split(":")[5].split("/")[1]
-      env = re.search("^({})-".format(EFConfig.VALID_ENV_REGEX), self.resolved["ROLE"])
-      if not env:
-        fail("Did not find environment in role name")
-      self.resolved["ENV"] = env.group(1)
+      profile_arn = str(json.loads(http_get_metadata('iam/info'))["InstanceProfileArn"])
+      self.resolved["ACCOUNT"] = profile_arn.split(":")[4]
+      self.resolved["ROLE"] = profile_arn.split("/")[-1]
+      self.resolved["ENV"] = self.resolved["ROLE"].split("-")[0]
       self.resolved["SERVICE"] = "-".join(self.resolved["ROLE"].split("-")[1:])
 
     # target is "other"
@@ -420,8 +415,12 @@ class EFTemplateResolver(object):
       # resolve and replace symbols
       for symbol in template_symbols:
         resolved_symbol = None
+
+        # Don't resolve symbols that are provided as skippable
+        if symbol.split(',')[0] in self.skip_symbols:
+          resolved_symbol = "SKIPPED_SYMBOL"
         # Lookups in AWS, only if we have an EFAwsResolver
-        if symbol[:4] == "aws:" and EFTemplateResolver.__AWSR:
+        elif symbol[:4] == "aws:" and EFTemplateResolver.__AWSR:
           resolved_symbol = EFTemplateResolver.__AWSR.lookup(symbol[4:])
         # Lookups in credentials
         elif symbol[:12] == "credentials:":
