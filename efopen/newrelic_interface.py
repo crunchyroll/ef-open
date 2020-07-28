@@ -211,6 +211,9 @@ class NewRelic(object):
     return create_channel.json()['channels']
 
   def create_opsgenie_alert_channel(self, name, api_key, teams=(), tags=(), recipients=()):
+    if any([isinstance(arg, basestring) for arg in [teams, tags, recipients]]):
+      raise ValueError("teams:{}, tags:{} and recipients:{} should not be of type string:".format(*map(type, [teams, tags, recipients])))
+
     og_channel_configuration = {
       'api_key': api_key,
       'teams': ','.join(teams),
