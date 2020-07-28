@@ -169,10 +169,9 @@ class NewRelicAlerts(object):
           self.newrelic.put_policy_alert_nrql_condition(remote_alert_nrql_condition["id"], local_alert_nrql_condition)
 
   def update_application_services_policies(self):
-    for service in self.context.service_registry.iter_services(service_group="application_services"):
-      service_name = service[0]
-      service_environments = service[1]['environments']
-      service_alert_overrides = service[1].get('alerts', {})
+    for service_name, service_config in self.context.service_registry.iter_services(service_group="application_services"):
+      service_environments = service_config['environments']
+      service_alert_overrides = service_config.get('alerts', {})
 
       if self.context.env in service_environments:
         self.update_service_policy(self.context.env, service_name, service_alert_overrides)
