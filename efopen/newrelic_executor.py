@@ -17,6 +17,7 @@ class NewRelicAlerts(object):
     self.ec2_conditions = self.config.get('ec2_alert_conditions', {})
     self.ecs_conditions = self.config.get('ecs_alert_conditions', {})
     self.local_alert_nrql_conditions = self.config.get('alert_nrql_conditions', {})
+    self.local_alert_apm_conditions = self.config.get('apm_metric_alert_conditions', {})
     self.admin_token = self.config.get('admin_token', "")
     self.all_notification_channels = self.config.get('env_notification_map', {})
     self.context, self.clients = context, clients
@@ -57,6 +58,8 @@ class NewRelicAlerts(object):
       policy.config_conditions = deepcopy(self.ecs_conditions)
     policy.remote_alert_nrql_conditions = self.newrelic.get_policy_alert_nrql_conditions(policy.id)
     policy.local_alert_nrql_conditions = deepcopy(self.local_alert_nrql_conditions)
+    policy.remote_alert_apm_conditions = self.newrelic.get_policy_alert_apm_conditions(policy.id)
+    policy.local_alert_apm_conditions = deepcopy(self.local_alert_apm_conditions)
 
   def delete_conditions_not_matching_config_values(self, policy):
     # Remove conditions with values that differ from config
@@ -218,6 +221,21 @@ class NewRelicAlerts(object):
             self.newrelic.create_alert_nrql_condition(policy.id, condition_value)
           else:
             self.update_alert_nrql_condition_if_different(condition_value, policy)
+
+        # APM alert conditions
+        remote_alert_apm_condition_names = [remote_alert_apm_condition['name'] for remote_alert_apm_condition in policy.remote_alert_apm_conditions]
+        for condition_name, condition_value in policy.local_alert_apm_conditions.items():
+          if condition_name not in remote_alert_apm_condition_names:
+            applications = self.newrelic.get_applications(application_name=policy.name)
+
+            if not len(applications):
+              logger.info('No applications hosted for this policy. Skip creating any APM alert')
+              continue
+
+            condition_value['entities'] = [applications[0]['id']]
+            self.newrelic.create_alert_apm_condition(policy.id, condition_value)
+          else:
+            self.update_alert_apm_condition_if_different(condition_value, policy)
 
   def run(self):
     if self.context.env in self.all_notification_channels.keys():

@@ -18,6 +18,8 @@ class AlertPolicy(object):
     self.remote_conditions = None
     self.local_alert_nrql_conditions = None
     self.remote_alert_nrql_conditions = None
+    self.local_alert_apm_conditions = None
+    self.remote_alert_apm_conditions = None
     self.symbols = None
     self.set_name()
     self.set_symbols()
@@ -205,3 +207,35 @@ class NewRelic(object):
     )
     put_condition.raise_for_status()
     return
+
+  def create_alert_apm_condition(self, policy_id, condition):
+    add_condition = requests.post(
+      url='https://api.newrelic.com/v2/alerts_conditions/policies/{}.json'.format(policy_id),
+      headers=self.auth_header,
+      data=json.dumps({"condition": condition})
+    )
+    add_condition.raise_for_status()
+    return
+
+  def get_policy_alert_apm_conditions(self, policy_id):
+    return self.iterative_get(
+      endpoint_url='https://api.newrelic.com/v2/alerts_conditions.json',
+      response_key='conditions',
+      params={'policy_id': policy_id}
+    )
+
+  def put_policy_alert_apm_condition(self, condition_id, condition):
+    put_condition = requests.put(
+      url='https://api.newrelic.com/v2/alerts_conditions/{}.json'.format(condition_id),
+      headers=self.auth_header,
+      data=json.dumps({"condition": condition})
+    )
+    put_condition.raise_for_status()
+    return
+
+  def get_applications(self, application_name=''):
+    return self.iterative_get(
+      endpoint_url='https://api.newrelic.com/v2/applications.json',
+      response_key='applications',
+      params={'filter[name]': application_name}
+    )
