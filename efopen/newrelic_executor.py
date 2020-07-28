@@ -172,7 +172,7 @@ class NewRelicAlerts(object):
     for service in self.context.service_registry.iter_services(service_group="application_services"):
       service_name = service[0]
       service_environments = service[1]['environments']
-      service_alert_overrides = service[1]['alerts'] if "alerts" in service[1] else {}
+      service_alert_overrides = service[1].get('alerts', {})
 
       if self.context.env in service_environments:
         self.update_service_policy(self.context.env, service_name, service_alert_overrides)
