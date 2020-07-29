@@ -186,6 +186,34 @@ class NewRelicAlerts(object):
           logger.debug("Local: {}\nRemote: {}".format(local_alert_nrql_condition, remote_alert_nrql_condition))
           self.newrelic.put_policy_alert_nrql_condition(remote_alert_nrql_condition["id"], local_alert_nrql_condition)
 
+  def update_alert_apm_condition_if_different(self, local_alert_apm_condition, policy):
+    for remote_alert_apm_condition in policy.remote_alert_apm_conditions:
+      if remote_alert_apm_condition["name"] == local_alert_apm_condition["name"]:
+        # Add fields that exist in the remote alert condition object but not in the local alert condition object.
+        # This is done so that we can test equality.
+        local_alert_apm_condition['id'] = remote_alert_apm_condition['id']
+        local_alert_apm_condition['type'] = remote_alert_apm_condition['type']
+        local_alert_apm_condition['entities'] = remote_alert_apm_condition['entities']
+
+        if local_alert_apm_condition != remote_alert_apm_condition:
+          logger.info("Local alert apm condition differs from remote alert apm condition for {}-{}. Updating remote.".format(policy.env,policy.service))
+          logger.debug("Local: {}\nRemote: {}".format(local_alert_apm_condition, remote_alert_apm_condition))
+          self.newrelic.put_policy_alert_apm_condition(remote_alert_apm_condition["id"], local_alert_apm_condition)
+
+  def override_alert_apm_condition_values(self, policy, service_alert_overrides):
+    # Update policy.config_conditions with overrides from service_registry
+    for condition_name, override_obj in service_alert_overrides.items():
+      if condition_name in policy.local_alert_apm_conditions.keys():
+        for override_key, override_value in override_obj.items():
+          if isinstance(override_value, dict):
+            for inner_key, inner_val in override_value.items():
+              policy.local_alert_apm_conditions[condition_name][override_key][inner_key] = inner_val
+          else:
+            policy.local_alert_apm_conditions[condition_name][override_key] = override_value
+    logger.debug("Policy {} APM alert condition values:\n{}".format(policy.name, policy.local_alert_apm_conditions))
+
+    return policy
+
   def update_application_services_policies(self):
     for service in self.context.service_registry.iter_services(service_group="application_services"):
       service_name = service[0]
@@ -223,6 +251,7 @@ class NewRelicAlerts(object):
             self.update_alert_nrql_condition_if_different(condition_value, policy)
 
         # APM alert conditions
+        policy = self.override_alert_apm_condition_values(policy, service_alert_overrides)
         remote_alert_apm_condition_names = [remote_alert_apm_condition['name'] for remote_alert_apm_condition in policy.remote_alert_apm_conditions]
         for condition_name, condition_value in policy.local_alert_apm_conditions.items():
           if condition_name not in remote_alert_apm_condition_names:
