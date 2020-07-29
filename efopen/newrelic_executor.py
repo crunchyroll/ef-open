@@ -19,6 +19,7 @@ class NewRelicAlerts(object):
     self.local_alert_nrql_conditions = self.config.get('alert_nrql_conditions', {})
     self.admin_token = self.config.get('admin_token', "")
     self.all_notification_channels = self.config.get('env_notification_map', {})
+    self.opsgenie_api_key = self.config["opsgenie_api_key"]
     self.context, self.clients = context, clients
 
   @classmethod
@@ -147,6 +148,23 @@ class NewRelicAlerts(object):
         self.newrelic.add_policy_channels(policy.id, [channel['id']])
         logger.info("add channel_ids {} to policy {}".format(policy.name, channel['id']))
 
+  def add_policy_to_opsgenie_channel(self, policy, team_name):
+    team_channel = self.newrelic.get_notification_channel_by_name(team_name)
+    if not team_channel or team_channel['type'] != 'opsgenie':
+      team_channel = self.newrelic.create_opsgenie_alert_channel(
+        name=team_name,
+        api_key=self.opsgenie_api_key,
+        teams=[team_name]
+      )
+
+    if policy.id in team_channel['links']['policy_ids']:
+      return
+
+    chan_id = team_channel['id']
+
+    self.newrelic.add_policy_channels(policy.id, [chan_id])
+    logger.info("add OpsGenie channel id:%s for team %s to policy %s", chan_id, team_name, policy.name)
+
   def replace_symbols_in_condition(self, policy):
     # Replace symbols in config alert conditions
     for key, value in policy.config_conditions.items():
@@ -184,11 +202,11 @@ class NewRelicAlerts(object):
           self.newrelic.put_policy_alert_nrql_condition(remote_alert_nrql_condition["id"], local_alert_nrql_condition)
 
   def update_application_services_policies(self):
-    for service in self.context.service_registry.iter_services(service_group="application_services"):
-      service_name = service[0]
-      service_environments = service[1]['environments']
-      service_alert_overrides = service[1]['alerts'] if "alerts" in service[1] else {}
-      service_type = service[1]['type']
+    for service_name, service_config in self.context.service_registry.iter_services(service_group="application_services"):
+      service_environments = service_config['environments']
+      service_alert_overrides = service_config.get('alerts', {})
+      opsgenie_team = service_config.get("team_opsgenie", "")
+      service_type = service_config['type']
 
       if service_type not in ['aws_ec2', 'aws_ecs', 'aws_ecs_http', 'http_service']:
         continue
@@ -204,6 +222,7 @@ class NewRelicAlerts(object):
         # Update AlertPolicy object
         self.populate_alert_policy_values(policy, service_type)
         self.add_alert_policy_to_notification_channels(policy)
+        self.add_policy_to_opsgenie_channel(policy, opsgenie_team)
         self.replace_symbols_in_condition(policy)
 
         # Infra alert conditions
