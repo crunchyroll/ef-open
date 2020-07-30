@@ -208,6 +208,7 @@ class NewRelic(object):
     put_condition.raise_for_status()
     return
 
+
   def create_alert_apm_condition(self, policy_id, condition):
     add_condition = requests.post(
       url='https://api.newrelic.com/v2/alerts_conditions/policies/{}.json'.format(policy_id),
@@ -239,3 +240,46 @@ class NewRelic(object):
       response_key='applications',
       params={'filter[name]': application_name}
     )
+
+  def create_alert_channel(self, name, channel_type, configuration):
+    create_channel = requests.post(
+      url='https://api.newrelic.com/v2/alerts_channels.json',
+      headers=self.auth_header,
+      json={
+        'channel': {
+          'name': name,
+          'type': channel_type,
+          'configuration': configuration
+        }
+      })
+    create_channel.raise_for_status()
+    return create_channel.json()['channels'][0]
+
+  def create_opsgenie_alert_channel(self, name, api_key, teams=(), tags=(), recipients=()):
+    if any([isinstance(arg, basestring) for arg in [teams, tags, recipients]]):
+      raise ValueError("teams:{}, tags:{} and recipients:{} should not be of type string:".format(*map(type, [teams, tags, recipients])))
+
+    og_channel_configuration = {
+      'api_key': api_key,
+      'teams': ','.join(teams),
+      'tags': ','.join(tags),
+      'recipients': ','.join(recipients)
+    }
+    return self.create_alert_channel(name, 'opsgenie', og_channel_configuration)
+
+  def get_notification_channel_by_name(self, name):
+    alert_channels = self.get_all_notification_channels()
+    for channel in alert_channels:
+      if channel['name'] == name:
+        return channel
+    return None
+
+  def get_all_notification_channels(self, refresh=False):
+    if self.all_notification_channels and not refresh:
+      return self.all_notification_channels
+
+    self.all_notification_channels = self.iterative_get(
+      endpoint_url='https://api.newrelic.com/v2/alerts_channels.json',
+      response_key='channels'
+    )
+    return self.all_notification_channels
