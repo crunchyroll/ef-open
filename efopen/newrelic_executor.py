@@ -256,8 +256,12 @@ class NewRelicAlerts(object):
         self.replace_symbols_in_condition(policy)
 
         # Configure Opsgenie notifications for services running in the production account
-        if self.context.env in ["prod", "global.ellation", "mgmt.ellation"]:
-          self.add_policy_to_opsgenie_channel(policy, opsgenie_team)
+        try:
+          prod_account = EFConfig.ENV_ACCOUNT_MAP['prod']
+          if self.context.env in ["prod", "global.{}".format(prod_account), "mgmt.{}".format(prod_account)]:
+            self.add_policy_to_opsgenie_channel(policy, opsgenie_team)
+        except KeyError:
+          pass
 
         # Infra alert conditions
         policy = self.override_infra_alert_condition_values(policy, service_alert_overrides)
