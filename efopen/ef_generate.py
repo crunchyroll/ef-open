@@ -322,9 +322,14 @@ def conditionally_create_role(role_name, sr_entry, tags=None):
     print_if_verbose("AssumeRole policy document:\n{}".format(assume_role_policy_document))
     if CONTEXT.commit:
       try:
-        new_role = CLIENTS["iam"].create_role(
-          RoleName=role_name, AssumeRolePolicyDocument=assume_role_policy_document, Tags=tags
-        )
+        if tags != None:
+          new_role = CLIENTS["iam"].create_role(
+            RoleName=role_name, AssumeRolePolicyDocument=assume_role_policy_document, Tags=tags
+          )
+        else:
+          new_role = CLIENTS["iam"].create_role(
+              RoleName=role_name, AssumeRolePolicyDocument=assume_role_policy_document
+          )
       except ClientError as error:
         fail("Exception creating new role named: {} {}".format(role_name, sys.exc_info(), error))
       print(new_role["Role"]["RoleId"])
@@ -688,7 +693,7 @@ def main():
 
     # 1. CONDITIONALLY MAKE ROLE AND/OR INSTANCE PROFILE FOR THE SERVICE
     # If service gets a role, create with either a custom or default AssumeRole policy document
-    if (sr_entry['tags']):
+    if 'tags' in sr_entry.keys():
       conditionally_create_role(target_name, sr_entry, tags=sr_entry['tags'])
     else:
       conditionally_create_role(target_name, sr_entry)
