@@ -322,14 +322,9 @@ def conditionally_create_role(role_name, sr_entry, tags=None):
     print_if_verbose("AssumeRole policy document:\n{}".format(assume_role_policy_document))
     if CONTEXT.commit:
       try:
-        if tags != None:
-          new_role = CLIENTS["iam"].create_role(
-            RoleName=role_name, AssumeRolePolicyDocument=assume_role_policy_document, Tags=tags
-          )
-        else:
-          new_role = CLIENTS["iam"].create_role(
-              RoleName=role_name, AssumeRolePolicyDocument=assume_role_policy_document
-          )
+        new_role = CLIENTS["iam"].create_role(
+          RoleName=role_name, AssumeRolePolicyDocument=assume_role_policy_document, Tags=tags or []
+        )
       except ClientError as error:
         fail("Exception creating new role named: {} {}".format(role_name, sys.exc_info(), error))
       print(new_role["Role"]["RoleId"])
