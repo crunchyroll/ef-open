@@ -253,8 +253,11 @@ class NewRelicAlerts(object):
         # Update AlertPolicy object
         self.populate_alert_policy_values(policy, service_type)
         self.add_alert_policy_to_notification_channels(policy)
-        self.add_policy_to_opsgenie_channel(policy, opsgenie_team)
         self.replace_symbols_in_condition(policy)
+
+        # Configure Opsgenie notifications for services running in the production account
+        if self.context.env in ["prod", "global.ellation", "mgmt.ellation"]:
+          self.add_policy_to_opsgenie_channel(policy, opsgenie_team)
 
         # Infra alert conditions
         policy = self.override_infra_alert_condition_values(policy, service_alert_overrides)
