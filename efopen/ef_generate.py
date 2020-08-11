@@ -688,10 +688,7 @@ def main():
 
     # 1. CONDITIONALLY MAKE ROLE AND/OR INSTANCE PROFILE FOR THE SERVICE
     # If service gets a role, create with either a custom or default AssumeRole policy document
-    if 'tags' in sr_entry.keys():
-      conditionally_create_role(target_name, sr_entry, tags=sr_entry['tags'])
-    else:
-      conditionally_create_role(target_name, sr_entry)
+    conditionally_create_role(target_name, sr_entry, tags=sr_entry.get('tags'))
     # Instance profiles and security groups are not allowed in the global scope
     if CONTEXT.env != "global":
       conditionally_create_profile(target_name, service_type)
