@@ -268,7 +268,7 @@ def conditionally_create_security_groups(env, service_name, service_type):
     else:
       print_if_verbose("security group already exists: {}".format(sg_name))
 
-def conditionally_create_role(role_name, sr_entry):
+def conditionally_create_role(role_name, sr_entry, tags=None):
   """
   Create role_name if a role by that name does not already exist; attach a custom list of Principals
   to its AssumeRolePolicy
@@ -323,7 +323,7 @@ def conditionally_create_role(role_name, sr_entry):
     if CONTEXT.commit:
       try:
         new_role = CLIENTS["iam"].create_role(
-          RoleName=role_name, AssumeRolePolicyDocument=assume_role_policy_document
+          RoleName=role_name, AssumeRolePolicyDocument=assume_role_policy_document, Tags=tags or []
         )
       except ClientError as error:
         fail("Exception creating new role named: {} {}".format(role_name, sys.exc_info(), error))
@@ -688,7 +688,7 @@ def main():
 
     # 1. CONDITIONALLY MAKE ROLE AND/OR INSTANCE PROFILE FOR THE SERVICE
     # If service gets a role, create with either a custom or default AssumeRole policy document
-    conditionally_create_role(target_name, sr_entry)
+    conditionally_create_role(target_name, sr_entry, tags=sr_entry.get('tags'))
     # Instance profiles and security groups are not allowed in the global scope
     if CONTEXT.env != "global":
       conditionally_create_profile(target_name, service_type)
