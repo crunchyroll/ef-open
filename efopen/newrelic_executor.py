@@ -213,8 +213,11 @@ class NewRelicAlerts(object):
         local_alert_apm_condition['type'] = remote_alert_apm_condition['type']
         local_alert_apm_condition['entities'] = remote_alert_apm_condition['entities']
 
+        local_alert_apm_condition['terms'].sort(key=lambda x: x['priority'])
+        remote_alert_apm_condition['terms'].sort(key=lambda x: x['priority'])
+
         if local_alert_apm_condition != remote_alert_apm_condition:
-          logger.info("Local alert apm condition differs from remote alert apm condition for {}-{}. Updating remote.".format(policy.env,policy.service))
+          logger.info("Local alert apm condition differs from remote alert apm condition for {}-{}. Updating remote.".format(policy.env, policy.service))
           logger.debug("Local: {}\nRemote: {}".format(local_alert_apm_condition, remote_alert_apm_condition))
           self.newrelic.put_policy_alert_apm_condition(remote_alert_apm_condition["id"], local_alert_apm_condition)
 
@@ -284,7 +287,7 @@ class NewRelicAlerts(object):
             applications = self.newrelic.get_applications(application_name=policy.name)
 
             if not len(applications):
-              logger.info('No applications hosted for this policy. Skip creating any APM alert')
+              logger.info('No applications hosted for this policy: {}. Skip creating any APM alert'.format(policy.name))
               continue
 
             condition_value['entities'] = [applications[0]['id']]
