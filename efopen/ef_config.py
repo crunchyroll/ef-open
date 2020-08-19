@@ -104,6 +104,10 @@ class EFConfig(object):
         "allow_latest": True,
         "allowed_types": ["aws_ecs", "aws_ecs_http"]
       },
+      "function-version": {
+        "allow_latest": True,
+        "allowed_types": ["aws_lambda"]
+      },
       "config": {},
       "dist-hash": {
           "allowed_types": ["dist_static", "aws_lambda"]
