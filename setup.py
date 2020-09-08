@@ -37,6 +37,7 @@ setup(
             'ef-cf-diff=efopen.ef_cf_diff:main',
             'ef-check-config=efopen.ef_check_config:main',
             'ef-generate=efopen.ef_generate:main',
+            'ef-degenerate=efopen.ef_degenerate:main',
             'ef-instanceinit=efopen.ef_instanceinit:main',
             'ef-password=efopen.ef_password:main',
             'ef-resolve-config=efopen.ef_resolve_config:main',
