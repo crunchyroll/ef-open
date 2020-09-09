@@ -128,6 +128,21 @@ def destroy_security_groups(ec2_client, role_name):
 
   return
 
+def destroy_kms_key(kms_client, target_name):
+  """
+  Schedule a key for deletion.
+  Due to the KMS service workflow, the key will be deleted in a week.
+  """
+  target_name = target_name.replace('.', '_')
+  key_alias = "alias/{}".format(target_name)
+  try:
+    key_data = kms_client.describe_key(KeyId=key_alias)["KeyMetadata"]
+  except kms_client.exceptions.NotFoundException as e:
+    logger.info("Did not find key {}".format(key_alias))
+    return
+  key_id = key_data["KeyId"]
+  deletion_info = kms_client.schedule_key_deletion(KeyId=key_id, PendingWindowInDays=7)
+  logger.info("Scheduled key {} deletion for {}".format(key_alias, deletion_info["DeletionDate"]))
 
 @click.command()
 @click.option("--service_name", "-s", required=True)
@@ -137,7 +152,7 @@ def main(service_name, env):
     profile = "ellationeng"
   elif env in ["ellation"]:
     profile = "ellation"
-  session = boto3.Session(profile_name=profile)
+  session = boto3.Session(profile_name="codemobs")
   iam_client = session.client("iam")
 
   # help(iam_client)
@@ -148,6 +163,8 @@ def main(service_name, env):
 
   ec2_client = session.client("ec2")
   destroy_security_groups(ec2_client, target_name)
+  kms_client = session.client("kms")
+  destroy_kms_key(kms_client, target_name)
 
 if __name__ == "__main__":
   main()
