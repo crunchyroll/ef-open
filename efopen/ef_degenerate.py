@@ -140,9 +140,16 @@ def destroy_kms_key(kms_client, target_name):
   except kms_client.exceptions.NotFoundException as e:
     logger.info("Did not find key {}".format(key_alias))
     return
+
+  if key_data["KeyState"] == "PendingDeletion":
+    logger.info("Key {} already scheduled for deletion on {}".format(key_alias, key_data["DeletionDate"]))
+    return
   key_id = key_data["KeyId"]
-  deletion_info = kms_client.schedule_key_deletion(KeyId=key_id, PendingWindowInDays=7)
-  logger.info("Scheduled key {} deletion for {}".format(key_alias, deletion_info["DeletionDate"]))
+  try:
+    deletion_info = kms_client.schedule_key_deletion(KeyId=key_id, PendingWindowInDays=7)
+    logger.info("Scheduled key {} deletion for {}".format(key_alias, deletion_info["DeletionDate"]))
+  except kms_client.exceptions.KMSInvalidStateException as e:
+    logger.info("Key is in an invalid state: {}".format(e))
 
 @click.command()
 @click.option("--service_name", "-s", required=True)
