@@ -34,6 +34,10 @@ import click
 
 from pprint import pprint
 
+import ef_conf_utils
+import ef_service_registry
+import ef_utils
+
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 ch = logging.StreamHandler()
@@ -155,24 +159,24 @@ def destroy_kms_key(kms_client, target_name):
 @click.command()
 @click.option("--service_name", "-s", required=True)
 @click.option("--env", "-e", required=True)
-def main(service_name, env):
-  if env in ["proto0", "staging"]:
-    profile = "ellationeng"
-  elif env in ["ellation"]:
-    profile = "ellation"
-  session = boto3.Session(profile_name="codemobs")
-  iam_client = session.client("iam")
-
-  # help(iam_client)
+@click.option('--sr',
+              default=None,
+              required=False,
+              type=click.Path(exists=True, file_okay=True, dir_okay=False,
+                              readable=True, resolve_path=True),
+              help="path to service_registry.json")
+def main(service_name, env, sr):
+  profile = ef_conf_utils.get_account_alias(env)
+  service_registry = ef_service_registry.EFServiceRegistry(sr)
+  region = service_registry.service_region(service_name)
+  clients = ef_utils.create_aws_clients(region, profile, "ec2", "iam", "kms")
   target_name = "{}-{}".format(env, service_name)
-  logger.info("Degenerating {}".format(target_name))
-  destroy_instance_profile(iam_client, target_name)
-  destroy_role(iam_client, target_name)
 
-  ec2_client = session.client("ec2")
-  destroy_security_groups(ec2_client, target_name)
-  kms_client = session.client("kms")
-  destroy_kms_key(kms_client, target_name)
+  logger.info("Degenerating %s", target_name)
+  destroy_instance_profile(clients["iam"], target_name)
+  destroy_role(clients["iam"], target_name)
+  destroy_security_groups(clients["ec2"], target_name)
+  destroy_kms_key(clients["kms"], target_name)
 
 if __name__ == "__main__":
   main()
