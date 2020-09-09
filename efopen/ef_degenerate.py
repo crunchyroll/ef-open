@@ -156,21 +156,46 @@ def destroy_kms_key(kms_client, target_name):
   except kms_client.exceptions.KMSInvalidStateException as e:
     logger.info("Key %s is in an invalid state: %s", key_alias, e)
 
+def cloudformation_template_exists(cloudformation_client, target_name):
+  """
+  Check if the service CloudFormation template exits
+  """
+  # if the service contains a '.', this is a subservice
+  #  the template exits only for the main service
+  service_name = target_name.split('.')[0]
+
+  try:
+    cloudformation_client.describe_stacks(StackName=service_name)
+  except botocore.exceptions.ClientError as e:
+    if 'does not exist' in str(e):
+      return False
+    raise e
+
+  logger.info("CloudFormation stack for service %s still exists", service_name)
+  return True
+
+
 @click.command()
 @click.option("--service_name", "-s", required=True)
 @click.option("--env", "-e", required=True)
+@click.option("--ignore_cloudformation_template", default=False, is_flag=True)
 @click.option('--sr',
               default=None,
               required=False,
               type=click.Path(exists=True, file_okay=True, dir_okay=False,
                               readable=True, resolve_path=True),
               help="path to service_registry.json")
-def main(service_name, env, sr):
+def main(service_name, env, sr, ignore_cloudformation_template):
   profile = ef_conf_utils.get_account_alias(env)
   service_registry = ef_service_registry.EFServiceRegistry(sr)
   region = service_registry.service_region(service_name)
-  clients = ef_utils.create_aws_clients(region, profile, "ec2", "iam", "kms")
+  clients = ef_utils.create_aws_clients(region, profile, "cloudformation", "ec2", "iam", "kms")
   target_name = "{}-{}".format(env, service_name)
+
+  if cloudformation_template_exists(clients["cloudformation"], target_name):
+    logger.error("CloudFormation still exists for service. Remove that and try again")
+    if not ignore_cloudformation_template:
+      exit(1)
 
   logger.info("Degenerating %s", target_name)
   destroy_instance_profile(clients["iam"], target_name)
