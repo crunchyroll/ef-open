@@ -5,9 +5,6 @@ For one service:
 - If a security group and/or role named "<env>-<service>" exists, remove it
 - remove EC2 instance profiles as needed as well.
 
-If --commit flag is not set, only a dry run occurs; no changes are made.
-
-
 Copyright 2016-2020 Ellation, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -24,15 +21,10 @@ limitations under the License.
 """
 
 from __future__ import print_function
-import argparse
-import json
 import logging
 
-import boto3
 import botocore
 import click
-
-from pprint import pprint
 
 import ef_conf_utils
 import ef_service_registry
@@ -41,8 +33,7 @@ import ef_utils
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 ch = logging.StreamHandler()
-# ch.setLevel(logging.INFO)
-ch.setFormatter(logging.Formatter('%(pathname)s:%(levelname)s - %(message)s'))
+ch.setFormatter(logging.Formatter('%(levelname)s - %(message)s'))
 logger.addHandler(ch)
 
 logging.getLogger('botocore').setLevel(logging.CRITICAL)
