@@ -46,65 +46,108 @@ logging.getLogger('boto3').setLevel(logging.CRITICAL)
 logging.getLogger('boto3').setLevel(logging.CRITICAL)
 
 
-def remove_and_destroy_role_instance_profiles(iam_client, role_name):
+def destroy_role(iam_client, role_name):
   """
-  Removes and destroys all instance_profiles associated with the role
+  Destroy a role created by ef-generate. The role usually has the form env-service.
   """
-  instance_profiles = iam_client.list_instance_profiles_for_role(RoleName=role_name).get("InstanceProfiles", [])
-  pprint(instance_profiles)
-  for profile in instance_profiles:
-    profile_name = profile["InstanceProfileName"]
-    logger.info("Removing instance profile %s from role %s", profile_name, role_name)
 
-
-
-def destroy_role(iam_resource, role_name):
-  """
-  Destroy a role created by ef-generate. The role usually has the form env-service
-  """
+  # Find the role and delete it, if it does not exist return
   try:
-    role = iam_resource.Role(role_name)
+    role = iam_client.get_role(RoleName=role_name)
   except botocore.exceptions.ClientError as e:
-    logger.info("Could not find role %s", role_name)
+    logger.info("Unable to find role %s: %s", role_name, e)
     return
-  instance_profiles = role.instance_profiles.all()
-  pprint(instance_profiles)
-  for profile in instance_profiles:
-    logger.info("Removing instance role %s from instance_profile %s", role_name, profile.instance_profile_name)
-    profile.remove_role(RoleName=role.role_name)
-    logger.info("Deleting instance role %s", profile.arn)
-    profile.delete()
 
+  # Delete inline policies from the role
+  policies = iam_client.list_role_policies(RoleName=role_name)
+  for policy in policies['PolicyNames']:
+    iam_client.delete_role_policy(RoleName=role_name, PolicyName=policy)
+    logger.info("Detached inline policy %s from role %s", policy, role_name)
 
-  for attached_policy in role.attached_policies.all():
-    logger.info("Detaching policy %s from role %s", attached_policy.policy_name, role_name)
-    role.detach_policy(PolicyArn=attached_policy.arn)
+  # Detach managed policies from the role
+  policies = iam_client.list_attached_role_policies(RoleName=role_name)
+  for policy in policies['AttachedPolicies']:
+    iam_client.detach_role_policy(RoleName=role_name, PolicyArn=policy['PolicyArn'])
+    logger.info("Detached managed policy %s from role %s", policy, role_name)
 
-  print(list(role.policies.all()))
-  for policy in role.policies.all():
-    logger.info("Deleting inline policy %s from role %s", policy.policy_name, role_name)
-    policy.delete()
+  # Finally we can delete the role
+  try:
+    iam_client.delete_role(RoleName=role['Role']['RoleName'])
+    logger.info("Deleted role %s", role_name)
+  except botocore.exceptions.ClientError as e:
+    logger.info("Unable to delete role %s: %s", role_name, e)
 
-  logger.info("Deleting role {}".format(role_name))
+  return
 
-  role.delete()
+def destroy_instance_profile(iam_client, role_name):
+  """
+  Destroy instance profile created by ef-generate. Note we have to detach role first.
+  """
 
+  # First get the name of the instance profile
+  try:
+    instance_profile = iam_client.get_instance_profile(InstanceProfileName=role_name)
+  except botocore.exceptions.ClientError as e:
+    logger.info("Unable to delete instance profile %s: %s", role_name, e)
+    return
 
+  # Next we detach any roles associated with it
+  for role in instance_profile['InstanceProfile']['Roles']:
+    try:
+      iam_client.remove_role_from_instance_profile(InstanceProfileName=role_name, RoleName=role['RoleName'])
+    except botocore.exceptions.ClientError as e:
+      logger.info("Unable to detach role %s from instance profile %s: %s", role['RoleName'], role_name, e)
+      logger.info("Therefore we will not be able to delete instance profile %s", role_name)
+      return
 
+  # Now that we detached all roles, we can finally delete it
+  try:
+    iam_client.delete_instance_profile(InstanceProfileName=instance_profile['InstanceProfile']['InstanceProfileName'])
+    logger.info("Deleted instance profile %s", role_name)
+  except botocore.exceptions.ClientError as e:
+    logger.info("Unable to delete instance profile %s: %s", role_name, e)
+
+  return
+
+def destroy_security_groups(ec2_client, role_name):
+  """
+  Destroy security groups created by ef-generate.
+  """
+
+  # First get the name of the security groups that start with the service name
+  try:
+    sgs = ec2_client.describe_security_groups(Filters=[{'Name':'group-name', 'Values': [role_name+"*"]}])
+  except botocore.exceptions.ClientError as e:
+    logger.info("Unable to find any security groups for %s: %s", role_name, e)
+    return
+
+  # Now we go through and delete each one
+  for sg in sgs['SecurityGroups']:
+    ec2_client.delete_security_group(GroupId=sg['GroupId'])
+    logger.info("Deleted security group %s", sg['GroupName'])
+
+  return
 
 
 @click.command()
 @click.option("--service_name", "-s", required=True)
 @click.option("--env", "-e", required=True)
 def main(service_name, env):
-  session = boto3.Session()
-  iam_client = session.resource("iam")
+  if env in ["proto0", "staging"]:
+    profile = "ellationeng"
+  elif env in ["ellation"]:
+    profile = "ellation"
+  session = boto3.Session(profile_name=profile)
+  iam_client = session.client("iam")
 
   # help(iam_client)
   target_name = "{}-{}".format(env, service_name)
   logger.info("Degenerating {}".format(target_name))
+  destroy_instance_profile(iam_client, target_name)
   destroy_role(iam_client, target_name)
 
+  ec2_client = session.client("ec2")
+  destroy_security_groups(ec2_client, target_name)
 
 if __name__ == "__main__":
   main()
