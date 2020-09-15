@@ -234,6 +234,7 @@ class EFTemplateResolver(object):
       "cloudfront",
       "cognito-identity",
       "cognito-idp",
+      "dynamodb",
       "ec2",
       "ecr",
       "elbv2",
