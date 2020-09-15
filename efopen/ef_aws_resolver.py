@@ -878,6 +878,23 @@ class EFAwsResolver(object):
     except ClientError:
       return default
 
+  def dynamodb_stream_arn(self, lookup, default=None):
+    """
+    Args:
+      lookup: the name of the DynamoDB table to look up
+      default: the optional value to return if lookup failed; returns None if not set
+    Returns:
+      The DynamoDB Stream ARN with a label matching 'lookup' or default/None if no match found
+    """
+    try:
+      dynamodb_table = EFAwsResolver.__CLIENTS["dynamodb"].describe_table(TableName=lookup)
+      if dynamodb_table:
+        return dynamodb_table["Table"]["LatestStreamArn"]
+      else:
+        return default
+    except ClientError:
+      return default
+
   def lookup(self, token):
     try:
       kv = token.split(",")
@@ -899,6 +916,8 @@ class EFAwsResolver(object):
       return self.cognito_idp_user_pool_arn(*kv[1:])
     elif kv[0] == "cognito-idp:user-pool-id":
       return self.cognito_idp_user_pool_id(*kv[1:])
+    elif kv[0] == "dynamodb:stream-arn":
+      return self.dynamodb_stream_arn(*kv[1:])
     elif kv[0] == "ec2:elasticip/elasticip-id":
       return self.ec2_elasticip_elasticip_id(*kv[1:])
     elif kv[0] == "ec2:elasticip/elasticip-ipaddress":

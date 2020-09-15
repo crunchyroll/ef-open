@@ -45,28 +45,30 @@ class TestEFAwsResolver(unittest.TestCase):
     mock_cloud_front_client = Mock(name="Mock CloudFront Client")
     mock_cognito_identity_client = Mock(name="Mock Cognito Identity Client")
     mock_cognito_idp_client = Mock(name="Mock Cognito IDP Client")
+    mock_dynamodb_client = Mock(name="Mock DynamoDB Client")
     mock_ec2_client = Mock(name="Mock EC2 Client")
     mock_ecr_client = Mock(name="Mock ECR Client")
-    mock_route_53_client = Mock(name="Mock Route 53 Client")
-    mock_waf_client = Mock(name="Mock WAF Client")
-    mock_session = Mock(name="Mock Client")
-    mock_kms_client = Mock(name="Mock KMS Client")
     mock_elbv2_client = Mock(name="Mock ELBV2 Client")
+    mock_kms_client = Mock(name="Mock KMS Client")
     mock_ram_client = Mock(name="Mock RAM Client")
+    mock_route_53_client = Mock(name="Mock Route 53 Client")
+    mock_session = Mock(name="Mock Client")
+    mock_waf_client = Mock(name="Mock WAF Client")
 
     self._clients = {
+      "SESSION": mock_session,
       "cloudformation": mock_cloud_formation_client,
       "cloudfront": mock_cloud_front_client,
       "cognito-identity": mock_cognito_identity_client,
       "cognito-idp": mock_cognito_idp_client,
+      "dynamodb": mock_dynamodb_client,
       "ec2": mock_ec2_client,
       "ecr": mock_ecr_client,
-      "route53": mock_route_53_client,
-      "waf": mock_waf_client,
-      "SESSION": mock_session,
-      "kms": mock_kms_client,
       "elbv2": mock_elbv2_client,
-      "ram": mock_ram_client
+      "kms": mock_kms_client,
+      "ram": mock_ram_client,
+      "route53": mock_route_53_client,
+      "waf": mock_waf_client
     }
 
   def tearDown(self):
@@ -2925,4 +2927,26 @@ class TestEFAwsResolver(unittest.TestCase):
     self._clients["ram"].list_resources.return_value = resource_response
     ef_aws_resolver = EFAwsResolver(self._clients)
     result = ef_aws_resolver.lookup("ram:resource-share/resource-arn,cant_possibly_match")
+    self.assertIsNone(result)
+
+  def test_dynamodb_stream_arn(self):
+    # Mock the return values involved with this lookup
+    resource_response = {
+      "Table": {
+        "LatestStreamArn": "arn:aws:dynamodb:us-west-2:490645551402:table/alpha0-dynamodb-dummy-table/stream/2020-09-14T23:42:19.796"
+      }
+    }
+    self._clients["dynamodb"].describe_table.return_value = resource_response
+
+    ef_aws_resolver = EFAwsResolver(self._clients)
+    result = ef_aws_resolver.lookup("dynamodb:stream-arn,alpha0-dynamodb-dummy-table")
+    self.assertEqual("arn:aws:dynamodb:us-west-2:490645551402:table/alpha0-dynamodb-dummy-table/stream/2020-09-14T23:42:19.796", result)
+
+  def test_dynamodb_stream_arn_no_match(self):
+    # Mock the return values involved with this lookup
+    resource_response = None
+    self._clients["dynamodb"].describe_table.return_value = resource_response
+
+    ef_aws_resolver = EFAwsResolver(self._clients)
+    result = ef_aws_resolver.lookup("dynamodb:stream-arn,alpha0-dynamodb-dummy-table")
     self.assertIsNone(result)
