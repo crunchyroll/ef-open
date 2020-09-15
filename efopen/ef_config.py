@@ -112,6 +112,11 @@ class EFConfig(object):
       "dist-hash": {
           "allowed_types": ["dist_static"]
       },
+      "function-version": {
+        # TODO: remove once all templates have moved to version-number
+        "allow_latest": True,
+        "allowed_types": ["aws_lambda"]
+      },
       "version-number": {
         "allow_latest": True,
         "allowed_types": ["aws_lambda"]
