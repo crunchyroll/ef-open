@@ -104,10 +104,6 @@ class EFConfig(object):
         "allow_latest": True,
         "allowed_types": ["aws_ecs", "aws_ecs_http"]
       },
-      "version-number": {
-        "allow_latest": True,
-        "allowed_types": ["aws_lambda"]
-      },
       "commit-hash": {
         "allow_latest": True,
         "allowed_types": ["aws_lambda"]
@@ -115,7 +111,11 @@ class EFConfig(object):
       "config": {},
       "dist-hash": {
           "allowed_types": ["dist_static"]
-      }
+      },
+      "version-number": {
+        "allow_latest": True,
+        "allowed_types": ["aws_lambda"]
+      },
   }
   # Some envs' version entries can be set via these special values, meaning 'use the value found there'
   SPECIAL_VERSIONS = ["=latest", "=prod", "=staging"]
