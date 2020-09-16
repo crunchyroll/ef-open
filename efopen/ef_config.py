@@ -104,14 +104,23 @@ class EFConfig(object):
         "allow_latest": True,
         "allowed_types": ["aws_ecs", "aws_ecs_http"]
       },
-      "function-version": {
+      "commit-hash": {
         "allow_latest": True,
         "allowed_types": ["aws_lambda"]
       },
       "config": {},
       "dist-hash": {
-          "allowed_types": ["dist_static", "aws_lambda"]
-      }
+          "allowed_types": ["dist_static"]
+      },
+      "function-version": {
+        # TODO: remove once all templates have moved to version-number
+        "allow_latest": True,
+        "allowed_types": ["aws_lambda"]
+      },
+      "version-number": {
+        "allow_latest": True,
+        "allowed_types": ["aws_lambda"]
+      },
   }
   # Some envs' version entries can be set via these special values, meaning 'use the value found there'
   SPECIAL_VERSIONS = ["=latest", "=prod", "=staging"]
