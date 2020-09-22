@@ -142,7 +142,7 @@ def handle_args_and_set_context(args):
   context.verbose = parsed_args["verbose"]
   context.render = parsed_args["render"]
   if context.render and (context.verbose or context.commit or context.changeset or context.poll_status):
-    fail("render flag cannot be combined with other actions.")
+    fail("ERROR: render flag cannot be combined with verbose/commit/changeset/poll_status.")
   # Set up service registry and policy template path which depends on it
   context.service_registry = EFServiceRegistry(parsed_args["sr"])
   return context
