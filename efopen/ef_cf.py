@@ -110,6 +110,7 @@ def handle_args_and_set_context(args):
   parser.add_argument("env", help=", ".join(EFConfig.ENV_LIST))
   parser.add_argument("--sr", help="optional /path/to/service_registry_file.json", default=None)
   parser.add_argument("--verbose", help="Print additional info + resolved template", action="store_true", default=False)
+  parser.add_argument("--render", help="Output resolved template", action="store_true", default=False)
   parser.add_argument("--devel", help="Allow running from branch; don't refresh from origin", action="store_true",
                       default=False)
   group = parser.add_mutually_exclusive_group()
@@ -139,6 +140,9 @@ def handle_args_and_set_context(args):
   context.poll_status = parsed_args["poll"]
   context.skip_symbols = parsed_args["skip_symbols"]
   context.verbose = parsed_args["verbose"]
+  context.render = parsed_args["render"]
+  if context.render and (context.verbose or context.commit or context.changeset or context.poll_status):
+    fail("render flag cannot be combined with other actions.")
   # Set up service registry and policy template path which depends on it
   context.service_registry = EFServiceRegistry(parsed_args["sr"])
   return context
@@ -230,7 +234,7 @@ def main():
 
   if context.changeset:
     print("=== CHANGESET ===\nCreating changeset only. See AWS GUI for changeset\n=== CHANGESET ===")
-  elif not context.commit:
+  elif not context.commit and not context.render:
     print("=== DRY RUN ===\nValidation only. Use --commit to push template to CF\n=== DRY RUN ===")
 
   service_name = os.path.basename(os.path.splitext(context.template_file)[0])
@@ -251,8 +255,6 @@ def main():
   try:
     if not context.devel and context.whereami != 'jenkins':
       pull_repo()
-    else:
-      print("not refreshing repo because --devel was set or running on Jenkins")
   except Exception as error:
     fail("Error: ", error)
 
@@ -292,6 +294,10 @@ def main():
     skip_symbols=context.skip_symbols,
     verbose=context.verbose
   )
+
+  if context.render:
+    print(template)
+    exit()
 
   # Create clients - if accessing by role, profile should be None
   try:
