@@ -110,7 +110,6 @@ def handle_args_and_set_context(args):
   parser.add_argument("env", help=", ".join(EFConfig.ENV_LIST))
   parser.add_argument("--sr", help="optional /path/to/service_registry_file.json", default=None)
   parser.add_argument("--verbose", help="Print additional info + resolved template", action="store_true", default=False)
-  parser.add_argument("--render", help="Output resolved template", action="store_true", default=False)
   parser.add_argument("--devel", help="Allow running from branch; don't refresh from origin", action="store_true",
                       default=False)
   group = parser.add_mutually_exclusive_group()
@@ -120,11 +119,13 @@ def handle_args_and_set_context(args):
                       action="store_true", default=False)
   group.add_argument("--lint", help="Execute cfn-lint on the rendered template", action="store_true",
                       default=False)
+  group.add_argument("--render", help="Output resolved template", action="store_true", default=False)
   parser.add_argument("--percent", help="Specifies an override to the percentage of instances in an Auto Scaling rolling update (e.g. 10 for 10%%)",
                       type=int, default=False)
   parser.add_argument("--poll", help="Poll Cloudformation to check status of stack creation/updates",
                       action="store_true", default=False)
   parser.add_argument("--skip_symbols", help="Skip resolving the provided symbols", nargs='+', default=[])
+
   parsed_args = vars(parser.parse_args(args))
   context = EFCFContext()
   try:
@@ -141,9 +142,6 @@ def handle_args_and_set_context(args):
   context.skip_symbols = parsed_args["skip_symbols"]
   context.verbose = parsed_args["verbose"]
   context.render = parsed_args["render"]
-  if context.render and (context.verbose or context.commit or context.changeset or context.poll_status):
-    fail("ERROR: render flag cannot be combined with verbose/commit/changeset/poll_status.")
-  # Set up service registry and policy template path which depends on it
   context.service_registry = EFServiceRegistry(parsed_args["sr"])
   return context
 
