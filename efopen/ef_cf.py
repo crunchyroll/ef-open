@@ -119,11 +119,13 @@ def handle_args_and_set_context(args):
                       action="store_true", default=False)
   group.add_argument("--lint", help="Execute cfn-lint on the rendered template", action="store_true",
                       default=False)
+  group.add_argument("--render", help="Output resolved template", action="store_true", default=False)
   parser.add_argument("--percent", help="Specifies an override to the percentage of instances in an Auto Scaling rolling update (e.g. 10 for 10%%)",
                       type=int, default=False)
   parser.add_argument("--poll", help="Poll Cloudformation to check status of stack creation/updates",
                       action="store_true", default=False)
   parser.add_argument("--skip_symbols", help="Skip resolving the provided symbols", nargs='+', default=[])
+
   parsed_args = vars(parser.parse_args(args))
   context = EFCFContext()
   try:
@@ -139,6 +141,7 @@ def handle_args_and_set_context(args):
   context.poll_status = parsed_args["poll"]
   context.skip_symbols = parsed_args["skip_symbols"]
   context.verbose = parsed_args["verbose"]
+  context.render = parsed_args["render"]
   # Set up service registry and policy template path which depends on it
   context.service_registry = EFServiceRegistry(parsed_args["sr"])
   return context
@@ -230,7 +233,7 @@ def main():
 
   if context.changeset:
     print("=== CHANGESET ===\nCreating changeset only. See AWS GUI for changeset\n=== CHANGESET ===")
-  elif not context.commit:
+  elif not context.commit and not context.render:
     print("=== DRY RUN ===\nValidation only. Use --commit to push template to CF\n=== DRY RUN ===")
 
   service_name = os.path.basename(os.path.splitext(context.template_file)[0])
@@ -251,8 +254,6 @@ def main():
   try:
     if not context.devel and context.whereami != 'jenkins':
       pull_repo()
-    else:
-      print("not refreshing repo because --devel was set or running on Jenkins")
   except Exception as error:
     fail("Error: ", error)
 
@@ -292,6 +293,10 @@ def main():
     skip_symbols=context.skip_symbols,
     verbose=context.verbose
   )
+
+  if context.render:
+    print(template)
+    exit()
 
   # Create clients - if accessing by role, profile should be None
   try:
