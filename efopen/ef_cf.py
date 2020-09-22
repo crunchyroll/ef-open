@@ -142,6 +142,7 @@ def handle_args_and_set_context(args):
   context.skip_symbols = parsed_args["skip_symbols"]
   context.verbose = parsed_args["verbose"]
   context.render = parsed_args["render"]
+  # Set up service registry and policy template path which depends on it
   context.service_registry = EFServiceRegistry(parsed_args["sr"])
   return context
 
