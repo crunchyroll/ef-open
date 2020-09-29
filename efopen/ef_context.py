@@ -192,7 +192,7 @@ class EFContext(object):
     self._devel = value
 
   @property
-  def whereami(self):
+  def only(self):
     """Specific service registry entry targeted as parameter passed to tool"""
     return self._only
 
