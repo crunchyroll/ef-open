@@ -128,11 +128,12 @@ def handle_args_and_set_context(args):
                 "generated policies to a role, create KMS keys, and create newrelic alerts for a service based "
                 "on the information specified in the service_registry.json.")
   parser.add_argument("env", help=", ".join(EFConfig.ENV_LIST))
-  parser.add_argument("--sr", help="optional /path/to/service_registry_file.json", default=None)
+  parser.add_argument("--sr", help="optional: /path/to/service_registry_file.json", default=None)
   parser.add_argument("--commit", help="Make changes in AWS (dry run if omitted)", action="store_true", default=False)
   parser.add_argument("--verbose", help="Print additional info", action="store_true", default=False)
   parser.add_argument("--devel", help="Allow running from branch; don't refresh from origin", action="store_true",
                       default=False)
+  parser.add_argument("--only", help="optional: run ef-generate for a only specific entry in the service registry", default=None)
   parsed_args = vars(parser.parse_args(args))
   context = EFContext()
   context.commit = parsed_args["commit"]
@@ -145,6 +146,7 @@ def handle_args_and_set_context(args):
   context.service_registry = EFServiceRegistry(parsed_args["sr"])
   context.policy_template_path = normpath(dirname(context.service_registry.filespec)) + EFConfig.POLICY_TEMPLATE_PATH_SUFFIX
   context.verbose = parsed_args["verbose"]
+  context.only = parsed_args["only"]
   return context
 
 def print_if_verbose(message):
@@ -673,6 +675,12 @@ def main():
     service_type = sr_entry['type']
     print_if_verbose("service: {} in env: {}".format(service_name, CONTEXT.env))
 
+    # Are we targeting a specific entry in the registry?
+    if CONTEXT.only and CONTEXT.only != service_name:
+      continue
+    else:
+      print("running ef-generate only on entry: {}".format(service_name))
+
     # Is this service_type handled by this tool?
     if service_type not in SUPPORTED_SERVICE_TYPES:
       print_if_verbose("unsupported service type: {}".format(service_type))
@@ -708,6 +716,10 @@ def main():
     # 6. INLINE SERVICE'S POLICIES INTO ROLE
     # only eligible service types with "policies" sections in the service registry get policies
     conditionally_inline_policies(target_name, sr_entry)
+
+    # Break from the loop if we've finished working on the targeted entry
+    if CONTEXT.only:
+      break
 
   # Create newrelic alerts for all "application_services" in the service registry
   if "newrelic" in EFConfig.PLUGINS:
