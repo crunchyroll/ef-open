@@ -1,4 +1,5 @@
 from copy import deepcopy
+from itertools import chain
 import logging
 
 from ef_config import EFConfig
@@ -17,6 +18,7 @@ class NewRelicAlerts(object):
     self.ec2_conditions = self.config.get('ec2_alert_conditions', {})
     self.ecs_conditions = self.config.get('ecs_alert_conditions', {})
     self.local_alert_nrql_conditions = self.config.get('alert_nrql_conditions', {})
+    self.lambda_alert_conditions = self.config.get('lambda_alert_conditions', {})
     self.local_alert_apm_conditions = self.config.get('apm_metric_alert_conditions', {})
     self.admin_token = self.config.get('admin_token', "")
     self.all_notification_channels = self.config.get('env_notification_map', {})
@@ -57,6 +59,8 @@ class NewRelicAlerts(object):
       policy.config_conditions = deepcopy(self.ec2_conditions)
     elif service_type in ['aws_ecs', 'aws_ecs_http']:
       policy.config_conditions = deepcopy(self.ecs_conditions)
+    elif service_type in ['aws_lambda']:
+      policy.config_conditions = deepcopy(self.lambda_alert_conditions)
     policy.remote_alert_nrql_conditions = self.newrelic.get_policy_alert_nrql_conditions(policy.id)
     policy.local_alert_nrql_conditions = deepcopy(self.local_alert_nrql_conditions)
     policy.remote_alert_apm_conditions = self.newrelic.get_policy_alert_apm_conditions(policy.id)
@@ -292,6 +296,43 @@ class NewRelicAlerts(object):
           else:
             self.update_alert_apm_condition_if_different(condition_value, policy)
 
+  def update_lambda_policies(self):
+    platform_services = self.context.service_registry.iter_services(service_group="platform_services")
+    application_services = self.context.service_registry.iter_services(service_group="application_services")
+    for service_name, service_config in chain(platform_services, application_services):
+      service_environments = service_config['environments']
+      service_alert_overrides = service_config.get('alerts', {})
+      opsgenie_team = service_config.get("team_opsgenie", "")
+      service_type = service_config['type']
+
+      if service_type != 'aws_lambda':
+        continue
+
+      if self.context.env in service_environments:
+        policy = AlertPolicy(env=self.context.env, service=service_name)
+
+        # Create service alert policy if it doesn't already exist
+        if not self.newrelic.alert_policy_exists(policy.name):
+          self.newrelic.create_alert_policy(policy.name)
+          logger.info("create alert policy {}".format(policy.name))
+
+        # Update AlertPolicy object
+        self.populate_alert_policy_values(policy, service_type)
+        self.add_alert_policy_to_notification_channels(policy)
+        self.replace_symbols_in_condition(policy)
+
+        # Configure Opsgenie notifications for services running in the production account
+        try:
+          prod_account = EFConfig.ENV_ACCOUNT_MAP['prod']
+          if self.context.env in ["prod", "global.{}".format(prod_account), "mgmt.{}".format(prod_account)]:
+            self.add_policy_to_opsgenie_channel(policy, opsgenie_team)
+        except KeyError:
+          pass
+
+        policy = self.override_infra_alert_condition_values(policy, service_alert_overrides)
+        policy = self.delete_conditions_not_matching_config_values(policy)
+        self.create_infra_alert_conditions(policy)
+
   def run(self):
     if self.context.env in self.all_notification_channels.keys():
       if self.config['token_kms_encrypted']:
@@ -299,6 +340,7 @@ class NewRelicAlerts(object):
 
       self.newrelic = NewRelic(self.admin_token)
       self.update_application_services_policies()
+      self.update_lambda_policies()
 
       if self.context.env in ["prod"]:
         self.update_cloudfront_policy()
