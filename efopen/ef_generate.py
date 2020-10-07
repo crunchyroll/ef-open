@@ -133,7 +133,7 @@ def handle_args_and_set_context(args):
   parser.add_argument("--verbose", help="Print additional info", action="store_true", default=False)
   parser.add_argument("--devel", help="Allow running from branch; don't refresh from origin", action="store_true",
                       default=False)
-  parser.add_argument("--only", help="optional: run ef-generate for a only specific entry in the service registry", default=None)
+  parser.add_argument("--only", help="optional: run ef-generate only for a specific entry in the service registry", default=None)
   parsed_args = vars(parser.parse_args(args))
   context = EFContext()
   context.commit = parsed_args["commit"]
