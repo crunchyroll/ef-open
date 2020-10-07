@@ -43,7 +43,7 @@ class EFContext(object):
     self._aws_clients = None
     self._commit = None
     self._devel = None
-    self._only = None
+    self._only_for = None
     self._verbose = None
     self._whereami = whereami()
 
@@ -192,9 +192,9 @@ class EFContext(object):
     self._devel = value
 
   @property
-  def only(self):
+  def only_for(self):
     """Specific service registry entry targeted as parameter passed to tool"""
-    return self._only
+    return self._only_for
 
   @property
   def verbose(self):

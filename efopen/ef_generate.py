@@ -133,7 +133,7 @@ def handle_args_and_set_context(args):
   parser.add_argument("--verbose", help="Print additional info", action="store_true", default=False)
   parser.add_argument("--devel", help="Allow running from branch; don't refresh from origin", action="store_true",
                       default=False)
-  parser.add_argument("--only", help="optional: run ef-generate for a only specific entry in the service registry", default=None)
+  parser.add_argument("--only_for", help="optional: run ef-generate for a only specific entry in the service registry", default=None)
   parsed_args = vars(parser.parse_args(args))
   context = EFContext()
   context.commit = parsed_args["commit"]
@@ -146,7 +146,7 @@ def handle_args_and_set_context(args):
   context.service_registry = EFServiceRegistry(parsed_args["sr"])
   context.policy_template_path = normpath(dirname(context.service_registry.filespec)) + EFConfig.POLICY_TEMPLATE_PATH_SUFFIX
   context.verbose = parsed_args["verbose"]
-  context.only = parsed_args["only"]
+  context.only_for = parsed_args["only_for"]
   return context
 
 def print_if_verbose(message):
@@ -676,10 +676,10 @@ def main():
     print_if_verbose("service: {} in env: {}".format(service_name, CONTEXT.env))
 
     # Are we targeting a specific entry in the registry?
-    if CONTEXT.only and CONTEXT.only != service_name:
+    if CONTEXT.only_for and CONTEXT.only_for != service_name:
       continue
     else:
-      print("running ef-generate only on entry: {}".format(service_name))
+      print("running ef-generate only for entry: {}".format(service_name))
 
     # Is this service_type handled by this tool?
     if service_type not in SUPPORTED_SERVICE_TYPES:
@@ -718,7 +718,7 @@ def main():
     conditionally_inline_policies(target_name, sr_entry)
 
     # Break from the loop if we've finished working on the targeted entry
-    if CONTEXT.only:
+    if CONTEXT.only_for:
       break
 
   # Create newrelic alerts for all "application_services" in the service registry
