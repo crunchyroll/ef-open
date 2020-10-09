@@ -125,6 +125,7 @@ def handle_args_and_set_context(args):
   parser.add_argument("--poll", help="Poll Cloudformation to check status of stack creation/updates",
                       action="store_true", default=False)
   parser.add_argument("--skip_symbols", help="Skip resolving the provided symbols", nargs='+', default=[])
+  parser.add_argument("--custom_rules", help="A directory with custom rules for cfn-lint")
 
   parsed_args = vars(parser.parse_args(args))
   context = EFCFContext()
@@ -137,6 +138,7 @@ def handle_args_and_set_context(args):
   context.commit = parsed_args["commit"]
   context.devel = parsed_args["devel"]
   context.lint = parsed_args["lint"]
+  context.custom_rules = parsed_args["custom_rules"]
   context.percent = parsed_args["percent"]
   context.poll_status = parsed_args["poll"]
   context.skip_symbols = parsed_args["skip_symbols"]
@@ -189,10 +191,11 @@ def calculate_max_batch_size(asg_client, service, percent):
 
 class CFTemplateLinter(object):
 
-  def __init__(self, template):
+  def __init__(self, template, custom_rules):
     self.template = template
     self.work_dir = '.lint'
     self.local_template_path = os.path.join(self.work_dir, 'template.json')
+    self.custom_rules = custom_rules
     self.cfn_exit_code = None
     self.exit_code = None
     self.setup()
@@ -210,8 +213,15 @@ class CFTemplateLinter(object):
 
   def cfn_lint(self):
     print("=== CLOUDFORMATION LINTING ===")
-    cmd = 'cfn-lint --template {}'.format(self.local_template_path)
-    cfn = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    cmd = [
+      'cfn-lint',
+      '--template {}'.format(self.local_template_path)
+    ]
+
+    if self.custom_rules:
+      cmd.append('--append-rules {}'.format(self.custom_rules))
+
+    cfn = subprocess.Popen(' '.join(cmd), shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     stdout, stderr = cfn.communicate()
     print(stdout, stderr)
     if cfn.returncode in [0, 4]:
@@ -420,7 +430,7 @@ def main():
           elif re.match(r".*_IN_PROGRESS(?!.)", stack_status) is not None:
             time.sleep(EFConfig.EF_CF_POLL_PERIOD)
     elif context.lint:
-      tester = CFTemplateLinter(template)
+      tester = CFTemplateLinter(template, context.custom_rules)
       tester.run_tests()
       exit(tester.exit_code)
 
