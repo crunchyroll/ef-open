@@ -43,6 +43,7 @@ class EFContext(object):
     self._aws_clients = None
     self._commit = None
     self._devel = None
+    self._only_for = None
     self._verbose = None
     self._whereami = whereami()
 
@@ -189,6 +190,11 @@ class EFContext(object):
     if type(value) is not bool:
       raise TypeError("devel value must be bool")
     self._devel = value
+
+  @property
+  def only_for(self):
+    """Specific service registry entry targeted as parameter passed to tool"""
+    return self._only_for
 
   @property
   def verbose(self):
