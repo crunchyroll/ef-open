@@ -196,6 +196,10 @@ class EFContext(object):
     """Specific service registry entry targeted as parameter passed to tool"""
     return self._only_for
 
+  @only_for.setter
+  def only_for(self, value):
+    self._only_for = value
+
   @property
   def verbose(self):
     """True if the tool should print extra info"""
