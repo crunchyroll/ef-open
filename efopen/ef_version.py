@@ -289,6 +289,7 @@ def handle_args_and_set_context(args):
                       type=int, default=100)
   parser.add_argument("--location", help="On --set, also mark the url location of the static build's version file to"
                       "support dist-hash precheck", default="")
+  parser.add_argument("--noprecheck", help="Flag is deprecated but left behind to not break things", action="store_true")
   parser.add_argument("--sr", help="optional /path/to/service_registry_file.json", default=None)
   parser.add_argument("--stable", help="On --set, also mark the version 'stable'", action="store_true")
   parser.add_argument("--verbose", help="Print additional info", action="store_true", default=False)
