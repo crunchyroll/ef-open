@@ -177,6 +177,7 @@ def handle_args_and_set_context(args):
   group.add_argument("--secret_file", help="json file containing secrets to be encrypted", default="")
   parser.add_argument("--match", help="used in conjunction with --secret_file to match against keys to be encrypted", default="")
   parser.add_argument("--length", help="length of generated password (default 32)", default=32)
+  parser.add_argument("--lbv1_escapes", help="if secret has escapes, encode them for lbv1 consumption", action="store_true", default=False)
   parsed_args = vars(parser.parse_args(args))
   context = EFPWContext()
 
@@ -189,8 +190,10 @@ def handle_args_and_set_context(args):
   context.decrypt = parsed_args["decrypt"]
   context.re_encrypt = parsed_args["re_encrypt"]
   context.length = parsed_args["length"]
-  # unescape any escapes that the shell might've added; e.g: \\n becomes \n
-  context.plaintext = parsed_args["plaintext"].decode("string_escape")
+  context.plaintext = parsed_args["plaintext"]
+  if not parsed_args["lbv1_escapes"]:
+    # unescape any escapes that the shell might've added; e.g: \\n becomes \n
+    context.plaintext = parsed_args["plaintext"].decode("string_escape")
   context.secret_file = parsed_args["secret_file"]
   context.match = parsed_args["match"]
   if context.match or context.secret_file:

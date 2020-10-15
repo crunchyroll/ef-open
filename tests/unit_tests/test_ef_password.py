@@ -85,6 +85,20 @@ class TestEFPassword(unittest.TestCase):
     self.assertEqual(context.length, 10)
     self.assertEqual(context.plaintext, expected_plaintext)
 
+  def test_args_plaintext_lbv1_escape_sequences(self):
+    """
+    Test parsing args with all valid values and plaintext with latebindv1
+    compatible escape sequences When called from bash in this form
+    `ef-password --plaintext "hello\nworld" --lbv1_escapes` the OS transforms the plaintext
+    argument into `"hello\\nworld"`. The decrypted value should have the same form
+    """
+    expected_plaintext = "hello\\nworld"
+    args = [self.service, self.env, "--lbv1_escapes", "--plaintext", "hello\\nworld"]
+    context = ef_password.handle_args_and_set_context(args)
+    self.assertEqual(context.env, self.env)
+    self.assertEqual(context.service, self.service)
+    self.assertEqual(context.plaintext, expected_plaintext)
+
   def test_args_secret_file(self):
     """Test parsing args with all valid values (secret file)"""
     args = [self.service, self.env, "--length", "10", "--secret_file",
