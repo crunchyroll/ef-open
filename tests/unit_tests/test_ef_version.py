@@ -47,7 +47,6 @@ class TestEFVersion(unittest.TestCase):
     self.history = "text"
     self.key = "ami-id"
     self.location = "https://s3-us-west-2.amazonaws.com/ellation-cx-proto3-static/foo/dist-hash"
-    self.noprecheck = None
     self.parsed_env_full = "global"
     self.service = "test-instance"
     self.service_name = "test-instance"
@@ -162,65 +161,6 @@ class TestEFVersion(unittest.TestCase):
     self.assertEqual(context.history, self.history)
     self.assertEqual(context.service_name, self.service_name)
     self.assertEqual(context.service_registry.filespec, self.service_registry_file)
-
-  @patch('ef_version.isfunction')
-  def test_noprecheck(self, mock_isfunction):
-    """Test precheck resolves the correct precheck method"""
-    mock_isfunction.return_value = True
-    self.noprecheck = True
-    self.assertTrue(ef_version.precheck(self))
-    mock_isfunction.assert_not_called()
-
-  @patch('ef_version.isfunction')
-  @patch('ef_version.globals')
-  def test_precheck(self, mock_globals, mock_isfunction):
-    """Test precheck returns correct method"""
-    mock_isfunction.return_value = True
-    mock_precheck_method = Mock(name='mock precheck method')
-    mock_precheck_method.return_value = True
-    mock_globals.return_value = {"precheck_ami_id": mock_precheck_method}
-    self.assertTrue(ef_version.precheck(self))
-    mock_precheck_method.assert_called_once()
-
-  @patch('ef_version.Version')
-  @patch('urllib2.urlopen')
-  def test_precheck_dist_hash(self, mock_urlopen, mock_version_object):
-    """Test precheck of dist hash version"""
-    mock_version_object.return_value = self.mock_version
-    mock_s3_response = Mock(name='mock s3 response')
-    mock_s3_response.getcode.return_value = 200
-    mock_s3_response.read.return_value = self.value
-    mock_urlopen.return_value = mock_s3_response
-    self.assertTrue(ef_version.precheck_dist_hash(self))
-
-  @patch('ef_version.Version')
-  @patch('urllib2.urlopen')
-  def test_precheck_dist_hash_s3_404(self, mock_urlopen, mock_version_object):
-    """Test precheck to validate error thrown on a Non-200 response from s3"""
-    mock_version_object.return_value = self.mock_version
-    mock_s3_response = Mock(name='mock s3 response')
-    mock_s3_response.getcode.return_value = 404
-    mock_urlopen.return_value = mock_s3_response
-    with self.assertRaises(IOError):
-      ef_version.precheck_dist_hash(self)
-
-  @patch('ef_version.Version')
-  @patch('urllib2.urlopen')
-  def test_precheck_dist_hash_urllib_error(self, mock_urlopen, mock_version_object):
-    """Test preckek to validate error thrown on url error"""
-    mock_version_object.return_value = self.mock_version
-    mock_s3_response = Mock(name='mock s3 response')
-    mock_urlopen.return_value = mock_s3_response
-    mock_urlopen.side_effect = IOError
-    with self.assertRaises(IOError):
-      ef_version.precheck_dist_hash(self)
-
-  @patch('ef_version.Version')
-  def test_precheck_dist_hash_version_none(self, mock_version_object):
-    """Test precheck_dist_hash when current version is none"""
-    response = {"Error": {"Code": "NoSuchKey"}}
-    mock_version_object.side_effect = ClientError(response, "Get Object")
-    self.assertTrue(ef_version.precheck_dist_hash(self))
 
 
 class TestVersion(unittest.TestCase):
