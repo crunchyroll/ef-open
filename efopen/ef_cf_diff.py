@@ -45,7 +45,7 @@ logger.addHandler(ch)
 logging.getLogger('botocore').setLevel(logging.CRITICAL)
 
 ret_code = 0
-service_registry = None
+service_registry = EFServiceRegistry()
 
 
 def diff_string_templates(string_a, string_b):
@@ -65,7 +65,7 @@ def render_local_template(service_name, environment, repo_root, template_file):
     """
     cmd = 'cd {} && ef-cf {} {} --devel --verbose'.format(repo_root, template_file, environment)
     p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    stdout, stderr = p.communicate()
+    stdout, stderr = (str(it.decode('UTF-8', 'ignore')) for it in p.communicate())
 
     if p.returncode != 0:
         stderr = indentify('\n{}'.format(stderr))
@@ -124,16 +124,16 @@ def diff_sevice_by_text(service_name, service, environment, cf_client, repo_root
         logger.info('Change details:\n        %s', indentify(ret))
 
 
-def jsonify(dict):
-    return json.dumps(dict, indent=2, sort_keys=True)
+def jsonify(obj):
+    return json.dumps(obj, indent=2, sort_keys=True)
 
 
-def indentify(str):
-    return str.replace('\n', '\n        ')
+def indentify(s):
+    return s.replace('\n', '\n        ')
 
 
 def changeset_is_empty(response):
-    return (response['Status'] == 'FAILED' and "didn't contain changes" in response['StatusReason'])
+    return response['Status'] == 'FAILED' and "didn't contain changes" in response['StatusReason']
 
 
 def wait_for_changeset_creation(cf_client, changeset_id, changeset_stackid):
@@ -158,7 +158,7 @@ def generate_changeset(service_name, environment, repo_root, template_file):
     """
     cmd = 'cd {} && ef-cf {} {} --changeset --devel'.format(repo_root, template_file, environment)
     p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    stdout, stderr = p.communicate()
+    stdout, stderr = (str(it.decode('UTF-8', 'ignore')) for it in p.communicate())
 
     if p.returncode != 0:
         stderr = indentify('\n{}'.format(stderr))
@@ -283,7 +283,7 @@ def evaluate_service_changes(services, envs, repo_root, func):
 
     Sub-services (names with '.' in them) are skipped.
     """
-    for service_name, service in services.iteritems():
+    for service_name, service in services.items():
 
         for env_category in service['environments']:
             if env_category not in get_env_categories(envs):
@@ -304,14 +304,15 @@ def test_for_unused_template_files(template_files, services):
     used by a service in the service registry
     (the annoying sub-function is to deal with Python's lack of a labeled break)
     """
-    def print_unused_template_warning(file, services):
-        for service_name, service in services.iteritems():
-            if service['template_file'] == file:
-                return
-        logger.warning("Template file has no service registry entry: `%s`", file)
 
-    for name, file in template_files.iteritems():
-        print_unused_template_warning(file, services)
+    def print_unused_template_warning(file_path):
+        for service_name, service in services.items():
+            if service['template_file'] == file_path:
+                return
+        logger.warning("Template file has no service registry entry: `%s`", file_path)
+
+    for file in template_files.values():
+        print_unused_template_warning(file)
 
 
 def get_matching_service_template_file(service_name, template_files):
@@ -343,8 +344,8 @@ def get_dict_registry_services(registry, template_files, warn_missing_files=True
         parsed_registry = json.load(fr)
 
     services = {}
-    for type, type_services in parsed_registry.iteritems():
-        for name, service in type_services.iteritems():
+    for type_name, type_services in parsed_registry.items():
+        for name, service in type_services.items():
             if name in services:
                 logger.warning("Template name appears twice, ignoring later items: `%s`", name)
                 continue
@@ -352,11 +353,11 @@ def get_dict_registry_services(registry, template_files, warn_missing_files=True
             template_file = get_matching_service_template_file(name, template_files)
             if not template_file:
                 if warn_missing_files:
-                    logger.warning("No template file for `%s` (%s) `%s`", type, service['type'], name)
+                    logger.warning("No template file for `%s` (%s) `%s`", type_name, service['type'], name)
                 continue
 
             services[name] = {
-                'type': type,
+                'type': type_name,
                 'template_file': template_file,
                 'environments': service['environments']
             }
@@ -371,8 +372,8 @@ def scan_dir_for_template_files(search_dir):
     """
     template_files = {}
     cf_dir = os.path.join(search_dir, 'cloudformation')
-    for type in os.listdir(cf_dir):
-        template_dir = os.path.join(cf_dir, type, 'templates')
+    for type_name in os.listdir(cf_dir):
+        template_dir = os.path.join(cf_dir, type_name, 'templates')
         for x in os.listdir(template_dir):
             name = os.path.splitext(x)[0]
             template_files[name] = os.path.join(template_dir, x)
@@ -420,7 +421,7 @@ def main(repo_root, sr, env, template_file, raw_text):
     # those templates" mode.  Otherwise we'll just do every template.
     if template_file:
         template_files = {name: file
-                          for name, file in template_files.iteritems()
+                          for name, file in template_files.items()
                           if file in template_file}
 
     services = get_dict_registry_services(service_registry.filespec,

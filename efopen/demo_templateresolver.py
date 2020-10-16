@@ -16,10 +16,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-from __future__ import print_function
+from __future__ import print_function, absolute_import
 
-from ef_template_resolver import EFTemplateResolver
-from ef_conf_utils import get_account_alias
+from .ef_template_resolver import EFTemplateResolver
+from .ef_conf_utils import get_account_alias
 
 PARAMS = """{
   "params":{
@@ -103,10 +103,10 @@ GLOBAL_ENV_TEST_STRING = "fully-qualified environment:{{ENV_FULL}}\n"
 
 # Test with proto0
 if LOCAL:
-  resolver = EFTemplateResolver(profile=get_account_alias("proto0"), env="proto0", region="us-west-2",
-                                service="mine", verbose=True)
+    resolver = EFTemplateResolver(profile=get_account_alias("proto0"), env="proto0", region="us-west-2",
+                                  service="mine", verbose=True)
 else:
-  resolver = EFTemplateResolver(verbose=True)
+    resolver = EFTemplateResolver(verbose=True)
 
 resolver.load(TEST_STRING, PARAMS)
 resolver.render()
@@ -120,15 +120,15 @@ print("all EFTemplateResolver symbols: "+repr(resolver.resolved))
 
 # Demo with the global env 'mgmt.ellationeng' (local only)
 if LOCAL:
-  resolver = EFTemplateResolver(profile=get_account_alias("mgmt.ellationeng"), env="mgmt.ellationeng", region="us-west-2",
-                                service="mine", verbose=True)
+    resolver = EFTemplateResolver(profile=get_account_alias("mgmt.ellationeng"), env="mgmt.ellationeng", region="us-west-2",
+                                  service="mine", verbose=True)
 
-  resolver.load(GLOBAL_ENV_TEST_STRING, PARAMS)
-  resolver.render()
+    resolver.load(GLOBAL_ENV_TEST_STRING, PARAMS)
+    resolver.render()
 
-  print("\nDemo 'mgmt.ellationeng' resolution")
-  print(resolver.template)
-  print("unresolved symbol count: "+str(len(resolver.unresolved_symbols())))
-  print("unresolved symbols: "+repr(resolver.unresolved_symbols()))
-  print("all template symbols: "+repr(resolver.symbols))
-  print("all EFTemplateResolver symbols: "+repr(resolver.resolved))
+    print("\nDemo 'mgmt.ellationeng' resolution")
+    print(resolver.template)
+    print("unresolved symbol count: "+str(len(resolver.unresolved_symbols())))
+    print("unresolved symbols: "+repr(resolver.unresolved_symbols()))
+    print("all template symbols: "+repr(resolver.symbols))
+    print("all EFTemplateResolver symbols: "+repr(resolver.resolved))

@@ -19,11 +19,12 @@ setup(
     ],
     install_requires=[
         'boto3',
+        'botocore',
         'click',
         'PyYAML',
         'cfn-lint',
         'requests',
-        'yamllint'
+        'yamllint',
     ],
     extras_require={
         'test': [

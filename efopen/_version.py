@@ -71,7 +71,6 @@ def run_command(commands, args, cwd=None, verbose=False, hide_stderr=False,
                 env=None):
     """Call the given command(s)."""
     assert isinstance(commands, list)
-    p = None
     for c in commands:
         try:
             dispcmd = str([c] + args)
@@ -95,7 +94,7 @@ def run_command(commands, args, cwd=None, verbose=False, hide_stderr=False,
         return None, None
     stdout = p.communicate()[0].strip()
     if sys.version_info[0] >= 3:
-        stdout = stdout.decode()
+        stdout = stdout.decode('UTF-8')
     if p.returncode != 0:
         if verbose:
             print("unable to run %s (error)" % dispcmd)

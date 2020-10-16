@@ -14,60 +14,60 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-from __future__ import print_function
+from __future__ import print_function, absolute_import
 
-from ef_config import EFConfig
+from .ef_config import EFConfig
 
 
 class EFConfigResolver(object):
-  """
-  Resolves values from the tool configuration in the EFConfig class (ef_config.py)
-
-  In a template:
-    {{efconfig:thing,lookup}}
-    {{efconfig:accountaliasofenv,prod}} <-- gets the account alias of the account that hosts the 'prod' env
-  """
-
-  def accountaliasofenv(self, lookup, default=None):
     """
-    Args:
-      lookup: ENV_SHORT name of an env, such as: 'prod' or 'proto'
-      default: the optional value to return if lookup failed; returns None if not set
-    Returns:
-      The account alias of the account that hosts the env named in lookupor default/None if no match found
-    """
-    if lookup in EFConfig.ENV_ACCOUNT_MAP:
-      return EFConfig.ENV_ACCOUNT_MAP[lookup]
-    else:
-      return None
+    Resolves values from the tool configuration in the EFConfig class (ef_config.py)
 
-  def customdata(self, lookup, default=None):
+    In a template:
+      {{efconfig:thing,lookup}}
+      {{efconfig:accountaliasofenv,prod}} <-- gets the account alias of the account that hosts the 'prod' env
     """
-    Args:
-      lookup: the custom data file
-      default: the optional value to return if lookup failed; returns None if not set
-    Returns:
-      The custom data returned from the file 'lookup' or default/None if no match found
-    """
-    try:
-      if lookup in EFConfig.CUSTOM_DATA:
-        return EFConfig.CUSTOM_DATA[lookup]
-      else:
-        return default
-    except AttributeError:
-      return default
 
-  def lookup(self, token):
-    try:
-      kv = token.split(",")
-    except ValueError:
-      return None
-    if kv[0] == "accountaliasofenv":
-      return self.accountaliasofenv(*kv[1:])
-    if kv[0] == "customdata":
-      return self.customdata(*kv[1:])
-    else:
-      return None
+    def accountaliasofenv(self, lookup, default=None):
+        """
+        Args:
+          lookup: ENV_SHORT name of an env, such as: 'prod' or 'proto'
+          default: the optional value to return if lookup failed; returns None if not set
+        Returns:
+          The account alias of the account that hosts the env named in lookupor default/None if no match found
+        """
+        if lookup in EFConfig.ENV_ACCOUNT_MAP:
+            return EFConfig.ENV_ACCOUNT_MAP[lookup]
+        else:
+            return None
 
-  def __init__(self):
-    pass
+    def customdata(self, lookup, default=None):
+        """
+        Args:
+          lookup: the custom data file
+          default: the optional value to return if lookup failed; returns None if not set
+        Returns:
+          The custom data returned from the file 'lookup' or default/None if no match found
+        """
+        try:
+            if lookup in EFConfig.CUSTOM_DATA:
+                return EFConfig.CUSTOM_DATA[lookup]
+            else:
+                return default
+        except AttributeError:
+            return default
+
+    def lookup(self, token):
+        try:
+            kv = token.split(",")
+        except ValueError:
+            return None
+        if kv[0] == "accountaliasofenv":
+            return self.accountaliasofenv(*kv[1:])
+        if kv[0] == "customdata":
+            return self.customdata(*kv[1:])
+        else:
+            return None
+
+    def __init__(self):
+        pass
