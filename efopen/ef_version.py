@@ -289,8 +289,7 @@ def handle_args_and_set_context(args):
                       type=int, default=100)
   parser.add_argument("--location", help="On --set, also mark the url location of the static build's version file to"
                       "support dist-hash precheck", default="")
-  if EFConfig.ALLOW_EF_VERSION_SKIP_PRECHECK:
-    parser.add_argument("--noprecheck", help="--set or --rollback without precheck", action="store_true", default=False)
+  parser.add_argument("--noprecheck", help="Flag is deprecated but left behind to not break things", action="store_true")
   parser.add_argument("--sr", help="optional /path/to/service_registry_file.json", default=None)
   parser.add_argument("--stable", help="On --set, also mark the version 'stable'", action="store_true")
   parser.add_argument("--verbose", help="Print additional info", action="store_true", default=False)
@@ -311,8 +310,7 @@ def handle_args_and_set_context(args):
   context._get = parsed_args["get"]
   context._history = parsed_args["history"]
   context._key = parsed_args["key"]
-  if EFConfig.ALLOW_EF_VERSION_SKIP_PRECHECK:
-    context._noprecheck = parsed_args["noprecheck"]
+  context._noprecheck = True
   if not 1 <= parsed_args["limit"] <= 1000:
     fail("Error in --limit. Valid range: 1..1000")
   context._limit = parsed_args["limit"]
@@ -366,133 +364,6 @@ def validate_context(context):
          "in ef_config and validate service registry entry".format(service_type, context.key))
 
   return True
-
-
-def precheck_ami_id(context):
-  """
-  Is the AMI in service the same as the AMI marked current in the version records?
-  This tool won't update records unless the world state is coherent.
-  Args:
-    context: a populated EFVersionContext object
-  Returns:
-    True if ok to proceed
-  Raises:
-    RuntimeError if not ok to proceed
-  """
-  # get the current AMI
-  key = "{}/{}".format(context.env, context.service_name)
-  print_if_verbose("precheck_ami_id with key: {}".format(key))
-  current_ami = context.versionresolver.lookup("ami-id,{}".format(key))
-  print_if_verbose("ami found: {}".format(current_ami))
-
-  # If bootstrapping (this will be the first entry in the version history)
-  # then we can't check it vs. running version
-  if current_ami is None:
-    print_if_verbose("precheck passed without check because current AMI is None")
-    return True
-
-  # Otherwise perform a consistency check
-  # 1. get IDs of instances running the AMI - will find instances in all environments
-  instances_running_ami = context.aws_client("ec2").describe_instances(
-      Filters=[{
-          'Name': 'image-id',
-          'Values': [current_ami]
-      }]
-  )["Reservations"]
-  if instances_running_ami:
-    instances_running_ami = [resv["Instances"][0]["InstanceId"] for resv in instances_running_ami]
-  print_if_verbose("instances running ami {}:\n{}".format(current_ami, repr(instances_running_ami)))
-
-  # 2. Get IDs of instances running as <context.env>-<context.service_name>
-  env_service = "{}-{}".format(context.env, context.service_name)
-  instances_running_as_env_service = context.aws_client("ec2").describe_instances(
-      Filters=[{
-          'Name': 'iam-instance-profile.arn',
-          'Values': ["arn:aws:iam::*:instance-profile/{}-{}".format(context.env, context.service_name)]
-      }]
-  )["Reservations"]
-  if instances_running_as_env_service:
-    instances_running_as_env_service = \
-        [resv["Instances"][0]["InstanceId"] for resv in instances_running_as_env_service]
-  print_if_verbose("instances running as {}".format(env_service))
-  print_if_verbose(repr(instances_running_as_env_service))
-
-  # 3. Instances running as env-service should be a subset of instances running the AMI
-  for instance_id in instances_running_as_env_service:
-    if instance_id not in instances_running_ami:
-      raise RuntimeError("Instance: {} not running expected ami: {}".format(instance_id, current_ami))
-
-  # Check passed - all is well
-  return True
-
-
-def precheck_dist_hash(context):
-  """
-  Is the dist in service the same as the dist marked current in the version records?
-  This tool won't update records unless the world state is coherent.
-  Args:
-    context: a populated EFVersionContext object
-  Returns:
-    True if ok to proceed
-  Raises:
-    RuntimeError if not ok to proceed
-  """
-  # get the current dist-hash
-  key = "{}/{}/dist-hash".format(context.service_name, context.env)
-  print_if_verbose("precheck_dist_hash with key: {}".format(key))
-  try:
-    current_dist_hash = Version(context.aws_client("s3").get_object(
-        Bucket=EFConfig.S3_VERSION_BUCKET,
-        Key=key
-    ))
-    print_if_verbose("dist-hash found: {}".format(current_dist_hash.value))
-  except ClientError as error:
-    if error.response["Error"]["Code"] == "NoSuchKey":
-      # If bootstrapping (this will be the first entry in the version history)
-      # then we can't check it vs. current version, thus we cannot get the key
-      print_if_verbose("precheck passed without check because current dist-hash is None")
-      return True
-    else:
-      fail("Exception while prechecking dist_hash for {} {}: {}".format(context.service_name, context.env, error))
-
-  # Otherwise perform a consistency check
-  # 1. get dist version in service for environment
-  try:
-    response = urllib2.urlopen(current_dist_hash.location, None, 5)
-    if response.getcode() != 200:
-      raise IOError("Non-200 response " + str(response.getcode()) + " reading " + current_dist_hash.location)
-    dist_hash_in_service = response.read().strip()
-  except urllib2.URLError as error:
-    raise IOError("URLError in http_get_dist_version: " + repr(error))
-
-  # 2. dist version in service should be the same as "current" dist version
-  if dist_hash_in_service != current_dist_hash.value:
-    raise RuntimeError("{} dist-hash in service: {} but expected dist-hash: {}"
-                       .format(key, dist_hash_in_service, current_dist_hash.value))
-
-  # Check passed - all is well
-  return True
-
-
-def precheck(context):
-  """
-  calls a function named "precheck_<key>" where <key> is context_key with '-' changed to '_'
-  (e.g. "precheck_ami_id")
-  Checking function should return True if OK, or raise RuntimeError w/ message if not
-  Args:
-    context: a populated EFVersionContext object
-  Returns:
-    True if the precheck passed, or if there was no precheck function for context.key
-  Raises:
-    RuntimeError if precheck failed, with explanatory message
-  """
-  if context.noprecheck:
-    return True
-  func_name = "precheck_" + context.key.replace("-", "_")
-  if func_name in globals() and isfunction(globals()[func_name]):
-    return globals()[func_name](context)
-  else:
-    return True
 
 
 def _get_stable_versions(context):
@@ -682,12 +553,6 @@ def cmd_set(context):
     else:
       raise RuntimeError("{} version for {}/{} is '=latest' but can't look up because method not found: {}".format(
                          context.key, context.env, context.service_name, func_name))
-
-  # precheck to confirm coherent world state before attempting set - whatever that means for the current key type
-  try:
-    precheck(context)
-  except Exception as e:
-    fail("Precheck failed: {}".format(e))
 
   s3_key = "{}/{}/{}".format(context.service_name, context.env, context.key)
   s3_version_status = EFConfig.S3_VERSION_STATUS_STABLE if context.stable else EFConfig.S3_VERSION_STATUS_UNDEFINED
