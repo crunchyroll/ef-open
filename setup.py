@@ -14,6 +14,7 @@ setup(
     name='ef-open',
     version=versioneer.get_version(),
     cmdclass=versioneer.get_cmdclass(),
+    python_requires='~=2.7',
     packages=[
         'efopen'
     ],
