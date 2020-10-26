@@ -667,6 +667,10 @@ def main():
   print("aws account profile: {}".format(CONTEXT.account_alias))
   print("aws account number: {}".format(CONTEXT.account_id))
 
+  # If we're only ef-generate for a specific service, print it out here
+  if CONTEXT.only_for:
+    print("running ef-generate only for entry: {}".format(CONTEXT.only_for))
+
   # Step through all services in the service registry
   for CONTEXT.service in CONTEXT.service_registry.iter_services():
     service_name = CONTEXT.service[0]
@@ -678,8 +682,6 @@ def main():
     # Are we targeting a specific entry in the registry?
     if CONTEXT.only_for and CONTEXT.only_for != service_name:
       continue
-    else:
-      print("running ef-generate only for entry: {}".format(service_name))
 
     # Is this service_type handled by this tool?
     if service_type not in SUPPORTED_SERVICE_TYPES:
