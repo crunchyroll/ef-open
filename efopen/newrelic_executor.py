@@ -7,7 +7,7 @@ from ef_utils import kms_decrypt
 from newrelic_interface import NewRelic, AlertPolicy
 
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.INFO, force=True)
 logger = logging.getLogger(__name__)
 
 
@@ -87,8 +87,8 @@ class NewRelicAlerts(object):
     conditions_to_create = set(policy.config_conditions.keys()).difference(remote_conditions)
 
     for key in conditions_to_create:
-      self.newrelic.create_alert_condition(policy.config_conditions[key])
       logger.info("create condition {} for policy {}".format(key, policy.name))
+      self.newrelic.create_alert_condition(policy.config_conditions[key])
 
   def update_cloudfront_policy(self):
     # Update Cloudfront alert policies
