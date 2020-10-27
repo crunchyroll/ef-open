@@ -47,9 +47,14 @@ class NewRelicAlerts(object):
 
   @property
   def admin_token(self):
+    admin_token = self.config.get('admin_token', "")
     admin_token_map = self.config.get('admin_token_map', "")
-    aws_account_alias = get_account_alias(self.context.env)
-    plain_token = admin_token_map.get(aws_account_alias)
+
+    if admin_token:
+      plain_token = admin_token
+    else:
+      aws_account_alias = get_account_alias(self.context.env)
+      plain_token = admin_token_map.get(aws_account_alias)
 
     if plain_token is None:
       raise KeyError("NewRelic Admin Token not defined for {}".format(aws_account_alias))
