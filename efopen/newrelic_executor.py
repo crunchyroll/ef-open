@@ -240,6 +240,7 @@ class NewRelicAlerts(object):
     for service_name, service_config in self.context.service_registry.iter_services(service_group="application_services"):
       service_environments = service_config['environments']
       service_alert_overrides = service_config.get('alerts', {})
+      opsgenie_enabled = service_alert_overrides.get('opsgenie_enabled', True)
       opsgenie_team = service_config.get("team_opsgenie", "")
       service_type = service_config['type']
 
@@ -248,6 +249,8 @@ class NewRelicAlerts(object):
 
       if self.context.env in service_environments:
         policy = AlertPolicy(env=self.context.env, service=service_name)
+
+        logger.debug("Policy ID is {}".format(policy.id))
 
         # Create service alert policy if it doesn't already exist
         if not self.newrelic.alert_policy_exists(policy.name):
@@ -262,7 +265,8 @@ class NewRelicAlerts(object):
         # Configure Opsgenie notifications for services running in the production account
         try:
           prod_account = EFConfig.ENV_ACCOUNT_MAP['prod']
-          if self.context.env in ["prod", "global.{}".format(prod_account), "mgmt.{}".format(prod_account)]:
+          if (self.context.env in ["prod", "global.{}".format(prod_account), "mgmt.{}".format(prod_account)]
+              and opsgenie_enabled):
             self.add_policy_to_opsgenie_channel(policy, opsgenie_team)
         except KeyError:
           pass
@@ -302,6 +306,7 @@ class NewRelicAlerts(object):
     for service_name, service_config in chain(platform_services, application_services):
       service_environments = service_config['environments']
       service_alert_overrides = service_config.get('alerts', {})
+      opsgenie_enabled = service_alert_overrides.get('opsgenie_enabled', True)
       opsgenie_team = service_config.get("team_opsgenie", "")
       service_type = service_config['type']
 
@@ -310,6 +315,8 @@ class NewRelicAlerts(object):
 
       if self.context.env in service_environments:
         policy = AlertPolicy(env=self.context.env, service=service_name)
+
+        logger.debug("Policy ID is {}".format(policy.id))
 
         # Create service alert policy if it doesn't already exist
         if not self.newrelic.alert_policy_exists(policy.name):
@@ -324,7 +331,8 @@ class NewRelicAlerts(object):
         # Configure Opsgenie notifications for services running in the production account
         try:
           prod_account = EFConfig.ENV_ACCOUNT_MAP['prod']
-          if self.context.env in ["prod", "global.{}".format(prod_account), "mgmt.{}".format(prod_account)]:
+          if (self.context.env in ["prod", "global.{}".format(prod_account), "mgmt.{}".format(prod_account)]
+              and opsgenie_enabled):
             self.add_policy_to_opsgenie_channel(policy, opsgenie_team)
         except KeyError:
           pass
