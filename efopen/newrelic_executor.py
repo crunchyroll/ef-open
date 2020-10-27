@@ -52,7 +52,7 @@ class NewRelicAlerts(object):
     plain_token = admin_token_map.get(aws_account_alias)
 
     if plain_token is None:
-      raise KeyError("NewRelic Admin Token not defined for {}".format(aws_acaws_account_aliascount))
+      raise KeyError("NewRelic Admin Token not defined for {}".format(aws_account_alias))
 
     if self.config['token_kms_encrypted']:
       return kms_decrypt(self.clients['kms'], plain_token).plaintext
