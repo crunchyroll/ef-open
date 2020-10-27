@@ -3,6 +3,7 @@ from itertools import chain
 import logging
 
 from ef_config import EFConfig
+from ef_conf_utils import get_account_alias
 from ef_utils import kms_decrypt
 from newrelic_interface import NewRelic, AlertPolicy
 
@@ -20,7 +21,6 @@ class NewRelicAlerts(object):
     self.local_alert_nrql_conditions = self.config.get('alert_nrql_conditions', {})
     self.lambda_alert_conditions = self.config.get('lambda_alert_conditions', {})
     self.local_alert_apm_conditions = self.config.get('apm_metric_alert_conditions', {})
-    self.admin_token = self.config.get('admin_token', "")
     self.all_notification_channels = self.config.get('env_notification_map', {})
     self.opsgenie_api_key = self.config["opsgenie_api_key"]
     self.context, self.clients = context, clients
@@ -44,6 +44,20 @@ class NewRelicAlerts(object):
     elif isinstance(condition_obj, str):
       condition_obj = convert_string(condition_obj)
     return condition_obj
+
+  @property
+  def admin_token(self):
+    admin_token_map = self.config.get('admin_token_map', "")
+    aws_account_alias = get_account_alias(self.context.env)
+    plain_token = admin_token_map.get(aws_account_alias)
+
+    if plain_token is None:
+      raise KeyError("NewRelic Admin Token not defined for {}".format(aws_acaws_account_aliascount))
+
+    if self.config['token_kms_encrypted']:
+      return kms_decrypt(self.clients['kms'], plain_token).plaintext
+
+    return plain_token
 
   def create_alert_policy(self, policy):
     if not self.newrelic.alert_policy_exists(policy.name):
@@ -335,9 +349,6 @@ class NewRelicAlerts(object):
 
   def run(self):
     if self.context.env in self.all_notification_channels.keys():
-      if self.config['token_kms_encrypted']:
-        self.admin_token = kms_decrypt(self.clients['kms'], self.admin_token).plaintext
-
       self.newrelic = NewRelic(self.admin_token)
       self.update_application_services_policies()
       self.update_lambda_policies()
