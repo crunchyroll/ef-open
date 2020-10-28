@@ -285,10 +285,10 @@ class NewRelicAlerts(object):
         try:
           prod_account = EFConfig.ENV_ACCOUNT_MAP['prod']
           if (self.context.env in ["prod", "global.{}".format(prod_account), "mgmt.{}".format(prod_account)]
-              and opsgenie_enabled):
+              and opsgenie_enabled and opsgenie_team):
             self.add_policy_to_opsgenie_channel(policy, opsgenie_team)
-          elif not opsgenie_enabled:
-            logger.info("Not adding opsgenie_channel {} for service {} alert policy.".format(opsgenie_team, service_name))
+          elif not opsgenie_enabled or not opsgenie_team:
+            logger.warning("Not adding opsgenie_channel {} for service {} alert policy.".format(opsgenie_team, service_name))
         except KeyError:
           pass
 
@@ -353,10 +353,10 @@ class NewRelicAlerts(object):
         try:
           prod_account = EFConfig.ENV_ACCOUNT_MAP['prod']
           if (self.context.env in ["prod", "global.{}".format(prod_account), "mgmt.{}".format(prod_account)]
-              and opsgenie_enabled):
+              and opsgenie_enabled and opsgenie_team):
             self.add_policy_to_opsgenie_channel(policy, opsgenie_team)
-          elif not opsgenie_enabled:
-            logger.info("Not adding opsgenie_channel {} for service {} alert policy.".format(opsgenie_team, service_name))
+          elif not opsgenie_enabled or not opsgenie_team:
+            logger.warning("Not adding opsgenie_channel {} for service {} alert policy.".format(opsgenie_team, service_name))
         except KeyError:
           pass
 
