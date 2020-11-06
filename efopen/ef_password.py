@@ -22,6 +22,8 @@ class EFPWContext(EFContext):
     self._plaintext = None
     self._secret_file = None
     self._match = None
+    self._special_character_override = None
+    self.forbidden_characters = ['§', '±', '\\', '>', '<', ':', '\'', '"', '`']
 
   @property
   def decrypt(self):
@@ -93,6 +95,21 @@ class EFPWContext(EFContext):
     if type(value) is not str:
       raise TypeError("match value must be str")
     self._match = value
+
+  @property
+  def special_character_override(self):
+    """Special characters to dissmiss when entering a plain-text to be encrypted"""
+    return self._special_character_override
+
+  @special_character_override.setter
+  def special_character_override(self, value):
+    if type(value) is not str:
+      raise TypeError("special_character_override value must be string")
+    self._special_character_override = value
+
+  @property
+  def forbidden_characters(self):
+    return self._forbidden_characters
 
 def format_secret(secret):
   """
@@ -170,6 +187,7 @@ def handle_args_and_set_context(args):
   parser = argparse.ArgumentParser(description="Encrypt/decrypt template secrets.")
   parser.add_argument("service", help="name of service password is being generated for")
   parser.add_argument("env", help=", ".join(EFConfig.ENV_LIST))
+  parser.add_argument("special_character_override", help="comma-separated list of characters to override - only use with plaintext argument to allow a special charater set. Pick a subset from: §,±,<,>,',\",`,\\,: which are denied by default" , default="")
   group = parser.add_mutually_exclusive_group()
   group.add_argument("--decrypt", help="encrypted string to be decrypted", default="")
   group.add_argument("--re-encrypt", help="encrypted string to be re encrypted for a new service", default="")
@@ -199,7 +217,14 @@ def handle_args_and_set_context(args):
   if context.match or context.secret_file:
     if not context.match or not context.secret_file:
       raise ValueError("Must have both --match and --secret_file flag")
-
+  context.special_character_override = parsed_args["special_character_override"]
+  #special_characters_override only applies when plaintext is present
+  if context.plaintext is None and context.special_character_override:
+    parser.error("special_character_override parameter can only be specified when plaintext parameter is specified")
+  if context.special_character_override:
+    for special_char in context.special_character_override.split(","):
+      if special_char not in context.forbidden_characters:
+        parser.error("{} special character is part of forbidden characters list: {}".format(special_char, ', '.join(forbidden_characters)))
   return context
 
 
@@ -236,6 +261,10 @@ def main():
 
   if context.plaintext:
     password = context.plaintext
+    for forbidden_char in context.forbidden_characters:
+      if forbidden_char in password and forbidden_char not in context.special_character_override:
+        raise ValueError(
+            "The chosen password contains illegal character {}. If you want to override this behavior, please use the argument --special_character_override".format(forbidden_char))
   else:
     password = generate_secret(context.length)
     print("Generated Secret: {}".format(password))
