@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# coding: utf-8
 
 from __future__ import print_function
 from collections import OrderedDict
@@ -23,7 +24,7 @@ class EFPWContext(EFContext):
     self._secret_file = None
     self._match = None
     self._special_character_override = None
-    self.forbidden_characters = ['§', '±', '\\', '>', '<', ':', '\'', '"', '`']
+    self._forbidden_characters = ['§', '±', '\\', '>', '<', ':', '\'', '"', '`']
 
   @property
   def decrypt(self):
@@ -187,7 +188,7 @@ def handle_args_and_set_context(args):
   parser = argparse.ArgumentParser(description="Encrypt/decrypt template secrets.")
   parser.add_argument("service", help="name of service password is being generated for")
   parser.add_argument("env", help=", ".join(EFConfig.ENV_LIST))
-  parser.add_argument("special_character_override", help="comma-separated list of characters \
+  parser.add_argument("--special_character_override", help="comma-separated list of characters \
     to override - only use with plaintext argument to allow a special charater set.\
     Pick a subset from: §,±,<,>,',\",`,\\,: which are denied by default" , default="")
   group = parser.add_mutually_exclusive_group()
@@ -225,8 +226,9 @@ def handle_args_and_set_context(args):
     parser.error("special_character_override parameter can only be specified when plaintext parameter is specified")
   if context.special_character_override:
     for special_char in context.special_character_override.split(","):
+      special_char = special_char.strip()
       if special_char not in context.forbidden_characters:
-        parser.error("{} special character is part of forbidden characters list: {}".format(special_char, ', '.join(forbidden_characters)))
+        parser.error("{} special character is part of forbidden characters list: {}".format(special_char, ', '.join(context.forbidden_characters)))
   return context
 
 
