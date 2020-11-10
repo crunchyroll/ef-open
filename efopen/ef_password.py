@@ -187,7 +187,9 @@ def handle_args_and_set_context(args):
   parser = argparse.ArgumentParser(description="Encrypt/decrypt template secrets.")
   parser.add_argument("service", help="name of service password is being generated for")
   parser.add_argument("env", help=", ".join(EFConfig.ENV_LIST))
-  parser.add_argument("special_character_override", help="comma-separated list of characters to override - only use with plaintext argument to allow a special charater set. Pick a subset from: §,±,<,>,',\",`,\\,: which are denied by default" , default="")
+  parser.add_argument("special_character_override", help="comma-separated list of characters \
+    to override - only use with plaintext argument to allow a special charater set.\
+    Pick a subset from: §,±,<,>,',\",`,\\,: which are denied by default" , default="")
   group = parser.add_mutually_exclusive_group()
   group.add_argument("--decrypt", help="encrypted string to be decrypted", default="")
   group.add_argument("--re-encrypt", help="encrypted string to be re encrypted for a new service", default="")
@@ -264,7 +266,7 @@ def main():
     for forbidden_char in context.forbidden_characters:
       if forbidden_char in password and forbidden_char not in context.special_character_override:
         raise ValueError(
-            "The chosen password contains illegal character {}. If you want to override this behavior, please use the argument --special_character_override".format(forbidden_char))
+            "Character {} is forbidden. Use the argument --special_character_override to bypass it.".format(forbidden_char))
   else:
     password = generate_secret(context.length)
     print("Generated Secret: {}".format(password))
