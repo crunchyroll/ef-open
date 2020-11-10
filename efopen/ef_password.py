@@ -7,6 +7,8 @@ import json
 import os
 import string
 import sys
+import subprocess
+import yaml
 
 from ef_config import EFConfig
 from ef_context import EFContext
@@ -157,6 +159,31 @@ def generate_secret_file(file_path, pattern, service, environment, clients):
       # Writing new line here so it conforms to WG14 N1256 5.1.1.1 (so github doesn't complain)
       encrypted_file.write("\n")
 
+def validate_secret(secret):
+  file = "./temp.yaml"
+  dir_path = os.path.dirname(os.path.realpath(__file__))
+  try:
+    f = open(file, 'w')
+  except IOError as e:
+    print("Cannot create temp file in {}.\n{}".format(dir_path,e))
+  test_dict = {"foo": secret}
+  yaml.dump(test_dict, f, default_flow_style=False)
+  try:
+    f.close()
+  except IOError as e:
+    print("Cannot close temp file in {}.\n{}".format(dir_path, e))
+  cmd = 'yamllint -d relaxed '+file
+  lint = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+  stdout, stderr = lint.communicate()
+  try:
+    os.remove(file)
+  except IOError as e:
+    print("Cannot delete temp file in {}.\n{}".format(dir_path, e))
+  if lint.returncode != 0:
+    raise Exception('Msg: `{}{}`'.format(stderr, stdout))
+  print("Secret OK")
+  return
+
 def handle_args_and_set_context(args):
   """
   Args:
@@ -240,6 +267,8 @@ def main():
     password = generate_secret(context.length)
     print("Generated Secret: {}".format(password))
   encrypted_password = ef_utils.kms_encrypt(clients['kms'], context.service, context.env, password)
+  print("Validating Secret...")
+  validate_secret(encrypted_password)
   print(format_secret(encrypted_password))
   return
 
