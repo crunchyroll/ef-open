@@ -189,7 +189,7 @@ def handle_args_and_set_context(args):
   parser.add_argument("service", help="name of service password is being generated for")
   parser.add_argument("env", help=", ".join(EFConfig.ENV_LIST))
   parser.add_argument("--special_character_override", help="comma-separated list of characters \
-    to override in double quotes - only use with plaintext argument to allow a special charater set.\
+    to override in quotes - only use with plaintext argument to allow a special charater set.\
     Pick a subset from: §,±,<,>,',\",`,\\,: which are denied by default" , default="")
   group = parser.add_mutually_exclusive_group()
   group.add_argument("--decrypt", help="encrypted string to be decrypted", default="")
