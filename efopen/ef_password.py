@@ -189,7 +189,7 @@ def handle_args_and_set_context(args):
   parser.add_argument("service", help="name of service password is being generated for")
   parser.add_argument("env", help=", ".join(EFConfig.ENV_LIST))
   parser.add_argument("--special_character_override", help="comma-separated list of characters \
-    to override - only use with plaintext argument to allow a special charater set.\
+    to override in double quotes - only use with plaintext argument to allow a special charater set.\
     Pick a subset from: §,±,<,>,',\",`,\\,: which are denied by default" , default="")
   group = parser.add_mutually_exclusive_group()
   group.add_argument("--decrypt", help="encrypted string to be decrypted", default="")
@@ -222,7 +222,7 @@ def handle_args_and_set_context(args):
       raise ValueError("Must have both --match and --secret_file flag")
   context.special_character_override = parsed_args["special_character_override"]
   #special_characters_override only applies when plaintext is present
-  if context.plaintext is None and context.special_character_override:
+  if (context.plaintext is None or context.plaintext == '') and context.special_character_override:
     parser.error("special_character_override parameter can only be specified when plaintext parameter is specified")
   if context.special_character_override:
     for special_char in context.special_character_override.split(","):
