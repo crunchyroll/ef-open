@@ -114,6 +114,15 @@ class NewRelicAlerts(object):
     logger.info("update cloudfront alert policy")
     cloudfront = self.clients['cloudfront']
     distribution_list = cloudfront.list_distributions()['DistributionList']
+    # Remove from distribution list those that do not have tag nr_monitoring set to enabled
+    filtered_distribution_list = []
+    for distribution in distribution_list['Items']:
+      response = cloudfront.list_tags_for_resource(distribution['ARN'])
+      for tag in response['Tags']['Items']:
+        if tag['Key'] == "nr_monitoring" and tag['Value'].lower() == "enabled":
+          filtered_distribution_list.append(distribution)
+          break
+    distribution_list['Items'] = filtered_distribution_list
     map_function = lambda x: (x['Id'], ', '.join(x['Aliases']['Items']))
     queue = map(map_function, distribution_list['Items'])
 
@@ -157,6 +166,8 @@ class NewRelicAlerts(object):
 
     conditions = {}
     for id, alias in queue:
+      conditions['4xx Average {}'.format(alias)] = meta(
+        'error4xxErrorRate', 10, id, '4xx Average {}'.format(alias), policy.id)
       conditions['5xx Average {}'.format(alias)] = meta(
         'error5xxErrorRate', 5, id, '5xx Average {}'.format(alias), policy.id)
 
