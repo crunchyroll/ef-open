@@ -113,23 +113,25 @@ class NewRelicAlerts(object):
     # Update Cloudfront alert policies
     logger.info("update cloudfront alert policy")
     cloudfront = self.clients['cloudfront']
-    distribution_list = cloudfront.list_distributions()['DistributionList']
-    # Remove from distribution list those that do not have tag nr_monitoring set to enabled
-    filtered_distribution_list = []
-    for distribution in distribution_list['Items']:
-      response = cloudfront.list_tags_for_resource(distribution['ARN'])
-      for tag in response['Tags']['Items']:
-        if tag['Key'] == "nr_monitoring" and tag['Value'].lower() == "enabled":
-          filtered_distribution_list.append(distribution)
-          break
-    distribution_list['Items'] = filtered_distribution_list
-    map_function = lambda x: (x['Id'], ', '.join(x['Aliases']['Items']))
-    queue = map(map_function, distribution_list['Items'])
-
-    while distribution_list['IsTruncated']:
-      distribution_list = cloudfront.list_distributions(Marker=distribution_list['NextMarker'])['DistributionList']
+    paginator = cloudfront.get_paginator('list_distributions')
+    pages = paginator.paginate()
+    queue = []
+    for page in pages:
+      map_function = lambda x: (x['Id'], ', '.join(x['Aliases']['Items']))
+      distribution_list = page['DistributionList']
+      filtered_distribution_list = []
+      for distribution in distribution_list['Items']:
+        response = cloudfront.list_tags_for_resource(distribution['ARN'])
+        # Remove from distribution list those that do not have tag nr_monitoring set to enabled
+        for tag in response['Tags']['Items']:
+          if tag['Key'].lower() == "nr_monitoring" and tag['Value'].lower() == "enabled":
+            filtered_distribution_list.append(distribution)
+            break
+      distribution_list['Items'] = filtered_distribution_list
       queue.extend(map(map_function, distribution_list['Items']))
-
+    # It makes no sense to continue if there is no distribution to monitor
+    if not queue:
+      return
     # Create policy conditions
     meta = lambda error_rate, value, distribution_id, name, policy_id: {
       'select_value': 'provider.{}.Average'.format(error_rate),
