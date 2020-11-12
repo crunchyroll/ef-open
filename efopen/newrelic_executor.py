@@ -116,21 +116,20 @@ class NewRelicAlerts(object):
     paginator = cloudfront.get_paginator('list_distributions')
     pages = paginator.paginate()
     queue = []
+    map_function = lambda x: (x['Id'], ', '.join(x['Aliases']['Items']))
     for page in pages:
-      map_function = lambda x: (x['Id'], ', '.join(x['Aliases']['Items']))
-      distribution_list = page['DistributionList']
       filtered_distribution_list = []
-      for distribution in distribution_list['Items']:
-        response = cloudfront.list_tags_for_resource(distribution['ARN'])
+      for distribution in page['DistributionList']['Items']:
+        tag_response = cloudfront.list_tags_for_resource(Resource=distribution['ARN'])
         # Remove from distribution list those that do not have tag nr_monitoring set to enabled
-        for tag in response['Tags']['Items']:
-          if tag['Key'].lower() == "nr_monitoring" and tag['Value'].lower() == "enabled":
+        for tag in tag_response['Tags']['Items']:
+          if tag['Key'].lower() == "newrelic" and tag['Value'].lower() == "enabled":
             filtered_distribution_list.append(distribution)
             break
-      distribution_list['Items'] = filtered_distribution_list
-      queue.extend(map(map_function, distribution_list['Items']))
+      queue.extend(map(map_function, filtered_distribution_list))
     # It makes no sense to continue if there is no distribution to monitor
     if not queue:
+      logger.info("No cloudfront distributions to be monitored found. Exiting...")
       return
     # Create policy conditions
     meta = lambda error_rate, value, distribution_id, name, policy_id: {
