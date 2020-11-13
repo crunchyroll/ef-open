@@ -116,14 +116,13 @@ class NewRelicAlerts(object):
     pages = cloudfront.get_paginator('list_distributions').paginate()
     queue = []
     map_function = lambda x: (x['Id'], ', '.join(x['Aliases']['Items']))
-    pages = cloudfront.get_paginator('list_distributions').paginate()
     filtered_4xx_distributions = []
     for page in pages:
       for distribution in page['DistributionList']['Items']:
         tag_response = cloudfront.list_tags_for_resource(Resource=distribution['ARN'])
         # Remove from distribution list those that do not have tag nr_monitoring set to enabled
         for tag in tag_response['Tags']['Items']:
-          if tag['Key'].lower() == "newrelic_4xx" and tag['Value'].lower() == "enabled":
+          if tag['Key'].lower() == "newrelic_4xx_monitoring" and tag['Value'].lower() == "enabled":
             filtered_4xx_distributions.append(distribution['Id'])
             break
       queue.extend(map(map_function, page['DistributionList']['Items']))
