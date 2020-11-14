@@ -266,6 +266,8 @@ class NewRelicAlerts(object):
       if service_type not in ['aws_ec2', 'aws_ecs', 'aws_ecs_http', 'http_service']:
         continue
 
+      logger.info("Service: {}".format(service_name))
+
       if self.context.env in service_environments:
         policy = AlertPolicy(env=self.context.env, service=service_name)
 
@@ -333,6 +335,8 @@ class NewRelicAlerts(object):
 
       if service_type != 'aws_lambda':
         continue
+
+      logger.info("Service: {}".format(service_name))
 
       if self.context.env in service_environments:
         policy = AlertPolicy(env=self.context.env, service=service_name)
