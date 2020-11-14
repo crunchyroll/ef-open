@@ -165,6 +165,11 @@ class NewRelic(object):
       headers=self.auth_header,
       data=json.dumps({"data": condition})
     )
+
+    if not add_condition.ok:
+      logger.error("Alert condition {} got a non 200 response code {} for the following reason: {}".format(
+        condition, add_condition.status_code, add_condition.text))
+
     add_condition.raise_for_status()
     return
 
@@ -189,6 +194,11 @@ class NewRelic(object):
       headers=self.auth_header,
       data=json.dumps({"nrql_condition": condition})
     )
+
+    if not add_condition.ok:
+      logger.error("Policy ID {} with condition {} got a non 200 response code {} for the following reason: {}".format(
+        policy_id, condition, add_condition.status_code, add_condition.text))
+
     add_condition.raise_for_status()
     return
 
@@ -205,6 +215,11 @@ class NewRelic(object):
       headers=self.auth_header,
       data=json.dumps({"nrql_condition": condition})
     )
+
+    if not put_condition.ok:
+      logger.error("Condition ID {} with condition {} got a non 200 response code {} for the following reason: {}".format(
+        condition_id, condition, put_condition.status_code, put_condition.text))
+
     put_condition.raise_for_status()
     return
 
@@ -215,6 +230,11 @@ class NewRelic(object):
       headers=self.auth_header,
       data=json.dumps({"condition": condition})
     )
+
+    if not add_condition.ok:
+      logger.error("Policy ID {} with condition {} got a non 200 response code {} for the following reason: {}".format(
+        policy_id, condition, add_condition.status_code, add_condition.text))
+
     add_condition.raise_for_status()
     return
 
@@ -231,6 +251,11 @@ class NewRelic(object):
       headers=self.auth_header,
       data=json.dumps({"condition": condition})
     )
+
+    if not put_condition.ok:
+      logger.error("Condition ID {} with condition {} got a non 200 response code {} for the following reason: {}".format(
+        condition_id, condition, put_condition.status_code, put_condition.text))
+
     put_condition.raise_for_status()
     return
 
