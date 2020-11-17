@@ -305,7 +305,7 @@ class NewRelic(object):
     """
     If the request does not have a 2XX status response, output the errors
     Args:
-      request: request object
+      response: response object
     """
     if not response.ok:
       logger.error("Request {} failed for the following reason {}".format(response.url, response.text))
