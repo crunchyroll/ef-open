@@ -113,13 +113,19 @@ class NewRelicAlerts(object):
     # Update Cloudfront alert policies
     logger.info("update cloudfront alert policy")
     cloudfront = self.clients['cloudfront']
-    distribution_list = cloudfront.list_distributions()['DistributionList']
+    pages = cloudfront.get_paginator('list_distributions').paginate()
+    queue = []
     map_function = lambda x: (x['Id'], ', '.join(x['Aliases']['Items']))
-    queue = map(map_function, distribution_list['Items'])
-
-    while distribution_list['IsTruncated']:
-      distribution_list = cloudfront.list_distributions(Marker=distribution_list['NextMarker'])['DistributionList']
-      queue.extend(map(map_function, distribution_list['Items']))
+    filtered_4xx_distributions = []
+    for page in pages:
+      for distribution in page['DistributionList']['Items']:
+        tag_response = cloudfront.list_tags_for_resource(Resource=distribution['ARN'])
+        # Remove from distribution list those that do not have tag nr_monitoring set to enabled
+        for tag in tag_response['Tags']['Items']:
+          if tag['Key'].lower() == "newrelic_4xx_monitoring" and tag['Value'].lower() == "enabled":
+            filtered_4xx_distributions.append(distribution['Id'])
+            break
+      queue.extend(map(map_function, page['DistributionList']['Items']))
 
     # Create policy conditions
     meta = lambda error_rate, value, distribution_id, name, policy_id: {
@@ -157,8 +163,9 @@ class NewRelicAlerts(object):
 
     conditions = {}
     for id, alias in queue:
-      conditions['4xx Average {}'.format(alias)] = meta(
-        'error4xxErrorRate', 10, id, '4xx Average {}'.format(alias), policy.id)
+      if id in filtered_4xx_distributions:
+        conditions['4xx Average {}'.format(alias)] = meta(
+          'error4xxErrorRate', 10, id, '4xx Average {}'.format(alias), policy.id)
       conditions['5xx Average {}'.format(alias)] = meta(
         'error5xxErrorRate', 5, id, '5xx Average {}'.format(alias), policy.id)
 
@@ -217,15 +224,13 @@ class NewRelicAlerts(object):
   def update_alert_nrql_condition_if_different(self, local_alert_nrql_condition, policy):
     for remote_alert_nrql_condition in policy.remote_alert_nrql_conditions:
       if remote_alert_nrql_condition["name"] == local_alert_nrql_condition["name"]:
-        # Add fields that exist in the remote alert condition object but not in the local alert condition object.
-        # This is done so that we can test equality.
-        local_alert_nrql_condition['id'] = remote_alert_nrql_condition['id']
-        local_alert_nrql_condition['type'] = remote_alert_nrql_condition['type']
-
-        if local_alert_nrql_condition != remote_alert_nrql_condition:
-          logger.info("Local alert nrql condition differs from remote alert nrql condition for {}-{}. Updating remote.".format(policy.env,policy.service))
-          logger.debug("Local: {}\nRemote: {}".format(local_alert_nrql_condition, remote_alert_nrql_condition))
-          self.newrelic.put_policy_alert_nrql_condition(remote_alert_nrql_condition["id"], local_alert_nrql_condition)
+        relevant_fields = ["nrql", "terms", "enabled", "value_function", "violation_time_limit_seconds"]
+        for key in relevant_fields:
+          if local_alert_nrql_condition[key] != remote_alert_nrql_condition[key]:
+            logger.info("Local alert nrql condition differs from remote alert nrql condition for {}-{}. Updating remote.".format(policy.env, policy.service))
+            logger.info("Local: {}\nRemote: {}".format(local_alert_nrql_condition, remote_alert_nrql_condition))
+            self.newrelic.put_policy_alert_nrql_condition(remote_alert_nrql_condition["id"], local_alert_nrql_condition)
+            break
 
   def update_alert_apm_condition_if_different(self, local_alert_apm_condition, policy):
     for remote_alert_apm_condition in policy.remote_alert_apm_conditions:
