@@ -308,3 +308,6 @@ class NewRelic(object):
       response_key='channels'
     )
     return self.all_notification_channels
+
+  def _log_request_errors(self, request):
+    pass
