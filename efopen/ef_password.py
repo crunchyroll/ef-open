@@ -161,9 +161,9 @@ def generate_secret_file(file_path, pattern, service, environment, clients):
       encrypted_file.write("\n")
 
 def validate_secret(secret):
-  with tempfile.NamedTemporaryFile(mode='w+b', suffix='.yaml') as tmp_file:
-    test_dict = {"foo": secret}
-    yaml.dump(test_dict, tmp_file, default_flow_style=False)
+  with tempfile.NamedTemporaryFile(mode='w+t', suffix='.yaml') as tmp_file:
+    tmp_file.writelines(["---\n", "foo: {}\n".format(secret)])
+    tmp_file.seek(0)
     cmd = 'yamllint -d relaxed {}'.format(tmp_file.name)
     lint = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     stdout, stderr = lint.communicate()
@@ -255,7 +255,7 @@ def main():
     print("Generated Secret: {}".format(password))
   encrypted_password = ef_utils.kms_encrypt(clients['kms'], context.service, context.env, password)
   print("Validating Secret...")
-  validate_secret(encrypted_password)
+  validate_secret(password)
   print(format_secret(encrypted_password))
   return
 
