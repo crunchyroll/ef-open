@@ -161,7 +161,6 @@ def generate_secret_file(file_path, pattern, service, environment, clients):
       encrypted_file.write("\n")
 
 def validate_secret(secret):
-  print("Creating a temporary yaml file in directory {}".format(tempfile.gettempdir()))
   with tempfile.NamedTemporaryFile(mode='w+b', suffix='.yaml') as tmp_file:
     test_dict = {"foo": secret}
     yaml.dump(test_dict, tmp_file, default_flow_style=False)
