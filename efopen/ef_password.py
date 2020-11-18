@@ -8,6 +8,7 @@ import os
 import string
 import sys
 import subprocess
+import tempfile
 import yaml
 
 from ef_config import EFConfig
@@ -160,29 +161,16 @@ def generate_secret_file(file_path, pattern, service, environment, clients):
       encrypted_file.write("\n")
 
 def validate_secret(secret):
-  file = "./temp.yaml"
-  dir_path = os.path.dirname(os.path.realpath(__file__))
-  try:
-    f = open(file, 'w')
-  except IOError as e:
-    print("Cannot create temp file in {}.\n{}".format(dir_path,e))
-  test_dict = {"foo": secret}
-  yaml.dump(test_dict, f, default_flow_style=False)
-  try:
-    f.close()
-  except IOError as e:
-    print("Cannot close temp file in {}.\n{}".format(dir_path, e))
-  cmd = 'yamllint -d relaxed '+file
-  lint = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-  stdout, stderr = lint.communicate()
-  try:
-    os.remove(file)
-  except IOError as e:
-    print("Cannot delete temp file in {}.\n{}".format(dir_path, e))
-  if lint.returncode != 0:
-    raise Exception('Msg: `{}{}`'.format(stderr, stdout))
-  print("Secret OK")
-  return
+  print("Creating a temporary yaml file in directory {}".format(tempfile.gettempdir()))
+  with tempfile.NamedTemporaryFile(mode='w+b', suffix='.yaml') as tmp_file:
+    test_dict = {"foo": secret}
+    yaml.dump(test_dict, tmp_file, default_flow_style=False)
+    cmd = 'yamllint -d relaxed {}'.format(tmp_file.name)
+    lint = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    stdout, stderr = lint.communicate()
+    if lint.returncode != 0:
+      raise Exception('Msg: `{}{}`'.format(stderr, stdout))
+    print("Secret OK")
 
 def handle_args_and_set_context(args):
   """
