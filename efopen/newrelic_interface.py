@@ -92,6 +92,7 @@ class NewRelic(object):
         headers=self.auth_header,
         params=params
       )
+      self._log_response_errors(r)
       r.raise_for_status()
       response.extend(r.json()[response_key])
       try:
@@ -134,6 +135,7 @@ class NewRelic(object):
       'https://api.newrelic.com/v2/alerts_policies.json',
       headers=self.auth_header,
       data=json.dumps(policy_data))
+    self._log_response_errors(create_policy)
     create_policy.raise_for_status()
     policy_id = create_policy.json()['policy']['id']
     self.refresh_alert_policies()
@@ -146,6 +148,7 @@ class NewRelic(object):
       headers=self.auth_header,
       params=payload
     )
+    self._log_response_errors(put_channels)
     put_channels.raise_for_status()
     return
 
@@ -156,6 +159,7 @@ class NewRelic(object):
       headers=self.auth_header,
       params=payload
     )
+    self._log_response_errors(delete_channel)
     delete_channel.raise_for_status()
     return
 
@@ -165,6 +169,8 @@ class NewRelic(object):
       headers=self.auth_header,
       data=json.dumps({"data": condition})
     )
+
+    self._log_response_errors(add_condition)
     add_condition.raise_for_status()
     return
 
@@ -180,6 +186,7 @@ class NewRelic(object):
       url='https://infra-api.newrelic.com/v2/alerts/conditions/{}'.format(condition_id),
       headers=self.auth_header
     )
+    self._log_response_errors(delete_condition)
     delete_condition.raise_for_status()
     return
 
@@ -189,6 +196,8 @@ class NewRelic(object):
       headers=self.auth_header,
       data=json.dumps({"nrql_condition": condition})
     )
+
+    self._log_response_errors(add_condition)
     add_condition.raise_for_status()
     return
 
@@ -205,6 +214,8 @@ class NewRelic(object):
       headers=self.auth_header,
       data=json.dumps({"nrql_condition": condition})
     )
+
+    self._log_response_errors(put_condition)
     put_condition.raise_for_status()
     return
 
@@ -215,6 +226,8 @@ class NewRelic(object):
       headers=self.auth_header,
       data=json.dumps({"condition": condition})
     )
+
+    self._log_response_errors(add_condition)
     add_condition.raise_for_status()
     return
 
@@ -231,6 +244,8 @@ class NewRelic(object):
       headers=self.auth_header,
       data=json.dumps({"condition": condition})
     )
+
+    self._log_response_errors(put_condition)
     put_condition.raise_for_status()
     return
 
@@ -252,6 +267,8 @@ class NewRelic(object):
           'configuration': configuration
         }
       })
+
+    self._log_response_errors(create_channel)
     create_channel.raise_for_status()
     return create_channel.json()['channels'][0]
 
@@ -283,3 +300,12 @@ class NewRelic(object):
       response_key='channels'
     )
     return self.all_notification_channels
+
+  def _log_response_errors(self, response):
+    """
+    If the request does not have a 2XX status response, output the errors
+    Args:
+      response: response object
+    """
+    if not response.ok:
+      logger.error("Request {} failed for the following reason {}".format(response.url, response.text))
