@@ -91,11 +91,11 @@ class NewRelicAlerts(object):
       if condition['name'] in policy.config_conditions:
         config_condition = policy.config_conditions[condition['name']]
         for k, v in config_condition.items():
-          if condition[k] != v:
+          if k in condition and condition[k] != v:
             self.newrelic.delete_policy_alert_condition(condition['id'])
             policy.remote_conditions = self.newrelic.get_policy_alert_conditions(policy.id)
-            logger.info("delete condition {} from policy {}. ".format(condition['name'], policy.name) +
-                        "current value differs from config")
+            logger.info("delete condition {} with value {} from policy {}. ".format(condition['name'], condition[k], policy.name) +
+                        "due to different current local config value {}".format(v))
             break
 
     return policy
@@ -310,7 +310,8 @@ class NewRelicAlerts(object):
         # NRQL alert conditions
         remote_alert_nrql_condition_names = [remote_alert_nrql_condition['name'] for remote_alert_nrql_condition in policy.remote_alert_nrql_conditions]
         for condition_name, condition_value in policy.local_alert_nrql_conditions.items():
-          if condition_name not in remote_alert_nrql_condition_names:
+          if unicode(condition_name, "utf-8") not in remote_alert_nrql_condition_names:
+            logger.info("Creating alert nrql condition {} for service {}".format(condition_name, service_name))
             self.newrelic.create_alert_nrql_condition(policy.id, condition_value)
           else:
             self.update_alert_nrql_condition_if_different(condition_value, policy)
@@ -319,7 +320,7 @@ class NewRelicAlerts(object):
         policy = self.override_alert_apm_condition_values(policy, service_alert_overrides)
         remote_alert_apm_condition_names = [remote_alert_apm_condition['name'] for remote_alert_apm_condition in policy.remote_alert_apm_conditions]
         for condition_name, condition_value in policy.local_alert_apm_conditions.items():
-          if condition_name not in remote_alert_apm_condition_names:
+          if unicode(condition_name, "utf-8") not in remote_alert_apm_condition_names:
             applications = self.newrelic.get_applications(application_name=policy.name)
 
             if not len(applications):
@@ -327,6 +328,7 @@ class NewRelicAlerts(object):
               continue
 
             condition_value['entities'] = [applications[0]['id']]
+            logger.info("Creating alert apm condition {} for service {}".format(condition_name, service_name))
             self.newrelic.create_alert_apm_condition(policy.id, condition_value)
           else:
             self.update_alert_apm_condition_if_different(condition_value, policy)
