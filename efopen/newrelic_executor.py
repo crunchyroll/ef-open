@@ -94,8 +94,8 @@ class NewRelicAlerts(object):
           if k in condition and condition[k] != v:
             self.newrelic.delete_policy_alert_condition(condition['id'])
             policy.remote_conditions = self.newrelic.get_policy_alert_conditions(policy.id)
-            logger.info("delete condition {} from policy {}. ".format(condition['name'], policy.name) +
-                        "current value differs from config")
+            logger.info("delete condition {} with value {} from policy {}. ".format(condition['name'], condition[k], policy.name) +
+                        "due to different current local config value {}".format(v))
             break
 
     return policy
