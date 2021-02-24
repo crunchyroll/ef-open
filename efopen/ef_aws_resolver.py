@@ -496,6 +496,27 @@ class EFAwsResolver(object):
     except ClientError:
       return default
 
+  def waf_ip_set_id(self, lookup, default=None):
+    """
+    Args:
+      lookup: the friendly name of an IP set
+      default: the optional value to return if lookup failed; returns None if not set
+    Returns:
+      the ID of the IP set whose name matches 'lookup' or default/None if no match found
+    """
+    # list_rules returns at most 100 rules per request
+    list_limit = 100
+    list_ip_sets = EFAwsResolver.__CLIENTS["waf"].list_ip_sets
+    ip_sets = list_ip_sets(Limit=list_limit)
+    while True:
+      for rule in ip_sets["IPSets"]:
+        if rule["Name"] == lookup:
+          return rule["IPSetId"]
+      if "NextMarker" in ip_sets:
+        ip_sets = list_ip_sets(Limit=list_limit, NextMarker=ip_sets["NextMarker"])
+      else:
+        return default
+
   def waf_rule_id(self, lookup, default=None):
     """
     Args:
@@ -978,6 +999,8 @@ class EFAwsResolver(object):
       return self.route53_private_hosted_zone_id(*kv[1:])
     elif kv[0] == "route53:public-hosted-zone-id":
       return self.route53_public_hosted_zone_id(*kv[1:])
+    elif kv[0] == "waf:ip-set-id":
+      return self.waf_ip_set_id(*kv[1:])
     elif kv[0] == "waf:rule-id":
       return self.waf_rule_id(*kv[1:])
     elif kv[0] == "waf:web-acl-id":
