@@ -18,10 +18,10 @@ setup(
         'efopen'
     ],
     install_requires=[
-        'boto3<=1.16.39',
+        'boto3',
         'click<=7.1.2',
         'PyYAML<=5.3.1',
-        'cfn-lint<=0.44.0',
+        'cfn-lint',
         'requests<=2.25.1',
         'yamllint<=1.25.0'
     ],
