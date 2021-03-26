@@ -2,9 +2,20 @@ import json
 import logging
 
 import requests
+from tenacity import (
+  retry,
+  retry_if_exception,
+  stop_after_attempt,
+  wait_exponential,
+)
 
 logger = logging.getLogger(__name__)
 
+
+def check_5xx_exception(ex):
+  return isinstance(ex, requests.exceptions.HTTPError) and ex.response.status_code > 500
+
+exponential_retry_on_5xx = retry(retry=retry_if_exception(check_5xx_exception), stop=stop_after_attempt(5), wait=wait_exponential(min=2, max=10))
 
 class AlertPolicy(object):
 
@@ -83,6 +94,7 @@ class NewRelic(object):
     self.refresh_alert_policies()
     self.refresh_notification_channels()
 
+  @exponential_retry_on_5xx
   def iterative_get(self, endpoint_url, response_key, params=None):
     params = params if params else {}
     response = []
@@ -128,6 +140,7 @@ class NewRelic(object):
     if next((policy for policy in self.all_alert_policies if policy['name'] == policy_name), False):
       return True
 
+  @exponential_retry_on_5xx
   def create_alert_policy(self, policy_name):
     """Creates an alert policy in NewRelic"""
     policy_data = { 'policy': { 'incident_preference': 'PER_POLICY', 'name': policy_name } }
@@ -141,6 +154,7 @@ class NewRelic(object):
     self.refresh_alert_policies()
     return policy_id
 
+  @exponential_retry_on_5xx
   def add_policy_channels(self, policy_id, channel_ids):
     payload = { 'policy_id': policy_id, 'channel_ids': channel_ids}
     put_channels = requests.put(
@@ -152,6 +166,7 @@ class NewRelic(object):
     put_channels.raise_for_status()
     return
 
+  @exponential_retry_on_5xx
   def delete_policy_channel(self, policy_id, channel_id):
     payload = {'policy_id': policy_id, 'channel_id': channel_id}
     delete_channel = requests.delete(
@@ -163,6 +178,7 @@ class NewRelic(object):
     delete_channel.raise_for_status()
     return
 
+  @exponential_retry_on_5xx
   def create_alert_condition(self, condition):
     add_condition = requests.post(
       url='https://infra-api.newrelic.com/v2/alerts/conditions',
@@ -181,6 +197,7 @@ class NewRelic(object):
       params={'policy_id': policy_id}
     )
 
+  @exponential_retry_on_5xx
   def delete_policy_alert_condition(self, condition_id):
     delete_condition = requests.delete(
       url='https://infra-api.newrelic.com/v2/alerts/conditions/{}'.format(condition_id),
@@ -190,6 +207,7 @@ class NewRelic(object):
     delete_condition.raise_for_status()
     return
 
+  @exponential_retry_on_5xx
   def create_alert_nrql_condition(self, policy_id, condition):
     add_condition = requests.post(
       url='https://api.newrelic.com/v2/alerts_nrql_conditions/policies/{}.json'.format(policy_id),
@@ -208,6 +226,7 @@ class NewRelic(object):
       params={'policy_id': policy_id}
     )
 
+  @exponential_retry_on_5xx
   def put_policy_alert_nrql_condition(self, condition_id, condition):
     put_condition = requests.put(
       url='https://api.newrelic.com/v2/alerts_nrql_conditions/{}.json'.format(condition_id),
@@ -220,6 +239,7 @@ class NewRelic(object):
     return
 
 
+  @exponential_retry_on_5xx
   def create_alert_apm_condition(self, policy_id, condition):
     add_condition = requests.post(
       url='https://api.newrelic.com/v2/alerts_conditions/policies/{}.json'.format(policy_id),
@@ -238,6 +258,7 @@ class NewRelic(object):
       params={'policy_id': policy_id}
     )
 
+  @exponential_retry_on_5xx
   def put_policy_alert_apm_condition(self, condition_id, condition):
     put_condition = requests.put(
       url='https://api.newrelic.com/v2/alerts_conditions/{}.json'.format(condition_id),
@@ -256,6 +277,7 @@ class NewRelic(object):
       params={'filter[name]': application_name}
     )
 
+  @exponential_retry_on_5xx
   def create_alert_channel(self, name, channel_type, configuration):
     create_channel = requests.post(
       url='https://api.newrelic.com/v2/alerts_channels.json',
