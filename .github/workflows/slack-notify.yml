@@ -1,0 +1,20 @@
+---
+name: Pull request
+on:
+  pull_request:
+    types: [opened, reopened]
+jobs:
+  slackNotification:
+    name: Slack Notification
+    runs-on: ubuntu-latest
+    steps:
+      - name: Slack Notification
+        uses: rtCamp/action-slack-notify@master
+        env:
+          SLACK_MESSAGE: '${{github.event.pull_request.html_url}}'
+          SLACK_FOOTER: ''
+          SLACK_TITLE: '${{github.event.pull_request.title}}'
+          SLACK_WEBHOOK: '${{secrets.SLACK_WEBHOOK}}'
+          MSG_MINIMAL: true
+          SLACK_USERNAME: 'Pull Reminder'
+          SLACK_ICON: 'https://slack-files2.s3-us-west-2.amazonaws.com/avatars/2017-03-28/160764478706_d3b35947b766cfd9bc67_512.png'
