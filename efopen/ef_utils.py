@@ -30,6 +30,7 @@ import urllib2
 
 import boto3
 from botocore.exceptions import ClientError
+from botocore.config import Config
 
 __HTTP_DEFAULT_TIMEOUT_SEC = 5
 __METADATA_PREFIX = "http://169.254.169.254/latest/meta-data/"
@@ -171,16 +172,23 @@ def create_aws_clients(region, profile, *clients):
   requested_clients = set(clients)
   new_clients = requested_clients.difference(aws_clients)
 
+
   if not new_clients:
     return aws_clients
-
+  #boto3 retry config
+  config = Config(
+    retries={
+      "max_attempts": 10,
+      "mode": 'adaptive' #ref https://boto3.amazonaws.com/v1/documentation/api/latest/guide/retries.html
+    }
+  )
   session = aws_clients.get("SESSION")
   try:
     if not session:
       session = boto3.Session(region_name=region, profile_name=profile)
       aws_clients["SESSION"] = session
     # build clients
-    client_dict = {c: session.client(c) for c in new_clients}
+    client_dict = {c: session.client(c,config=config) for c in new_clients}
     # append the session itself in case it's needed by the client code - can't get it from the clients themselves
     aws_clients.update(client_dict)
 
