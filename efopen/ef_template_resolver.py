@@ -427,7 +427,10 @@ class EFTemplateResolver(object):
           resolved_symbol = "SKIPPED_SYMBOL"
         # Lookups in AWS, only if we have an EFAwsResolver
         elif symbol[:4] == "aws:" and EFTemplateResolver.__AWSR:
-          resolved_symbol = EFTemplateResolver.__AWSR.lookup(symbol[4:])
+          lookup = symbol
+          if 'security-group/security-group-id' in symbol:
+            lookup = symbol.replace(self.resolved["SERVICE"], self.resolved['ORIGINAL_SERVICE'])
+          resolved_symbol = EFTemplateResolver.__AWSR.lookup(lookup[4:])
         # Lookups in credentials
         elif symbol[:12] == "credentials:":
           pass  #TODO
