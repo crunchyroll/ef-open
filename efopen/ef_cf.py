@@ -109,6 +109,7 @@ def handle_args_and_set_context(args):
                       action="store_true", default=False)
   parser.add_argument("--skip_symbols", help="Skip resolving the provided symbols", nargs='+', default=[])
   parser.add_argument("--custom_rules", help="A directory with custom rules for cfn-lint")
+  parser.add_argument("--deploy_version", default="", help="Deploy as an alternate version of the service")
 
   parsed_args = vars(parser.parse_args(args))
   context = EFCFContext()
@@ -127,15 +128,16 @@ def handle_args_and_set_context(args):
   context.skip_symbols = parsed_args["skip_symbols"]
   context.verbose = parsed_args["verbose"]
   context.render = parsed_args["render"]
+  context.deploy_version = parsed_args["deploy_version"]
   # Set up service registry and policy template path which depends on it
   context.service_registry = EFServiceRegistry(parsed_args["sr"])
   return context
 
-def resolve_template(template, profile, env, region, service, skip_symbols, verbose):
+def resolve_template(template, profile, env, region, service, skip_symbols, verbose, deploy_version):
   # resolve {{SYMBOLS}} in the passed template file
   os.path.isfile(template) or fail("Not a file: {}".format(template))
   resolver = EFTemplateResolver(profile=profile, target_other=True, env=env,
-                                region=region, service=service, skip_symbols=skip_symbols, verbose=verbose)
+                                region=region, service=service, skip_symbols=skip_symbols, verbose=verbose, deploy_version=deploy_version)
   with open(template) as template_file:
     resolver.load(template_file)
     resolver.render()
@@ -284,7 +286,8 @@ def main():
     region=region,
     service=service_name,
     skip_symbols=context.skip_symbols,
-    verbose=context.verbose
+    verbose=context.verbose,
+    deploy_version=context.deploy_version
   )
 
   if context.render:
@@ -298,6 +301,10 @@ def main():
     fail("Exception creating clients in region {} with profile {}".format(region, profile), error)
 
   stack_name = context.env + "-" + service_name
+  if context.deploy_version:
+    stack_name = context.env + "-" + "{}-b-{}".format(service_name, context.deploy_version)
+
+
   try:
     stack_exists = clients["cloudformation"].describe_stacks(StackName=stack_name)
   except botocore.exceptions.ClientError:
@@ -312,7 +319,8 @@ def main():
       region=region,
       service=service_name,
       skip_symbols=context.skip_symbols,
-      verbose=context.verbose
+      verbose=context.verbose,
+      deploy_version=context.deploy_version
     )
     try:
       parameters = json.loads(parameters_template)

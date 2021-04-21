@@ -121,7 +121,9 @@ class EFTemplateResolver(object):
                lambda_context=None,  # set if target is 'self' and this is a lambda
                target_other=False, env=None, service=None,  # set env & service if target_other=True
                skip_symbols={},
-               verbose=False
+               verbose=False,
+               # deploy a different version of the stack #eurekathon2021
+               deploy_version=""
                ):
     """
     Depending on how this is called, access mode (how it logs into AWS) and target (what the
@@ -298,6 +300,9 @@ class EFTemplateResolver(object):
         fail("Exception in get_user()", error)
       self.resolved["ENV"] = env
       self.resolved["SERVICE"] = service
+      if deploy_version:
+        self.resolved["SERVICE"] = "{}-b-{}".format(service, deploy_version)
+      self.resolved["ORIGINAL_SERVICE"] = service
 
     # ACCOUNT_ALIAS is resolved consistently for access modes and targets other than virtualbox
     try:
