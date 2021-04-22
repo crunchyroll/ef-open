@@ -437,7 +437,10 @@ class EFTemplateResolver(object):
         elif symbol[:9] == "efconfig:":
           resolved_symbol = EFTemplateResolver.__EFCR.lookup(symbol[9:])
         elif symbol[:8] == "version:":
-          resolved_symbol = EFTemplateResolver.__VR.lookup(symbol[8:])
+          lookup = symbol
+          if 'version:ami-id' in symbol:
+            lookup = symbol.replace(self.resolved["SERVICE"], self.resolved['ORIGINAL_SERVICE'])
+          resolved_symbol = EFTemplateResolver.__VR.lookup(lookup[8:])
           if not resolved_symbol:
             print("WARNING: Lookup failed for {{%s}} - placeholder value of 'NONE' used in rendered template" % symbol)
             resolved_symbol = "NONE"
