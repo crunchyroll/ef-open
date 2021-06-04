@@ -1,5 +1,5 @@
 # Ticket
-[OPS-XXXXX](https://ellation.atlassian.net/browse/OPS-XXXXX)
+OPS-XXXXX
 
 # Details
 > A description of the motivation and implementation of this PR.
