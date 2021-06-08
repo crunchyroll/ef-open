@@ -195,7 +195,7 @@ class Version(object):
 
     metadata = object_version["Metadata"]
     self._build_number = metadata.get(EFConfig.S3_VERSION_BUILDNUMBER_KEY,"")
-    self._pipeline_build_number = metadata.get(EFConfig.S3_VERSION_PIPELINEBUILDNUMBER_KEY,"")
+    self._pipeline_build_number = metadata.get(EFConfig.S3_VERSION_PIPELINEBUILDNUMBER_KEY,"null")
     self._commit_hash = metadata.get(EFConfig.S3_VERSION_COMMITHASH_KEY,"")
     self._location = metadata.get(EFConfig.S3_VERSION_LOCATION_KEY,"")
     self._modified_by = metadata.get(EFConfig.S3_VERSION_MODIFIEDBY_KEY,"")
