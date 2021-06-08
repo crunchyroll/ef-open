@@ -84,8 +84,6 @@ class EFConfig(object):
   S3_VERSION_CONTENT_ENCODING = "utf-8"
   # Metdata key on a version object to indicate who modified it
   S3_VERSION_BUILDNUMBER_KEY = "ef-buildnumber"
-  # Metdata key on a version object to indicate what the pipeline build number was for subservice relation
-  S3_VERSION_PIPELINEBUILDNUMBER_KEY = "ef-pipeline-buildnumber"
   # Metdata key on a version object to indicate who modified it
   S3_VERSION_COMMITHASH_KEY = "ef-commithash"
   # Metdata key on a version object to indicate who modified it
