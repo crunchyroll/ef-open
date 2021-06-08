@@ -47,7 +47,6 @@ class EFVersionContext(EFContext):
     super(EFVersionContext, self).__init__()
     # core stuff
     self._build_number = None
-    self._pipeline_build_number = None
     self._commit_hash = None
     self._force_env_full = None
     self._get = None
@@ -73,17 +72,6 @@ class EFVersionContext(EFContext):
   def build_number(self, value):
     """Setter provided because this is writeable from other than init() because --rollback alters it"""
     self._build_number = value
-
-  @property
-  def pipeline_build_number(self):
-    """Externally defined PIPELINE build number associated with version entity"""
-    return self._pipeline_build_number
-
-  @pipeline_build_number.setter
-  def pipeline_build_number(self, value):
-    """Setter provided because this is writeable from other than init() because --rollback alters it"""
-    self._pipeline_build_number = value
-
 
   @property
   def commit_hash(self):
@@ -195,14 +183,13 @@ class Version(object):
 
     metadata = object_version["Metadata"]
     self._build_number = metadata.get(EFConfig.S3_VERSION_BUILDNUMBER_KEY,"")
-    self._pipeline_build_number = metadata.get(EFConfig.S3_VERSION_PIPELINEBUILDNUMBER_KEY,"null")
     self._commit_hash = metadata.get(EFConfig.S3_VERSION_COMMITHASH_KEY,"")
     self._location = metadata.get(EFConfig.S3_VERSION_LOCATION_KEY,"")
     self._modified_by = metadata.get(EFConfig.S3_VERSION_MODIFIEDBY_KEY,"")
     self._status = metadata.get(EFConfig.S3_VERSION_STATUS_KEY,"")
 
   def __str__(self):
-    return "{} {} {} {} {} {} {} {}".format(self._value, self._build_number, self._pipeline_build_number, self._commit_hash, self._last_modified,
+    return "{} {} {} {} {} {} {} {}".format(self._value, self._build_number, self._commit_hash, self._last_modified,
                                             self._modified_by, self._version_id, self._location, self._status)
 
   def __repr__(self):
@@ -215,7 +202,6 @@ class Version(object):
     """
     return {
         "build_number": self._build_number,
-        "pipeline_build_number": self._pipeline_build_number,
         "commit_hash": self._commit_hash,
         "last_modified": self._last_modified,
         "location": self._location,
@@ -228,10 +214,6 @@ class Version(object):
   @property
   def build_number(self):
     return self._build_number
-
-  @property
-  def pipeline_build_number(self):
-    return self._pipeline_build_number
 
   @property
   def commit_hash(self):
@@ -295,9 +277,6 @@ def handle_args_and_set_context(args):
   parser.add_argument("--build",
                       help="On --set, also set the externally defined build number associated with the version entity",
                       default="")
-  parser.add_argument("--pipeline_build",
-                      help="On --set, also set the externally defined PIPELINE build number associated with the version entity",
-                      default="")
   parser.add_argument("--commit_hash", help="On --set, also set the commit hash associated with the version entity",
                       default="")
   parser.add_argument("--commit", help="Actually --set or --rollback (dry run if omitted)",
@@ -319,7 +298,6 @@ def handle_args_and_set_context(args):
   context = EFVersionContext()
   # marshall the inherited context values
   context._build_number = parsed_args["build"]
-  context._pipeline_build_number = parsed_args["pipeline_build"]
   context._commit_hash = parsed_args["commit_hash"]
   context.commit = parsed_args["commit"]
   context.devel = parsed_args["devel"]
@@ -602,7 +580,6 @@ def cmd_set(context):
         Key=s3_key,
         Metadata={
             EFConfig.S3_VERSION_BUILDNUMBER_KEY: context.build_number,
-            EFConfig.S3_VERSION_PIPELINEBUILDNUMBER_KEY: context.pipeline_build_number,
             EFConfig.S3_VERSION_COMMITHASH_KEY: context.commit_hash,
             EFConfig.S3_VERSION_LOCATION_KEY: context.location,
             EFConfig.S3_VERSION_MODIFIEDBY_KEY: context.aws_client("sts").get_caller_identity()["Arn"],
