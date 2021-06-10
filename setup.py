@@ -20,7 +20,7 @@ setup(
     install_requires=[
         'boto3',
         'click<=7.1.2',
-        'PyYAML<=5.3.1',
+        'PyYAML<=5.4.1',
         'cfn-lint',
         'requests<=2.25.1',
         'tenacity==7.0.0',
