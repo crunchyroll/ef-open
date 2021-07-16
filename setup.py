@@ -18,7 +18,7 @@ setup(
         'efopen'
     ],
     install_requires=[
-        'boto3',
+        'boto3>=1.17.112',
         'click<=7.1.2',
         'PyYAML<=5.4.1',
         'cfn-lint',
