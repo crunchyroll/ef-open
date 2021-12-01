@@ -1,5 +1,5 @@
 """
-Copyright 2016-2017 Ellation, Inc.
+Copyright 2016-2017 Crunchyroll, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -21,9 +21,9 @@ import re
 
 from botocore.exceptions import ClientError
 
-import ef_utils
+import crf_utils
 
-class EFAwsResolver(object):
+class CRFAwsResolver(object):
   """
   For keys to look up, we use partial ARN syntax to identify system and information sought:
   http://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html#arn-syntax-ec2
@@ -44,10 +44,10 @@ class EFAwsResolver(object):
     and the search string appended:
       {{aws:ec2:security-group/security-group-id,proto2-ess-elb}}
     which then is passed to the lookup function here as:
-      EFAwsResolver.lookup("ec2:security-group/security-group-id","proto2-ess-elb")
+      CRFAwsResolver.lookup("ec2:security-group/security-group-id","proto2-ess-elb")
   """
 
-  # dictionary of boto3 clients: {"ec2":ec2_client, ... } made with ef_utils.create_aws_clients
+  # dictionary of boto3 clients: {"ec2":ec2_client, ... } made with crf_utils.create_aws_clients
   __CLIENTS = {}
 
   def _elbv2_load_balancer(self, lookup):
@@ -59,7 +59,7 @@ class EFAwsResolver(object):
     Raises:
       botocore.exceptions.ClientError: no such load-balancer
     """
-    client = EFAwsResolver.__CLIENTS['elbv2']
+    client = CRFAwsResolver.__CLIENTS['elbv2']
     elbs = client.describe_load_balancers(Names=[lookup])
     # getting the first one, since we requested only one lb
     elb = elbs['LoadBalancers'][0]
@@ -82,7 +82,7 @@ class EFAwsResolver(object):
     try:
       # This a region-specific client, so we'll make a new client in the right place using existing SESSION
       region_name, domain_name = lookup.split("/")
-      acm_client = EFAwsResolver.__CLIENTS["SESSION"].client(service_name="acm", region_name=region_name)
+      acm_client = CRFAwsResolver.__CLIENTS["SESSION"].client(service_name="acm", region_name=region_name)
       response = acm_client.list_certificates(
         CertificateStatuses=['ISSUED'],
         MaxItems=100
@@ -121,7 +121,7 @@ class EFAwsResolver(object):
     if public_ip is None:
       return default
     try:
-      eips = EFAwsResolver.__CLIENTS["ec2"].describe_addresses(
+      eips = CRFAwsResolver.__CLIENTS["ec2"].describe_addresses(
         PublicIps=[public_ip]
       )
     # Public IP not found
@@ -149,7 +149,7 @@ class EFAwsResolver(object):
     lookup = lookup.replace(env, env.title())
     # Look up the EIP resource in the stack to get the IP address assigned to the EIP
     try:
-      eip_stack = EFAwsResolver.__CLIENTS["cloudformation"].describe_stack_resources(
+      eip_stack = CRFAwsResolver.__CLIENTS["cloudformation"].describe_stack_resources(
         StackName=stackname,
         LogicalResourceId=lookup
       )
@@ -170,7 +170,7 @@ class EFAwsResolver(object):
     Returns:
       The ID of the first ENI found with a description matching 'lookup' or default/None if no match found
     """
-    enis = EFAwsResolver.__CLIENTS["ec2"].describe_network_interfaces(Filters=[{
+    enis = CRFAwsResolver.__CLIENTS["ec2"].describe_network_interfaces(Filters=[{
       'Name': 'description',
       'Values': [lookup]
     }])
@@ -187,7 +187,7 @@ class EFAwsResolver(object):
     Returns:
       the ID of the network ACL, or None if no match found
     """
-    network_acl_id = EFAwsResolver.__CLIENTS["ec2"].describe_network_acls(Filters=[{
+    network_acl_id = CRFAwsResolver.__CLIENTS["ec2"].describe_network_acls(Filters=[{
       'Name': 'tag:Name',
       'Values': [lookup]
     }])
@@ -205,7 +205,7 @@ class EFAwsResolver(object):
       Security group ID if target found or default/None if no match
     """
     try:
-      response = EFAwsResolver.__CLIENTS["ec2"].describe_security_groups(Filters=[{
+      response = CRFAwsResolver.__CLIENTS["ec2"].describe_security_groups(Filters=[{
         'Name':'group-name', 'Values':[lookup]
       }])
     except:
@@ -223,7 +223,7 @@ class EFAwsResolver(object):
       lookup: the friendly name of the subnet to look up (subnet-<env>-a or subnet-<env>-b)
       default: the optional value to return if lookup failed; returns None if not set
     """
-    subnets = EFAwsResolver.__CLIENTS["ec2"].describe_subnets(Filters=[{
+    subnets = CRFAwsResolver.__CLIENTS["ec2"].describe_subnets(Filters=[{
       'Name': 'tag:Name',
       'Values': [lookup]
     }])
@@ -240,7 +240,7 @@ class EFAwsResolver(object):
       lookup: the friendly name of the subnet to look up (subnet-<env>-a or subnet-<env>-b)
       default: the optional value to return if lookup failed; returns None if not set
     """
-    subnets = EFAwsResolver.__CLIENTS["ec2"].describe_subnets(Filters=[{
+    subnets = CRFAwsResolver.__CLIENTS["ec2"].describe_subnets(Filters=[{
       'Name': 'tag:Name',
       'Values': [lookup]
     }])
@@ -260,7 +260,7 @@ class EFAwsResolver(object):
     vpc_id = self.ec2_vpc_vpc_id(lookup)
     if vpc_id is None:
       return default
-    subnets = EFAwsResolver.__CLIENTS["ec2"].describe_subnets(Filters=[{
+    subnets = CRFAwsResolver.__CLIENTS["ec2"].describe_subnets(Filters=[{
       'Name': 'vpc-id',
       'Values': [vpc_id]
     }])
@@ -282,7 +282,7 @@ class EFAwsResolver(object):
     vpc_id = self.ec2_vpc_vpc_id(lookup)
     if vpc_id is None:
       return default
-    subnets = EFAwsResolver.__CLIENTS["ec2"].describe_subnets(Filters=[{
+    subnets = CRFAwsResolver.__CLIENTS["ec2"].describe_subnets(Filters=[{
       'Name': 'vpc-id',
       'Values': [vpc_id]
     }])
@@ -301,7 +301,7 @@ class EFAwsResolver(object):
     Returns:
       The CIDR block of the named VPC, or default/None if no match found
     """
-    vpcs = EFAwsResolver.__CLIENTS["ec2"].describe_vpcs(Filters=[{
+    vpcs = CRFAwsResolver.__CLIENTS["ec2"].describe_vpcs(Filters=[{
       'Name': 'tag:Name',
       'Values': [lookup]
     }])
@@ -318,7 +318,7 @@ class EFAwsResolver(object):
     Returns:
       The ID of the first VPC found with a label matching 'lookup' or default/None if no match found
     """
-    vpcs = EFAwsResolver.__CLIENTS["ec2"].describe_vpcs(Filters=[{
+    vpcs = CRFAwsResolver.__CLIENTS["ec2"].describe_vpcs(Filters=[{
       'Name': 'tag:Name',
       'Values': [lookup]
     }])
@@ -335,7 +335,7 @@ class EFAwsResolver(object):
     Returns:
       The ID of the VPC Endpoint found with a label matching 'lookup' or default/None if no match found
     """
-    vpc_endpoints = EFAwsResolver.__CLIENTS["ec2"].describe_vpc_endpoints(Filters=[{
+    vpc_endpoints = CRFAwsResolver.__CLIENTS["ec2"].describe_vpc_endpoints(Filters=[{
       "Name": "tag:Name",
       "Values": [lookup]
     }])
@@ -357,7 +357,7 @@ class EFAwsResolver(object):
     if vpc_id is None:
       return default
 
-    vpc_endpoints = EFAwsResolver.__CLIENTS["ec2"].describe_vpc_endpoints(Filters=[
+    vpc_endpoints = CRFAwsResolver.__CLIENTS["ec2"].describe_vpc_endpoints(Filters=[
       {"Name": "vpc-id", "Values":[vpc_id]},
       {"Name": "service-name", "Values":[service_name]}
     ])
@@ -378,7 +378,7 @@ class EFAwsResolver(object):
     Returns:
       The first DNS Name of the VPC Endpoint found with a label matching 'lookup' or default/None if no match found
     """
-    vpc_endpoints = EFAwsResolver.__CLIENTS["ec2"].describe_vpc_endpoints(Filters=[{
+    vpc_endpoints = CRFAwsResolver.__CLIENTS["ec2"].describe_vpc_endpoints(Filters=[{
       "Name": "tag:Name",
       "Values": [lookup]
     }])
@@ -402,7 +402,7 @@ class EFAwsResolver(object):
     if vpc_id is None:
       return default
 
-    vpc_endpoints = EFAwsResolver.__CLIENTS["ec2"].describe_vpc_endpoints(Filters=[
+    vpc_endpoints = CRFAwsResolver.__CLIENTS["ec2"].describe_vpc_endpoints(Filters=[
       {"Name": "vpc-id", "Values":[vpc_id]},
       {"Name": "service-name", "Values":[service_name]}
     ])
@@ -426,7 +426,7 @@ class EFAwsResolver(object):
     Returns:
       The ID of the VPN Gateway found with a label matching 'lookup' or default/None if no match found
     """
-    vpn_gateways = EFAwsResolver.__CLIENTS["ec2"].describe_vpn_gateways(Filters=[{
+    vpn_gateways = CRFAwsResolver.__CLIENTS["ec2"].describe_vpn_gateways(Filters=[{
       "Name": "tag:Name",
       "Values": [lookup]
     }])
@@ -488,7 +488,7 @@ class EFAwsResolver(object):
       `targetgroup/*/*`
     """
     try:
-      client = EFAwsResolver.__CLIENTS['elbv2']
+      client = CRFAwsResolver.__CLIENTS['elbv2']
       elbs = client.describe_target_groups(Names=[lookup])
       elb = elbs['TargetGroups'][0]
       m = re.search(r'.+?(targetgroup\/[^\/]+\/[^\/]+)$', elb['TargetGroupArn'])
@@ -506,7 +506,7 @@ class EFAwsResolver(object):
     """
     # list_rules returns at most 100 rules per request
     list_limit = 100
-    list_ip_sets = EFAwsResolver.__CLIENTS["waf"].list_ip_sets
+    list_ip_sets = CRFAwsResolver.__CLIENTS["waf"].list_ip_sets
     ip_sets = list_ip_sets(Limit=list_limit)
     while True:
       for rule in ip_sets["IPSets"]:
@@ -527,13 +527,13 @@ class EFAwsResolver(object):
     """
     # list_rules returns at most 100 rules per request
     list_limit = 100
-    rules = EFAwsResolver.__CLIENTS["waf"].list_rules(Limit=list_limit)
+    rules = CRFAwsResolver.__CLIENTS["waf"].list_rules(Limit=list_limit)
     while True:
       for rule in rules["Rules"]:
         if rule["Name"] == lookup:
           return rule["RuleId"]
       if "NextMarker" in rules:
-        rules = EFAwsResolver.__CLIENTS["waf"].list_rules(Limit=list_limit, NextMarker=rules["NextMarker"])
+        rules = CRFAwsResolver.__CLIENTS["waf"].list_rules(Limit=list_limit, NextMarker=rules["NextMarker"])
       else:
         return default
 
@@ -547,13 +547,13 @@ class EFAwsResolver(object):
     """
     # list_rules returns at most 100 rules per request
     list_limit = 100
-    acls = EFAwsResolver.__CLIENTS["waf"].list_web_acls(Limit=list_limit)
+    acls = CRFAwsResolver.__CLIENTS["waf"].list_web_acls(Limit=list_limit)
     while True:
       for acl in acls["WebACLs"]:
         if acl["Name"] == lookup:
           return acl["WebACLId"]
       if "NextMarker" in acls:
-        acls = EFAwsResolver.__CLIENTS["waf"].list_web_acls(Limit=list_limit, NextMarker=acls["NextMarker"])
+        acls = CRFAwsResolver.__CLIENTS["waf"].list_web_acls(Limit=list_limit, NextMarker=acls["NextMarker"])
       else:
         return default
 
@@ -569,7 +569,7 @@ class EFAwsResolver(object):
     # enforce terminal '.' in name, otherwise we could get a partial match of the incorrect zones
     if lookup[-1] != '.':
       return default
-    hosted_zones = EFAwsResolver.__CLIENTS["route53"].list_hosted_zones_by_name(DNSName=lookup, MaxItems=list_limit)
+    hosted_zones = CRFAwsResolver.__CLIENTS["route53"].list_hosted_zones_by_name(DNSName=lookup, MaxItems=list_limit)
     # Return if the account has no HostedZones
     if "HostedZones" not in hosted_zones:
       return default
@@ -578,7 +578,7 @@ class EFAwsResolver(object):
         if lookup == hosted_zone["Name"] and not hosted_zone["Config"]["PrivateZone"]:
           return hosted_zone["Id"].split("/")[2]
       if hosted_zones["IsTruncated"]:
-        hosted_zones = EFAwsResolver.__CLIENTS["route53"].list_hosted_zones_by_name(
+        hosted_zones = CRFAwsResolver.__CLIENTS["route53"].list_hosted_zones_by_name(
           DNSName=hosted_zones["NextDNSName"], HostedZoneId=hosted_zones["NextHostedZoneId"], MaxItems=list_limit)
       else:
         return default
@@ -595,7 +595,7 @@ class EFAwsResolver(object):
     # enforce terminal '.' in name, otherwise we could get a partial match of the incorrect zones
     if lookup[-1] != '.':
       return default
-    hosted_zones = EFAwsResolver.__CLIENTS["route53"].list_hosted_zones_by_name(DNSName=lookup, MaxItems=list_limit)
+    hosted_zones = CRFAwsResolver.__CLIENTS["route53"].list_hosted_zones_by_name(DNSName=lookup, MaxItems=list_limit)
     # Return if the account has no HostedZones
     if "HostedZones" not in hosted_zones:
       return default
@@ -604,7 +604,7 @@ class EFAwsResolver(object):
         if lookup == hosted_zone["Name"] and hosted_zone["Config"]["PrivateZone"]:
           return hosted_zone["Id"].split("/")[2]
       if hosted_zones["IsTruncated"]:
-        hosted_zones = EFAwsResolver.__CLIENTS["route53"].list_hosted_zones_by_name(
+        hosted_zones = CRFAwsResolver.__CLIENTS["route53"].list_hosted_zones_by_name(
           DNSName=hosted_zones["NextDNSName"], HostedZoneId=hosted_zones["NextHostedZoneId"], MaxItems=list_limit)
       else:
         return default
@@ -620,7 +620,7 @@ class EFAwsResolver(object):
     vpc_id = self.ec2_vpc_vpc_id(lookup)
     if vpc_id is None:
       return default
-    route_table = EFAwsResolver.__CLIENTS["ec2"].describe_route_tables(Filters=[
+    route_table = CRFAwsResolver.__CLIENTS["ec2"].describe_route_tables(Filters=[
       {'Name': 'vpc-id', 'Values': [vpc_id]},
       {'Name': 'association.main', 'Values': ['true']}
     ])
@@ -636,7 +636,7 @@ class EFAwsResolver(object):
     Returns:
       the ID of the route table, or default if no match/multiple matches found
     """
-    route_table = EFAwsResolver.__CLIENTS["ec2"].describe_route_tables(Filters=[
+    route_table = CRFAwsResolver.__CLIENTS["ec2"].describe_route_tables(Filters=[
       {'Name': 'tag-key', 'Values': ['Name']},
       {'Name': 'tag-value', 'Values': [lookup]}
     ])
@@ -654,7 +654,7 @@ class EFAwsResolver(object):
     """
     # list_distributions returns at most 100 distributions per request
     list_limit = "100"
-    distributions = EFAwsResolver.__CLIENTS["cloudfront"].list_distributions(MaxItems=list_limit)["DistributionList"]
+    distributions = CRFAwsResolver.__CLIENTS["cloudfront"].list_distributions(MaxItems=list_limit)["DistributionList"]
     # Return if the account has no Distributions
     if "Items" not in distributions:
       return default
@@ -663,7 +663,7 @@ class EFAwsResolver(object):
         if lookup in distribution["Aliases"]["Items"]:
           return distribution["DomainName"]
       if distributions["IsTruncated"]:
-        distributions = EFAwsResolver.__CLIENTS["cloudfront"].list_distributions(
+        distributions = CRFAwsResolver.__CLIENTS["cloudfront"].list_distributions(
           MaxItems=list_limit, Marker=distributions["NextMarker"])["DistributionList"]
       else:
         return default
@@ -678,7 +678,7 @@ class EFAwsResolver(object):
     """
     # list_cloud_front_origin_access_identities returns at most 100 oai's per request
     list_limit = "100"
-    oais = EFAwsResolver.__CLIENTS["cloudfront"].list_cloud_front_origin_access_identities(
+    oais = CRFAwsResolver.__CLIENTS["cloudfront"].list_cloud_front_origin_access_identities(
       MaxItems=list_limit)["CloudFrontOriginAccessIdentityList"]
     # Return if the account has no OriginAccessIdentities
     if "Items" not in oais:
@@ -688,7 +688,7 @@ class EFAwsResolver(object):
         if oai["Comment"] == lookup:
           return oai["Id"]
       if oais["IsTruncated"]:
-        oais = EFAwsResolver.__CLIENTS["cloudfront"].list_cloud_front_origin_access_identities(
+        oais = CRFAwsResolver.__CLIENTS["cloudfront"].list_cloud_front_origin_access_identities(
           MaxItems=list_limit, Marker=oais["NextMarker"])["CloudFrontOriginAccessIdentityList"]
       else:
         return default
@@ -703,7 +703,7 @@ class EFAwsResolver(object):
     """
     # list_cloud_front_origin_access_identities returns at most 100 oai's per request
     list_limit = "100"
-    oais = EFAwsResolver.__CLIENTS["cloudfront"].list_cloud_front_origin_access_identities(
+    oais = CRFAwsResolver.__CLIENTS["cloudfront"].list_cloud_front_origin_access_identities(
       MaxItems=list_limit)["CloudFrontOriginAccessIdentityList"]
     # Return if the account has no OriginAccessIdentities
     if "Items" not in oais:
@@ -713,7 +713,7 @@ class EFAwsResolver(object):
         if oai["Comment"] == lookup:
           return oai["S3CanonicalUserId"]
       if oais["IsTruncated"]:
-        oais = EFAwsResolver.__CLIENTS["cloudfront"].list_cloud_front_origin_access_identities(
+        oais = CRFAwsResolver.__CLIENTS["cloudfront"].list_cloud_front_origin_access_identities(
           MaxItems=list_limit, Marker=oais["NextMarker"])["CloudFrontOriginAccessIdentityList"]
       else:
         return default
@@ -746,7 +746,7 @@ class EFAwsResolver(object):
     """
     # List size cannot be greater than 60
     list_limit = 60
-    client = EFAwsResolver.__CLIENTS["cognito-identity"]
+    client = CRFAwsResolver.__CLIENTS["cognito-identity"]
     response = client.list_identity_pools(MaxResults=list_limit)
 
     while "IdentityPools" in response:
@@ -772,7 +772,7 @@ class EFAwsResolver(object):
     Returns:
         the User Pool ARN corresponding to the given lookup, else default/None
     """
-    client = EFAwsResolver.__CLIENTS["cognito-idp"]
+    client = CRFAwsResolver.__CLIENTS["cognito-idp"]
     user_pool_id = self.cognito_idp_user_pool_id(lookup, default)
     if user_pool_id == default:
       return default
@@ -795,7 +795,7 @@ class EFAwsResolver(object):
     """
     # List size cannot be greater than 60
     list_limit = 60
-    client = EFAwsResolver.__CLIENTS["cognito-idp"]
+    client = CRFAwsResolver.__CLIENTS["cognito-idp"]
     response = client.list_user_pools(MaxResults=list_limit)
 
     while "UserPools" in response:
@@ -819,7 +819,7 @@ class EFAwsResolver(object):
     Returns:
       The decrypted lookup value
     """
-    decrypted_lookup = ef_utils.kms_decrypt(EFAwsResolver.__CLIENTS["kms"], lookup)
+    decrypted_lookup = crf_utils.kms_decrypt(CRFAwsResolver.__CLIENTS["kms"], lookup)
     return decrypted_lookup.plaintext.decode('string_escape')
 
   def kms_key_arn(self, lookup):
@@ -829,7 +829,7 @@ class EFAwsResolver(object):
     Returns:
       The full key arn
     """
-    key_arn = ef_utils.kms_key_arn(EFAwsResolver.__CLIENTS["kms"], lookup)
+    key_arn = crf_utils.kms_key_arn(CRFAwsResolver.__CLIENTS["kms"], lookup)
     return key_arn
 
   def ram_resource_share_arn(self, lookup, default=None):
@@ -840,7 +840,7 @@ class EFAwsResolver(object):
     Returns:
       The arn of the first resource share found with a label matching 'lookup' or default/None if no match found
     """
-    resource_shares = EFAwsResolver.__CLIENTS["ram"].get_resource_shares(
+    resource_shares = CRFAwsResolver.__CLIENTS["ram"].get_resource_shares(
       resourceOwner="OTHER-ACCOUNTS",
       name=lookup)
 
@@ -857,7 +857,7 @@ class EFAwsResolver(object):
     Returns:
       The arn of the first resource found with a label matching 'lookup' or default/None if no match found
     """
-    resources = EFAwsResolver.__CLIENTS["ram"].list_resources(
+    resources = CRFAwsResolver.__CLIENTS["ram"].list_resources(
       resourceOwner="OTHER-ACCOUNTS",
       resourceShareArns=[lookup])
 
@@ -874,7 +874,7 @@ class EFAwsResolver(object):
     Returns:
       The id of the first transit gateway found with a label matching 'lookup' or default/None if no match found
     """
-    transit_gateways = EFAwsResolver.__CLIENTS["ec2"].describe_transit_gateways()
+    transit_gateways = CRFAwsResolver.__CLIENTS["ec2"].describe_transit_gateways()
 
     if len(transit_gateways.get("TransitGateways")) > 0:
       transit_gateways = [i for i in transit_gateways["TransitGateways"] if (i["TransitGatewayArn"] == lookup)]
@@ -891,7 +891,7 @@ class EFAwsResolver(object):
       The id of the first image found with a label matching 'lookup' or default/None if no match found
     """
     try:
-      repositories = EFAwsResolver.__CLIENTS["ecr"].describe_repositories(repositoryNames=[ lookup ])
+      repositories = CRFAwsResolver.__CLIENTS["ecr"].describe_repositories(repositoryNames=[ lookup ])
       if len(repositories.get("repositories")) > 0:
         return repositories.get("repositories")[0]["repositoryUri"]
       else:
@@ -908,7 +908,7 @@ class EFAwsResolver(object):
       The DynamoDB Stream ARN with a label matching 'lookup' or default/None if no match found
     """
     try:
-      dynamodb_table = EFAwsResolver.__CLIENTS["dynamodb"].describe_table(TableName=lookup)
+      dynamodb_table = CRFAwsResolver.__CLIENTS["dynamodb"].describe_table(TableName=lookup)
       if dynamodb_table:
         return dynamodb_table["Table"]["LatestStreamArn"]
       else:
@@ -1016,4 +1016,4 @@ class EFAwsResolver(object):
       clients - dictionary of ready-to-go boto3 clients using aws prefixes:
       expected: clients["ec2"], clients["iam"], clients["lambda"]
     """
-    EFAwsResolver.__CLIENTS = clients
+    CRFAwsResolver.__CLIENTS = clients

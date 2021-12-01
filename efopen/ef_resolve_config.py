@@ -7,7 +7,7 @@ This is mostly for testing and teaching - accepts a config file as input, finds
 the matching config blob in /configs, resolves everything, and outputs the result
 as it would be written to a file on an instance when starting up
 
-Copyright 2016-2017 Ellation, Inc.
+Copyright 2016-2017 Crunchyroll, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -34,12 +34,12 @@ import yaml
 from yamllint import linter as yamllinter
 from yamllint import config as yamllint_config
 
-import ef_utils
-import ef_conf_utils
-from ef_config import EFConfig
-from ef_template_resolver import EFTemplateResolver
-from ef_utils import fail
-from ef_conf_utils import get_account_alias
+import crf_utils
+import crf_conf_utils
+from crf_config import CRFConfig
+from crf_template_resolver import CRFTemplateResolver
+from crf_utils import fail
+from crf_conf_utils import get_account_alias
 
 
 class Context:
@@ -50,7 +50,7 @@ class Context:
     self.service = service
     self.template_path = template_path
     self.no_params = no_params
-    self.param_path = ef_conf_utils.get_template_parameters_file(self.template_path)
+    self.param_path = crf_conf_utils.get_template_parameters_file(self.template_path)
     self.verbose = verbose
     self.lint = lint
     self.silent = silent
@@ -82,7 +82,7 @@ def handle_args_and_set_context(args):
 
   return Context(
       get_account_alias(parsed["env"]),
-      EFConfig.DEFAULT_REGION,
+      CRFConfig.DCRFAULT_REGION,
       parsed["env"],
       service,
       path_to_template,
@@ -101,7 +101,7 @@ def merge_files(context):
   Args:
     context: a populated context object
   """
-  resolver = EFTemplateResolver(
+  resolver = CRFTemplateResolver(
       profile=context.profile,
       region=context.region,
       env=context.env,

@@ -9,14 +9,14 @@ import os
 import string
 import sys
 
-from ef_config import EFConfig
-from ef_context import EFContext
-import ef_utils
+from crf_config import CRFConfig
+from crf_context import CRFContext
+import crf_utils
 
 
-class EFPWContext(EFContext):
+class CRFPWContext(CRFContext):
   def __init__(self):
-    super(EFPWContext, self).__init__()
+    super(CRFPWContext, self).__init__()
     self._decrypt = None
     self._re_encrypt = None
     self._length = 32
@@ -163,11 +163,11 @@ def generate_secret_file(file_path, pattern, service, environment, clients):
             print("Found match, key {} but value is encrypted already; skipping...".format(key))
           else:
             print("Found match, encrypting key {}".format(key))
-            encrypted_password = ef_utils.kms_encrypt(clients['kms'], service, environment, value)
+            encrypted_password = crf_utils.kms_encrypt(clients['kms'], service, environment, value)
             data["params"][environment][key] = format_secret(encrypted_password)
             changed = True
     except KeyError:
-      ef_utils.fail("Error env: {} does not exist in parameters file".format(environment))
+      crf_utils.fail("Error env: {} does not exist in parameters file".format(environment))
 
   if changed:
     with open(file_path, "w") as encrypted_file:
@@ -180,14 +180,14 @@ def handle_args_and_set_context(args):
   Args:
       args: the command line args, probably passed from main() as sys.argv[1:]
   Returns:
-      a populated EFPWContext object
+      a populated CRFPWContext object
   Raises:
-      RuntimeError: if branch isn't as spec'd in ef_config.EF_REPO_BRANCH
+      RuntimeError: if branch isn't as spec'd in crf_config.CRF_REPO_BRANCH
       ValueError: if a parameter is invalid
   """
   parser = argparse.ArgumentParser(description="Encrypt/decrypt template secrets.")
   parser.add_argument("service", help="name of service password is being generated for")
-  parser.add_argument("env", help=", ".join(EFConfig.ENV_LIST))
+  parser.add_argument("env", help=", ".join(CRFConfig.ENV_LIST))
   parser.add_argument("--special_character_override", help="comma-separated list of characters \
     to override in quotes - only use with plaintext argument to allow a special charater set.\
     Pick a subset from: §,±,<,>,',\",`,\\,: which are denied by default" , default="")
@@ -200,12 +200,12 @@ def handle_args_and_set_context(args):
   parser.add_argument("--length", help="length of generated password (default 32)", default=32)
   parser.add_argument("--lbv1_escapes", help="if secret has escapes, encode them for lbv1 consumption", action="store_true", default=False)
   parsed_args = vars(parser.parse_args(args))
-  context = EFPWContext()
+  context = CRFPWContext()
 
   try:
     context.env = parsed_args["env"]
   except ValueError as e:
-    ef_utils.fail("Error in env: {}".format(e))
+    crf_utils.fail("Error in env: {}".format(e))
 
   context.service = parsed_args["service"]
   context.decrypt = parsed_args["decrypt"]
@@ -237,10 +237,10 @@ def main():
   profile = None if context.whereami == "ec2" else context.account_alias
 
   try:
-    clients = ef_utils.create_aws_clients(EFConfig.DEFAULT_REGION, profile, "kms")
+    clients = crf_utils.create_aws_clients(CRFConfig.DCRFAULT_REGION, profile, "kms")
   except RuntimeError as error:
-    ef_utils.fail(
-      "Exception creating clients in region {} with profile {}".format(EFConfig.DEFAULT_REGION, profile),
+    crf_utils.fail(
+      "Exception creating clients in region {} with profile {}".format(CRFConfig.DCRFAULT_REGION, profile),
       error
     )
 
@@ -249,13 +249,13 @@ def main():
     return
 
   if context.decrypt:
-    decrypted = ef_utils.kms_decrypt(kms_client=clients['kms'], secret=context.decrypt)
-    key_aliases = ef_utils.kms_key_alias(clients['kms'], decrypted.key_id)
+    decrypted = crf_utils.kms_decrypt(kms_client=clients['kms'], secret=context.decrypt)
+    key_aliases = crf_utils.kms_key_alias(clients['kms'], decrypted.key_id)
     print("Decrypted Secret: {}; Key: {}".format(decrypted.plaintext, ', '.join(key_aliases)))
     return
 
   if context.re_encrypt:
-    encrypted_password = ef_utils.kms_re_encrypt(
+    encrypted_password = crf_utils.kms_re_encrypt(
       kms_client=clients['kms'],
       service=context.service,
       env=context.env,
@@ -272,7 +272,7 @@ def main():
   else:
     password = generate_secret(context.length)
     print("Generated Secret: {}".format(password))
-  encrypted_password = ef_utils.kms_encrypt(clients['kms'], context.service, context.env, password)
+  encrypted_password = crf_utils.kms_encrypt(clients['kms'], context.service, context.env, password)
   print(format_secret(encrypted_password))
   return
 

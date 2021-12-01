@@ -1,7 +1,7 @@
 # noinspection PyClassHasNoInit
 
 """
-Copyright 2016-2017 Ellation, Inc.
+Copyright 2016-2017 Crunchyroll, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -16,14 +16,14 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-from ef_service_registry import EFServiceRegistry
-from ef_utils import whereami
-from ef_conf_utils import env_valid
-from ef_conf_utils import get_account_alias
-from ef_conf_utils import get_env_short
-from ef_conf_utils import global_env_valid
+from crf_service_registry import CRFServiceRegistry
+from crf_utils import whereami
+from crf_conf_utils import env_valid
+from crf_conf_utils import get_account_alias
+from crf_conf_utils import get_env_short
+from crf_conf_utils import global_env_valid
 
-class EFContext(object):
+class CRFContext(object):
   """
   Class holds environment/account-related context for tools and resolvers
   and helps assure consistency in, for example, trimming "env" to "env_short"
@@ -77,7 +77,7 @@ class EFContext(object):
       self._env = value
       self._account_alias = get_account_alias(value)
     else:
-      # "<env>.<account_alias>" form, e.g. global.ellationeng or mgmt.ellationeng
+      # "<env>.<account_alias>" form, e.g. global.crunchyrolleng or mgmt.crunchyrolleng
       self._env, self._account_alias = value.split(".")
       # since we extracted an env, must reconfirm that it's legit
       global_env_valid(self._env)
@@ -90,7 +90,7 @@ class EFContext(object):
 
   @property
   def env_full(self):
-    """Name of the environment as expected in the service registry, e.g. 'prod' or 'proto' or 'mgmt.ellationeng'"""
+    """Name of the environment as expected in the service registry, e.g. 'prod' or 'proto' or 'mgmt.crunchyrolleng'"""
     return self._env_full
 
   @property
@@ -112,10 +112,10 @@ class EFContext(object):
     """
     Sets service registry object in context, doesn't check it
     Args:
-      sr: EFServiceRegistry object
+      sr: CRFServiceRegistry object
     """
-    if type(sr) is not EFServiceRegistry:
-      raise TypeError("sr value must be type 'EFServiceRegistry'")
+    if type(sr) is not CRFServiceRegistry:
+      raise TypeError("sr value must be type 'CRFServiceRegistry'")
     self._service_registry = sr
 
   @property

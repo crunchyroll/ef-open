@@ -1,5 +1,5 @@
 """
-Copyright 2016-2018 Ellation, Inc.
+Copyright 2016-2018 Crunchyroll, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -16,12 +16,12 @@ limitations under the License.
 
 from __future__ import print_function
 
-from ef_config import EFConfig
+from crf_config import CRFConfig
 
 
-class EFConfigResolver(object):
+class CRFConfigResolver(object):
   """
-  Resolves values from the tool configuration in the EFConfig class (ef_config.py)
+  Resolves values from the tool configuration in the CRFConfig class (crf_config.py)
 
   In a template:
     {{efconfig:thing,lookup}}
@@ -36,8 +36,8 @@ class EFConfigResolver(object):
     Returns:
       The account alias of the account that hosts the env named in lookupor default/None if no match found
     """
-    if lookup in EFConfig.ENV_ACCOUNT_MAP:
-      return EFConfig.ENV_ACCOUNT_MAP[lookup]
+    if lookup in CRFConfig.ENV_ACCOUNT_MAP:
+      return CRFConfig.ENV_ACCOUNT_MAP[lookup]
     else:
       return None
 
@@ -50,8 +50,8 @@ class EFConfigResolver(object):
       The custom data returned from the file 'lookup' or default/None if no match found
     """
     try:
-      if lookup in EFConfig.CUSTOM_DATA:
-        return EFConfig.CUSTOM_DATA[lookup]
+      if lookup in CRFConfig.CUSTOM_DATA:
+        return CRFConfig.CUSTOM_DATA[lookup]
       else:
         return default
     except AttributeError:

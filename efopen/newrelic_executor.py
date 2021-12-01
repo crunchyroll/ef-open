@@ -2,9 +2,9 @@ from copy import deepcopy
 from itertools import chain
 import logging
 
-from ef_config import EFConfig
-from ef_conf_utils import get_account_alias
-from ef_utils import kms_decrypt
+from crf_config import CRFConfig
+from crf_conf_utils import get_account_alias
+from crf_utils import kms_decrypt
 from newrelic_interface import NewRelic, AlertPolicy
 
 
@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 class NewRelicAlerts(object):
 
   def __init__(self, context, clients):
-    self.config = EFConfig.PLUGINS['newrelic']
+    self.config = CRFConfig.PLUGINS['newrelic']
     self.ec2_conditions = self.config.get('ec2_alert_conditions', {})
     self.ecs_conditions = self.config.get('ecs_alert_conditions', {})
     self.local_alert_nrql_conditions = self.config.get('alert_nrql_conditions', {})
@@ -293,7 +293,7 @@ class NewRelicAlerts(object):
 
         # Configure Opsgenie notifications for services running in the production account
         try:
-          prod_account = EFConfig.ENV_ACCOUNT_MAP['prod']
+          prod_account = CRFConfig.ENV_ACCOUNT_MAP['prod']
           if (self.context.env in ["prod", "global.{}".format(prod_account), "mgmt.{}".format(prod_account)]
               and opsgenie_enabled and opsgenie_team):
             self.add_policy_to_opsgenie_channel(policy, opsgenie_team)
@@ -365,7 +365,7 @@ class NewRelicAlerts(object):
 
         # Configure Opsgenie notifications for services running in the production account
         try:
-          prod_account = EFConfig.ENV_ACCOUNT_MAP['prod']
+          prod_account = CRFConfig.ENV_ACCOUNT_MAP['prod']
           if (self.context.env in ["prod", "global.{}".format(prod_account), "mgmt.{}".format(prod_account)]
               and opsgenie_enabled and opsgenie_team):
             self.add_policy_to_opsgenie_channel(policy, opsgenie_team)

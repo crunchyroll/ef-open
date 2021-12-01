@@ -1,5 +1,5 @@
 """
-Copyright 2016-2017 Ellation, Inc.
+Copyright 2016-2017 Crunchyroll, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -22,12 +22,12 @@ from mock import call, Mock, patch
 # For local application imports, context_paths must be first despite lexicon ordering
 import context_paths
 
-from ef_config import EFConfig
-from ef_template_resolver import EFTemplateResolver
-from ef_conf_utils import get_account_alias
+from crf_config import CRFConfig
+from crf_template_resolver import CRFTemplateResolver
+from crf_conf_utils import get_account_alias
 
 TEST_PROFILE = get_account_alias("test")
-TEST_REGION = EFConfig.DEFAULT_REGION
+TEST_REGION = CRFConfig.DCRFAULT_REGION
 TEST_ENV = "test"
 TEST_SERVICE = "none"
 
@@ -69,8 +69,8 @@ ILLEGAL_COMMA_PARAMS = """{
 """
 
 
-class TestEFTemplateResolver(unittest.TestCase):
-  """Tests for `ef_template_resolver.py`."""
+class TestCRFTemplateResolver(unittest.TestCase):
+  """Tests for `crf_template_resolver.py`."""
 
   def setUp(self):
     """
@@ -118,158 +118,158 @@ class TestEFTemplateResolver(unittest.TestCase):
     """
     pass
 
-  @patch('ef_template_resolver.create_aws_clients')
+  @patch('crf_template_resolver.create_aws_clients')
   def test_resolution(self, mock_create_aws):
     """Do context symbols resolve correctly"""
     mock_create_aws.return_value = self._clients
     test_string = "{{one}}|{{two}}|{{/_-.}}|{{ENV}}"
-    resolver = EFTemplateResolver(profile=TEST_PROFILE, env=TEST_ENV, region=TEST_REGION, service=TEST_SERVICE)
+    resolver = CRFTemplateResolver(profile=TEST_PROFILE, env=TEST_ENV, region=TEST_REGION, service=TEST_SERVICE)
     resolver.load(test_string, PARAMS)
     self.assertEqual(resolver.render(), "testenv one|testenv two|slashunderscoredashdot|test")
 
-  @patch('ef_template_resolver.create_aws_clients')
+  @patch('crf_template_resolver.create_aws_clients')
   def test_leading_dot(self, mock_create_aws):
     """Do symbols with a leading dot render correctly"""
     mock_create_aws.return_value = self._clients
     test_string = "{{.one}}"
-    resolver = EFTemplateResolver(profile=TEST_PROFILE, env=TEST_ENV, region=TEST_REGION, service=TEST_SERVICE)
+    resolver = CRFTemplateResolver(profile=TEST_PROFILE, env=TEST_ENV, region=TEST_REGION, service=TEST_SERVICE)
     resolver.load(test_string, PARAMS)
     self.assertEqual(resolver.render(), "testenv one")
 
-  @patch('ef_template_resolver.create_aws_clients')
+  @patch('crf_template_resolver.create_aws_clients')
   def test_leading_dot_context(self, mock_create_aws):
     """Do context symbols with a leading dot render correctly"""
     mock_create_aws.return_value = self._clients
     test_string = "{{.ENV}}"
-    resolver = EFTemplateResolver(profile=TEST_PROFILE, env=TEST_ENV, region=TEST_REGION, service=TEST_SERVICE)
+    resolver = CRFTemplateResolver(profile=TEST_PROFILE, env=TEST_ENV, region=TEST_REGION, service=TEST_SERVICE)
     resolver.load(test_string, PARAMS)
     self.assertEqual(resolver.render(), TEST_ENV)
 
-  @patch('ef_template_resolver.create_aws_clients')
+  @patch('crf_template_resolver.create_aws_clients')
   def test_newline_literal(self, mock_create_aws):
     """Do newline literals get converted to newlines"""
     mock_create_aws.return_value = self._clients
     test_string = "foo\nbar"
-    resolver = EFTemplateResolver(profile=TEST_PROFILE, env=TEST_ENV, region=TEST_REGION, service=TEST_SERVICE)
+    resolver = CRFTemplateResolver(profile=TEST_PROFILE, env=TEST_ENV, region=TEST_REGION, service=TEST_SERVICE)
     resolver.load(test_string, PARAMS)
     self.assertEqual(resolver.render(), "foo\nbar")
 
-  @patch('ef_template_resolver.create_aws_clients')
+  @patch('crf_template_resolver.create_aws_clients')
   def test_newline_literal_against_raw(self, mock_create_aws):
     """Another check to make sure newline literals are not mistakenly written as r'\n'"""
     mock_create_aws.return_value = self._clients
     test_string = "foo\nbar"
-    resolver = EFTemplateResolver(profile=TEST_PROFILE, env=TEST_ENV, region=TEST_REGION, service=TEST_SERVICE)
+    resolver = CRFTemplateResolver(profile=TEST_PROFILE, env=TEST_ENV, region=TEST_REGION, service=TEST_SERVICE)
     resolver.load(test_string, PARAMS)
     self.assertNotEqual(resolver.render(), r'foo\nbar')
 
-  @patch('ef_template_resolver.create_aws_clients')
+  @patch('crf_template_resolver.create_aws_clients')
   def test_embedded_symbols(self, mock_create_aws):
     """Does a symbol built from other symbols resolve correctly"""
     mock_create_aws.return_value = self._clients
     test_string = "{{{{o}}{{ne}}}}"
-    resolver = EFTemplateResolver(profile=TEST_PROFILE, env=TEST_ENV, region=TEST_REGION, service=TEST_SERVICE)
+    resolver = CRFTemplateResolver(profile=TEST_PROFILE, env=TEST_ENV, region=TEST_REGION, service=TEST_SERVICE)
     resolver.load(test_string, PARAMS)
     self.assertEqual(resolver.render(), "testenv one")
 
-  @patch('ef_template_resolver.create_aws_clients')
+  @patch('crf_template_resolver.create_aws_clients')
   def test_unresolved_symbols(self, mock_create_aws):
     """Are unresolved symbols stored and reported, and non-symbols ignored"""
     mock_create_aws.return_value = self._clients
     test_string = "{{cannot_resolve}}{{not a symbo}}{{notasymbol?}}{{cannot_resolve}}"
-    resolver = EFTemplateResolver(profile=TEST_PROFILE, env=TEST_ENV, region=TEST_REGION, service=TEST_SERVICE)
+    resolver = CRFTemplateResolver(profile=TEST_PROFILE, env=TEST_ENV, region=TEST_REGION, service=TEST_SERVICE)
     resolver.load(test_string, PARAMS)
     self.assertEqual(resolver.unresolved_symbols(), set(["cannot_resolve"]))
 
-  @patch('ef_template_resolver.create_aws_clients')
+  @patch('crf_template_resolver.create_aws_clients')
   def test_hierarchical_overlays(self, mock_create_aws):
     """Is the hierarchy of default..env applied correctly"""
     mock_create_aws.return_value = self._clients
     test_string = "{{one}}|{{two}}|{{my-thing}}"
-    resolver = EFTemplateResolver(profile=TEST_PROFILE, env=TEST_ENV, region=TEST_REGION, service=TEST_SERVICE)
+    resolver = CRFTemplateResolver(profile=TEST_PROFILE, env=TEST_ENV, region=TEST_REGION, service=TEST_SERVICE)
     resolver.load(test_string, PARAMS)
     self.assertEqual(resolver.render(), "testenv one|testenv two|my-hyphen-thing")
 
-  @patch('ef_template_resolver.create_aws_clients')
+  @patch('crf_template_resolver.create_aws_clients')
   def test_context_vars_protected(self, mock_create_aws):
     """Context vars like {{ENV}} are not overridden even if present in template"""
     mock_create_aws.return_value = self._clients
     test_string = "{{ENV}}"
-    resolver = EFTemplateResolver(profile=TEST_PROFILE, env=TEST_ENV, region=TEST_REGION, service=TEST_SERVICE)
+    resolver = CRFTemplateResolver(profile=TEST_PROFILE, env=TEST_ENV, region=TEST_REGION, service=TEST_SERVICE)
     resolver.load(test_string, PARAMS)
     self.assertEqual(resolver.render(), TEST_ENV)
 
-  @patch('ef_template_resolver.create_aws_clients')
+  @patch('crf_template_resolver.create_aws_clients')
   def test_fully_qualified_env(self, mock_create_aws):
     """Does {{ENV_FULL}} resolve correctly"""
     mock_create_aws.return_value = self._clients
     # alpha0
     test_string = "{{ENV_FULL}}"
-    resolver = EFTemplateResolver(profile=get_account_alias("alpha0"),
+    resolver = CRFTemplateResolver(profile=get_account_alias("alpha0"),
                                   env="alpha0", region=TEST_REGION, service=TEST_SERVICE)
     resolver.load(test_string, PARAMS)
     self.assertEqual(resolver.render(), "alpha0")
     # prod
-    resolver = EFTemplateResolver(profile=get_account_alias("test"),
+    resolver = CRFTemplateResolver(profile=get_account_alias("test"),
                                   env="test", region=TEST_REGION, service=TEST_SERVICE)
     resolver.load(test_string, PARAMS)
     self.assertEqual(resolver.render(), "test")
     # mgmt.testaccount
-    resolver = EFTemplateResolver(profile=get_account_alias("mgmt.testaccount"),
+    resolver = CRFTemplateResolver(profile=get_account_alias("mgmt.testaccount"),
                                   env="mgmt.testaccount", region=TEST_REGION, service=TEST_SERVICE)
     resolver.load(test_string, PARAMS)
     self.assertEqual(resolver.render(), "mgmt.testaccount")
 
-  @patch('ef_template_resolver.create_aws_clients')
+  @patch('crf_template_resolver.create_aws_clients')
   def test_load_json_file(self, mock_create_aws):
     """Does {{one}} resolve correctly from json parameters file"""
     mock_create_aws.return_value = self._clients
     test_string = "{{one}}"
-    resolver = EFTemplateResolver(profile=get_account_alias("alpha0"),
+    resolver = CRFTemplateResolver(profile=get_account_alias("alpha0"),
                                   env="alpha0", region=TEST_REGION, service=TEST_SERVICE)
     with open(self.test_params_json) as json_file:
       resolver.load(test_string, json_file)
     self.assertEqual(resolver.render(), "alpha one")
 
-  @patch('ef_template_resolver.create_aws_clients')
+  @patch('crf_template_resolver.create_aws_clients')
   def test_load_yaml_file(self, mock_create_aws):
     """Does {{one}} resolve correctly from yaml parameters file"""
     mock_create_aws.return_value = self._clients
     test_string = "{{one}}"
-    resolver = EFTemplateResolver(profile=get_account_alias("alpha0"),
+    resolver = CRFTemplateResolver(profile=get_account_alias("alpha0"),
                                   env="alpha0", region=TEST_REGION, service=TEST_SERVICE)
     with open(self.test_params_yaml) as yaml_file:
       resolver.load(test_string, yaml_file)
     self.assertEqual(resolver.render(), "alpha one")
 
-  @patch('ef_template_resolver.create_aws_clients')
+  @patch('crf_template_resolver.create_aws_clients')
   def test_render_multiline_string_from_string(self, mock_create_aws):
     """Does {{multi}} resolve correctly as a multiline string from yaml parameters file"""
     mock_create_aws.return_value = self._clients
     test_string = "{{multi}}"
-    resolver = EFTemplateResolver(profile=get_account_alias("test"),
+    resolver = CRFTemplateResolver(profile=get_account_alias("test"),
                                   env="test", region=TEST_REGION, service=TEST_SERVICE)
     with open(self.test_params_json) as json_file:
       resolver.load(test_string, json_file)
     self.assertEqual(resolver.render(), "thisisareallylongstringthatcoversmultiple\nlinesfortestingmultilinestrings")
 
-  @patch('ef_template_resolver.create_aws_clients')
+  @patch('crf_template_resolver.create_aws_clients')
   def test_render_multiline_string_from_list(self, mock_create_aws):
     """Does {{multi}} resolve correctly as a multiline string from yaml parameters file"""
     mock_create_aws.return_value = self._clients
     test_string = "{{multi2}}"
-    resolver = EFTemplateResolver(profile=get_account_alias("test"),
+    resolver = CRFTemplateResolver(profile=get_account_alias("test"),
                                   env="test", region=TEST_REGION, service=TEST_SERVICE)
     with open(self.test_params_json) as json_file:
       resolver.load(test_string, json_file)
     self.assertEqual(resolver.render(), "one\ntwo\nthree")
 
-  @patch('ef_template_resolver.create_aws_clients')
+  @patch('crf_template_resolver.create_aws_clients')
   def test_render_multiline_string(self, mock_create_aws):
     """Does {{multi}} resolve correctly as a multiline string from yaml parameters file"""
     mock_create_aws.return_value = self._clients
     test_string = "{{multi}}"
-    resolver = EFTemplateResolver(profile=get_account_alias("test"),
+    resolver = CRFTemplateResolver(profile=get_account_alias("test"),
                                   env="test", region=TEST_REGION, service=TEST_SERVICE)
     with open(self.test_params_yaml) as yaml_file:
       resolver.load(test_string, yaml_file)

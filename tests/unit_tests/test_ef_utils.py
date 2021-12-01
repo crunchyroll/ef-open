@@ -1,5 +1,5 @@
 """
-Copyright 2016-2017 Ellation, Inc.
+Copyright 2016-2017 Crunchyroll, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -25,13 +25,13 @@ from mock import Mock, patch
 # For local application imports, context_paths must be first despite lexicon ordering
 import context_paths
 
-from ef_config import EFConfig
-import ef_utils
+from crf_config import CRFConfig
+import crf_utils
 
 
-class TestEFUtils(unittest.TestCase):
+class TestCRFUtils(unittest.TestCase):
   """
-  Tests for 'ef_utils.py' Relies on the ef_site_config.py for testing. Look inside that file for where
+  Tests for 'crf_utils.py' Relies on the crf_site_config.py for testing. Look inside that file for where
   some of the test values are coming from.
   """
 
@@ -68,7 +68,7 @@ class TestEFUtils(unittest.TestCase):
       AssertionError if any of the assert checks fail
     """
     with self.assertRaises(SystemExit) as exception:
-      ef_utils.fail("Error Message")
+      crf_utils.fail("Error Message")
     error_message = mock_stderr.getvalue().strip()
     self.assertEquals(error_message, "Error Message")
     self.assertEquals(exception.exception.code, 1)
@@ -89,7 +89,7 @@ class TestEFUtils(unittest.TestCase):
       AssertionError if any of the assert checks fail
     """
     with self.assertRaises(SystemExit) as exception:
-      ef_utils.fail("Error Message", {"ErrorCode": 22})
+      crf_utils.fail("Error Message", {"ErrorCode": 22})
     error_message = mock_stderr.getvalue().strip()
     self.assertEquals(error_message, "Error Message")
     self.assertEquals(exception.exception.code, 1)
@@ -111,7 +111,7 @@ class TestEFUtils(unittest.TestCase):
       AssertionError if any of the assert checks fail
     """
     with self.assertRaises(SystemExit) as exception:
-      ef_utils.fail(None)
+      crf_utils.fail(None)
     error_message = mock_stderr.getvalue().strip()
     self.assertEquals(error_message, "None")
     self.assertEquals(exception.exception.code, 1)
@@ -131,7 +131,7 @@ class TestEFUtils(unittest.TestCase):
       AssertionError if any of the assert checks fail
     """
     with self.assertRaises(SystemExit) as exception:
-      ef_utils.fail("")
+      crf_utils.fail("")
     error_message = mock_stderr.getvalue().strip()
     self.assertEquals(error_message, "")
     self.assertEquals(exception.exception.code, 1)
@@ -154,7 +154,7 @@ class TestEFUtils(unittest.TestCase):
     mock_response.getcode.return_value = 200
     mock_response.read.return_value = "ami-12345678"
     mock_urllib2.return_value = mock_response
-    response = ef_utils.http_get_metadata("ami-id")
+    response = crf_utils.http_get_metadata("ami-id")
     self.assertEquals(response, "ami-12345678")
 
   @patch('urllib2.urlopen')
@@ -175,11 +175,11 @@ class TestEFUtils(unittest.TestCase):
     mock_response.getcode.return_value = 400
     mock_urllib2.return_value = mock_response
     with self.assertRaises(IOError) as exception:
-      ef_utils.http_get_metadata("ami-id")
+      crf_utils.http_get_metadata("ami-id")
     self.assertIn("Non-200 response", str(exception.exception))
 
-  @patch('ef_utils.getenv')
-  @patch('ef_utils.http_get_metadata')
+  @patch('crf_utils.getenv')
+  @patch('crf_utils.http_get_metadata')
   def test_whereami_ec2(self, mock_http_get_metadata, getenv):
     """
     Tests whereami to see if it returns 'ec2' by mocking an ec2 environment
@@ -195,11 +195,11 @@ class TestEFUtils(unittest.TestCase):
     """
     mock_http_get_metadata.return_value = "i-somestuff"
     getenv.return_value = False
-    result = ef_utils.whereami()
+    result = crf_utils.whereami()
     self.assertEquals(result, "ec2")
 
-  @patch('ef_utils.getenv')
-  @patch('ef_utils.http_get_metadata')
+  @patch('crf_utils.getenv')
+  @patch('crf_utils.http_get_metadata')
   def test_whereami_jenkins(self, mock_http_get_metadata, mock_getenv):
     """
     Tests whereami to see if it returns 'jenkins' by mocking an ec2 Jenkins
@@ -224,11 +224,11 @@ class TestEFUtils(unittest.TestCase):
         return None
       return default
     mock_getenv.side_effect = getenv_side_effect
-    result = ef_utils.whereami()
+    result = crf_utils.whereami()
     self.assertEquals(result, "jenkins")
 
-  @patch('ef_utils.getenv')
-  @patch('ef_utils.http_get_metadata')
+  @patch('crf_utils.getenv')
+  @patch('crf_utils.http_get_metadata')
   def test_whereami_jenkins_docker(self, mock_http_get_metadata, mock_getenv):
     """
     Tests whereami to see if it returns 'ec2' by mocking an ec2 Jenkins Docker
@@ -252,13 +252,13 @@ class TestEFUtils(unittest.TestCase):
         return True
       return default
     mock_getenv.side_effect = getenv_side_effect
-    result = ef_utils.whereami()
+    result = crf_utils.whereami()
     self.assertEquals(result, "ec2")
 
-  @patch('ef_utils.getenv')
-  @patch('ef_utils.is_in_virtualbox')
-  @patch('ef_utils.gethostname')
-  @patch('ef_utils.http_get_metadata')
+  @patch('crf_utils.getenv')
+  @patch('crf_utils.is_in_virtualbox')
+  @patch('crf_utils.gethostname')
+  @patch('crf_utils.http_get_metadata')
   def test_whereami_local(self, mock_http_get_metadata, mock_gethostname, mock_is_in_virtualbox, mock_getenv):
     """
     Tests whereami to see if it returns 'local' by mocking a local machine environment
@@ -277,13 +277,13 @@ class TestEFUtils(unittest.TestCase):
     mock_http_get_metadata.return_value = "nothinguseful"
     mock_is_in_virtualbox.return_value = False
     mock_gethostname.return_value = ".local"
-    result = ef_utils.whereami()
+    result = crf_utils.whereami()
     self.assertEquals(result, "local")
 
-  @patch('ef_utils.getenv')
-  @patch('ef_utils.is_in_virtualbox')
-  @patch('ef_utils.gethostname')
-  @patch('ef_utils.http_get_metadata')
+  @patch('crf_utils.getenv')
+  @patch('crf_utils.is_in_virtualbox')
+  @patch('crf_utils.gethostname')
+  @patch('crf_utils.http_get_metadata')
   def test_whereami_unknown(self, mock_http_get_metadata, mock_gethostname, mock_is_in_virtualbox, mock_getenv):
     """
     Tests whereami to see if it returns 'unknown' by mocking the environment to not match anything
@@ -302,10 +302,10 @@ class TestEFUtils(unittest.TestCase):
     mock_http_get_metadata.return_value = "nothinguseful"
     mock_is_in_virtualbox.return_value = False
     mock_gethostname.return_value = "not local"
-    result = ef_utils.whereami()
+    result = crf_utils.whereami()
     self.assertEquals(result, "unknown")
 
-  @patch('ef_utils.http_get_metadata')
+  @patch('crf_utils.http_get_metadata')
   def test_http_get_instance_env(self, mock_http_get_metadata):
     """
     Tests http_get_instance_env to see if it returns 'alpha' by mocking the metadata with a valid IAM instance profile
@@ -320,10 +320,10 @@ class TestEFUtils(unittest.TestCase):
       AssertionError if any of the assert checks fail
     """
     mock_http_get_metadata.return_value = "{\"InstanceProfileArn\": \"arn:aws:iam::1234:role/alpha-server\"}"
-    env = ef_utils.http_get_instance_env()
+    env = crf_utils.http_get_instance_env()
     self.assertEquals(env, "alpha")
 
-  @patch('ef_utils.http_get_metadata')
+  @patch('crf_utils.http_get_metadata')
   def test_http_get_instance_env_exception(self, mock_http_get_metadata):
     """
     Tests http_get_instance_env to see if it raises an exception by mocking the metadata to be invalid
@@ -339,10 +339,10 @@ class TestEFUtils(unittest.TestCase):
     """
     mock_http_get_metadata.return_value = "No data"
     with self.assertRaises(Exception) as exception:
-      ef_utils.http_get_instance_env()
+      crf_utils.http_get_instance_env()
     self.assertIn("Error looking up metadata:iam/info", str(exception.exception))
 
-  @patch('ef_utils.http_get_metadata')
+  @patch('crf_utils.http_get_metadata')
   def test_http_get_instance_role(self, mock_http_get_metadata):
     """
     Tests http_get_instance_role to return the service name by mocking the metadata
@@ -357,10 +357,10 @@ class TestEFUtils(unittest.TestCase):
       AssertionError if any of the assert checks fail
     """
     mock_http_get_metadata.return_value = "{\"InstanceProfileArn\": \"arn:aws:iam::1234:role/alpha-server\"}"
-    role = ef_utils.http_get_instance_role()
+    role = crf_utils.http_get_instance_role()
     self.assertEquals(role, "server")
 
-  @patch('ef_utils.http_get_metadata')
+  @patch('crf_utils.http_get_metadata')
   def test_http_get_instance_role_exception(self, mock_http_get_metadata):
     """
     Tests http_get_instance_role to see if it raises an exception by giving it invalid metadata
@@ -376,7 +376,7 @@ class TestEFUtils(unittest.TestCase):
     """
     mock_http_get_metadata.return_value = "No data"
     with self.assertRaises(Exception) as exception:
-      ef_utils.http_get_instance_role()
+      crf_utils.http_get_instance_role()
     self.assertIn("Error looking up metadata:iam/info:", str(exception.exception))
 
   @patch('boto3.Session')
@@ -398,7 +398,7 @@ class TestEFUtils(unittest.TestCase):
     mock_session.client.return_value = Mock(name="mock-client")
     mock_session_constructor.return_value = mock_session
     amazon_services = ["acm", "batch", "ec2", "sqs"]
-    client_dict = ef_utils.create_aws_clients("us-west-2d", "default", *amazon_services)
+    client_dict = crf_utils.create_aws_clients("us-west-2d", "default", *amazon_services)
     self.assertTrue("acm" in client_dict)
     self.assertTrue("batch" in client_dict)
     self.assertTrue("ec2" in client_dict)
@@ -424,7 +424,7 @@ class TestEFUtils(unittest.TestCase):
     mock_session.client.return_value = Mock(name="mock-client")
     mock_session_constructor.return_value = mock_session
     amazon_services = ["acm", "batch", "ec2", "sqs"]
-    client_dict = ef_utils.create_aws_clients("us-west-2d", None, *amazon_services)
+    client_dict = crf_utils.create_aws_clients("us-west-2d", None, *amazon_services)
     self.assertTrue("acm" in client_dict)
     self.assertTrue("batch" in client_dict)
     self.assertTrue("ec2" in client_dict)
@@ -458,14 +458,14 @@ class TestEFUtils(unittest.TestCase):
         ("us-west-2d", None),
         ("us-west-3d", None),
         ("us-west-2d", "codemobs"),
-        ("us-west-2d", "ellationeng"),
+        ("us-west-2d", "crunchyrolleng"),
         ("", None),
     ]
 
     built_clients = {}
 
     for region, profile in cases:
-      client_dict = ef_utils.create_aws_clients(region, profile, *amazon_services)
+      client_dict = crf_utils.create_aws_clients(region, profile, *amazon_services)
 
       for key, clients in built_clients.items():
         # check if the new clients are unique
@@ -499,12 +499,12 @@ class TestEFUtils(unittest.TestCase):
         ("us-west-2d", None),
         ("us-west-3d", None),
         ("us-west-2d", "codemobs"),
-        ("us-west-2d", "ellationeng"),
+        ("us-west-2d", "crunchyrolleng"),
         ("", None),
     ]
     for region, profile in cases:
-      clients1 = ef_utils.create_aws_clients(region, profile, *amazon_services)
-      clients2 = ef_utils.create_aws_clients(region, profile, *amazon_services)
+      clients1 = crf_utils.create_aws_clients(region, profile, *amazon_services)
+      clients2 = crf_utils.create_aws_clients(region, profile, *amazon_services)
 
       self.assertEquals(clients1, clients2, msg="Should get the same clients for the same region/profile pair")
 
@@ -533,10 +533,10 @@ class TestEFUtils(unittest.TestCase):
     new_amazon_services = amazon_services + ["cloudfront"]
     region, profile = "us-west-2", "testing"
 
-    clients = ef_utils.create_aws_clients(region, profile, *amazon_services)
+    clients = crf_utils.create_aws_clients(region, profile, *amazon_services)
     # copy the old clients, so they're not overwritten
     built_clients = {k: v for k, v in clients.items()}
-    new_clients = ef_utils.create_aws_clients(region, profile, *new_amazon_services)
+    new_clients = crf_utils.create_aws_clients(region, profile, *new_amazon_services)
 
     for service in new_amazon_services:
       self.assertIn(service, new_clients)
@@ -558,7 +558,7 @@ class TestEFUtils(unittest.TestCase):
     target_account_id = "123456789"
     mock_sts_client = Mock(name="mock sts client")
     mock_sts_client.get_caller_identity.return_value.get.return_value = target_account_id
-    self.assertEquals(ef_utils.get_account_id(mock_sts_client), target_account_id)
+    self.assertEquals(crf_utils.get_account_id(mock_sts_client), target_account_id)
 
 
   def test_get_autoscaling_group_properties_valid_asg_name(self):
@@ -582,7 +582,7 @@ class TestEFUtils(unittest.TestCase):
         }
       ]
     }
-    result = ef_utils.get_autoscaling_group_properties(mock_asg_resource, "alpha0", "test-instance")
+    result = crf_utils.get_autoscaling_group_properties(mock_asg_resource, "alpha0", "test-instance")
     self.assertEquals(result[0]["DesiredCapacity"], 2)
     self.assertEquals(result[0]["AutoScalingGroupName"], "alpha0-test-instance-ServerGroup")
     self.assertEquals(result[0]["Tags"][0]["ResourceId"], "alpha0-test-instance-ServerGroup")
@@ -607,13 +607,13 @@ class TestEFUtils(unittest.TestCase):
         }
       ]
     }
-    result = ef_utils.get_autoscaling_group_properties(mock_asg_resource, "alpha0", "test-instance")
+    result = crf_utils.get_autoscaling_group_properties(mock_asg_resource, "alpha0", "test-instance")
     mock_asg_resource.describe_tags.assert_called_once_with(
       Filters=[{ "Name": "Key", "Values": ["Name"] }, { "Name": "Value", "Values": ["alpha0-test-instance"]}])
     mock_asg_resource.describe_auto_scaling_groups.assert_called_with(
       AutoScalingGroupNames=["alpha0-test-instance-ServerGroup"])
 
-class TestEFUtilsKMS(unittest.TestCase):
+class TestCRFUtilsKMS(unittest.TestCase):
   """Test cases for functions using kms"""
 
   def setUp(self):
@@ -631,7 +631,7 @@ class TestEFUtilsKMS(unittest.TestCase):
 
   def test_kms_encrypt_call(self):
     """Validates basic kms call parameters"""
-    ef_utils.kms_encrypt(self.mock_kms, self.service, self.env, self.secret)
+    crf_utils.kms_encrypt(self.mock_kms, self.service, self.env, self.secret)
     self.mock_kms.encrypt.assert_called_once_with(
       KeyId='alias/{}-{}'.format(self.env, self.service),
       Plaintext=self.secret.encode()
@@ -641,7 +641,7 @@ class TestEFUtilsKMS(unittest.TestCase):
     """Validate KMS encryption call on a subservice, where periods should be converted to underscores due to
     alias name restrictions"""
     subservice = self.service + ".subservice"
-    ef_utils.kms_encrypt(self.mock_kms, subservice, self.env, self.secret)
+    crf_utils.kms_encrypt(self.mock_kms, subservice, self.env, self.secret)
     self.mock_kms.encrypt.assert_called_once_with(
       KeyId='alias/{}-{}'.format(self.env, self.service + "_subservice"),
       Plaintext=self.secret.encode()
@@ -649,7 +649,7 @@ class TestEFUtilsKMS(unittest.TestCase):
 
   def test_kms_encrypt_returns_b64(self):
     """Validate that function returns a base64 encoded value"""
-    encrypted_secret = ef_utils.kms_encrypt(self.mock_kms, self.service, self.env, self.secret)
+    encrypted_secret = crf_utils.kms_encrypt(self.mock_kms, self.service, self.env, self.secret)
     b64_return = base64.b64encode(self.bytes_return)
     self.assertEqual(b64_return, encrypted_secret)
 
@@ -657,42 +657,42 @@ class TestEFUtilsKMS(unittest.TestCase):
     """Ensures that function fails a generic ClientError despite any special handling for specific error codes"""
     self.mock_kms.encrypt.side_effect = self.client_error
     with self.assertRaises(SystemExit):
-      ef_utils.kms_encrypt(self.mock_kms, self.service, self.env, self.secret)
+      crf_utils.kms_encrypt(self.mock_kms, self.service, self.env, self.secret)
 
   def test_kms_decrypt_call(self):
     """Validates basic kms call parameters"""
     b64_secret = base64.b64encode(self.secret)
-    ef_utils.kms_decrypt(self.mock_kms, b64_secret)
+    crf_utils.kms_decrypt(self.mock_kms, b64_secret)
     self.mock_kms.decrypt.assert_called_once_with(CiphertextBlob=self.secret)
 
   def test_kms_decrypt_fails_without_b64_secret(self):
     """Ensures that function fails when passed a non-base64 encoded secret"""
     with self.assertRaises(SystemExit):
-      ef_utils.kms_decrypt(self.mock_kms, self.secret)
+      crf_utils.kms_decrypt(self.mock_kms, self.secret)
 
   def test_kms_decrypt_fails_client_error(self):
     """Ensures that function fails a generic ClientError despite any special handling for specific error codes"""
     self.mock_kms.decrypt.side_effect = self.client_error
     with self.assertRaises(SystemExit):
-      ef_utils.kms_decrypt(self.mock_kms, self.secret)
+      crf_utils.kms_decrypt(self.mock_kms, self.secret)
 
   def test_kms_re_encrypt_call(self):
     """Validates basic kms call parameters"""
     b64_secret = base64.b64encode(self.secret)
-    ef_utils.kms_re_encrypt(self.mock_kms, self.service, self.env, b64_secret)
+    crf_utils.kms_re_encrypt(self.mock_kms, self.service, self.env, b64_secret)
     self.mock_kms.re_encrypt_called_once_with(CiphertextBlob=b64_secret)
 
   def test_kms_re_encrypt_fails_without_b64_secret(self):
     """Ensures that function fails when passed a non-base64 encoded secret"""
     with self.assertRaises(SystemExit):
-      ef_utils.kms_re_encrypt(self.mock_kms, self.service, self.env, self.secret)
+      crf_utils.kms_re_encrypt(self.mock_kms, self.service, self.env, self.secret)
 
   def test_kms_re_encrypt_fails_client_error(self):
     """Ensures that function fails a generic ClientError despite any special handling for specific error codes"""
     self.mock_kms.re_encrypt.side_effect = self.client_error
     b64_secret = base64.b64encode(self.secret)
     with self.assertRaises(SystemExit):
-      ef_utils.kms_re_encrypt(self.mock_kms, self.service, self.env, b64_secret)
+      crf_utils.kms_re_encrypt(self.mock_kms, self.service, self.env, b64_secret)
 
 
   def test_get_kms_key_alias(self):
@@ -702,7 +702,7 @@ class TestEFUtilsKMS(unittest.TestCase):
     self.mock_kms.list_aliases.return_value = {
       "Aliases": [ {"AliasName": "alias/{}".format(service_key_alias)} ]
     }
-    aliases = ef_utils.kms_key_alias(self.mock_kms, key_arn)
+    aliases = crf_utils.kms_key_alias(self.mock_kms, key_arn)
     self.assertIn(service_key_alias, aliases)
     self.mock_kms.list_aliases.assert_called_once_with(KeyId=key_arn)
 
@@ -712,4 +712,4 @@ class TestEFUtilsKMS(unittest.TestCase):
     key_arn = 'random-ARN'
     self.mock_kms.list_aliases.side_effect = self.client_error
     with self.assertRaises(RuntimeError):
-      aliases = ef_utils.kms_key_alias(self.mock_kms, key_arn)
+      aliases = crf_utils.kms_key_alias(self.mock_kms, key_arn)

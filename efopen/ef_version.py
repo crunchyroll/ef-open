@@ -10,11 +10,11 @@ Expects these permissions (for the /current account/ only -- prod and non-prod a
   - PutObject (to update an object)
 
 Syntax:
-  ef-version <service> <key> <env> --get
-  ef-version <service> <key> <env> --set <value> --commit
-  ef-version <service> <key> <env> --set =prod --commit
-  ef-version <service> <key> <env> --set =staging --commit
-  ef-version <service> <key> <env> --set =latest --commit
+  crf-version <service> <key> <env> --get
+  crf-version <service> <key> <env> --set <value> --commit
+  crf-version <service> <key> <env> --set =prod --commit
+  crf-version <service> <key> <env> --set =staging --commit
+  crf-version <service> <key> <env> --set =latest --commit
 
 Service registry must be reachable for --set; isn't needed for  --get*
 If doing --set, must run from within the repo so app can auto-locate the service registry file
@@ -33,18 +33,18 @@ import urllib2
 
 from botocore.exceptions import ClientError
 
-from ef_config import EFConfig
-from ef_context import EFContext
-from ef_service_registry import EFServiceRegistry
-from ef_utils import create_aws_clients, fail
-from ef_conf_utils import pull_repo
-from ef_version_resolver import EFVersionResolver
+from crf_config import CRFConfig
+from crf_context import CRFContext
+from crf_service_registry import CRFServiceRegistry
+from crf_utils import create_aws_clients, fail
+from crf_conf_utils import pull_repo
+from crf_version_resolver import CRFVersionResolver
 
 VERBOSE = False
 
-class EFVersionContext(EFContext):
+class CRFVersionContext(CRFContext):
   def __init__(self):
-    super(EFVersionContext, self).__init__()
+    super(CRFVersionContext, self).__init__()
     # core stuff
     self._build_number = None
     self._pipeline_build_number = None
@@ -100,7 +100,7 @@ class EFVersionContext(EFContext):
     """True if we are 'getting' the latest version value. --get was selected"""
     return self._get
 
-  @EFContext.env.getter
+  @CRFContext.env.getter
   def env(self):
     """Returns env or overrides the env value with env full if --env_full was selected"""
     if self._force_env_full:
@@ -179,7 +179,7 @@ class EFVersionContext(EFContext):
 
   @property
   def versionresolver(self):
-    """An instantiated ef_versionresolver"""
+    """An instantiated crf_versionresolver"""
     return self._versionresolver
 
 
@@ -194,12 +194,12 @@ class Version(object):
     self._last_modified = object_version["LastModified"].strftime("%Y-%m-%dT%H:%M:%S%Z")
 
     metadata = object_version["Metadata"]
-    self._build_number = metadata.get(EFConfig.S3_VERSION_BUILDNUMBER_KEY,"")
-    self._pipeline_build_number = metadata.get(EFConfig.S3_VERSION_PIPELINEBUILDNUMBER_KEY,"")
-    self._commit_hash = metadata.get(EFConfig.S3_VERSION_COMMITHASH_KEY,"")
-    self._location = metadata.get(EFConfig.S3_VERSION_LOCATION_KEY,"")
-    self._modified_by = metadata.get(EFConfig.S3_VERSION_MODIFIEDBY_KEY,"")
-    self._status = metadata.get(EFConfig.S3_VERSION_STATUS_KEY,"")
+    self._build_number = metadata.get(CRFConfig.S3_VERSION_BUILDNUMBER_KEY,"")
+    self._pipeline_build_number = metadata.get(CRFConfig.S3_VERSION_PIPELINEBUILDNUMBER_KEY,"")
+    self._commit_hash = metadata.get(CRFConfig.S3_VERSION_COMMITHASH_KEY,"")
+    self._location = metadata.get(CRFConfig.S3_VERSION_LOCATION_KEY,"")
+    self._modified_by = metadata.get(CRFConfig.S3_VERSION_MODIFIEDBY_KEY,"")
+    self._status = metadata.get(CRFConfig.S3_VERSION_STATUS_KEY,"")
 
   def __str__(self):
     return "{} {} {} {} {} {} {} {} {}".format(self._value, self._build_number, self._pipeline_build_number, self._commit_hash, self._last_modified,
@@ -275,13 +275,13 @@ def handle_args_and_set_context(args):
   Args:
     args: the command line args, probably passed from main() as sys.argv[1:]
   Returns:
-    a populated EFVersionContext object
+    a populated CRFVersionContext object
   """
   parser = argparse.ArgumentParser(description="Perform version tracking of a key for a service in the "
                                                "service_registry.json")
   parser.add_argument("service_name", help="name of the service")
-  parser.add_argument("key", help="version key to look up for <service_name> such as 'ami-id' (list in EF_Config)")
-  parser.add_argument("env", help=", ".join(EFConfig.ENV_LIST))
+  parser.add_argument("key", help="version key to look up for <service_name> such as 'ami-id' (list in CRF_Config)")
+  parser.add_argument("env", help=", ".join(CRFConfig.ENV_LIST))
   group = parser.add_mutually_exclusive_group(required=True)
   group.add_argument("--get", help="get current version", action="store_true")
   group.add_argument("--set", help="set current version of <key> to <value> for <service_name>")
@@ -316,7 +316,7 @@ def handle_args_and_set_context(args):
   parser.add_argument("--verbose", help="Print additional info", action="store_true", default=False)
   # parse
   parsed_args = vars(parser.parse_args(args))
-  context = EFVersionContext()
+  context = CRFVersionContext()
   # marshall the inherited context values
   context._build_number = parsed_args["build"]
   context._pipeline_build_number = parsed_args["pipeline_build"]
@@ -344,7 +344,7 @@ def handle_args_and_set_context(args):
   context._stable = parsed_args["stable"]
   context._value = parsed_args["set"]
   # Set up service registry and policy template path which depends on it
-  context.service_registry = EFServiceRegistry(parsed_args["sr"])
+  context.service_registry = CRFServiceRegistry(parsed_args["sr"])
 
   # VERBOSE is global
   global VERBOSE
@@ -363,13 +363,13 @@ def validate_context(context):
   """
     Validate the context. Fails the process on an invalid context
     Args:
-      context: a populated EFVersionContext object
+      context: a populated CRFVersionContext object
   """
 
   # Key must be valid
-  key_data = EFConfig.VERSION_KEYS.get(context.key)
+  key_data = CRFConfig.VERSION_KEYS.get(context.key)
   if not key_data:
-    fail("invalid key: {}; see VERSION_KEYS in ef_config for supported keys".format(context.key))
+    fail("invalid key: {}; see VERSION_KEYS in crf_config for supported keys".format(context.key))
 
   registry = context.service_registry
   service = registry.service_record(context.service_name)
@@ -383,7 +383,7 @@ def validate_context(context):
   allowed_types = key_data.get("allowed_types", [])
   if service_type not in allowed_types:
     fail("service_type: {} is not allowed for key {}; see VERSION_KEYS[KEY]['allowed_types']"
-         "in ef_config and validate service registry entry".format(service_type, context.key))
+         "in crf_config and validate service registry entry".format(service_type, context.key))
 
   return True
 
@@ -392,7 +392,7 @@ def _get_stable_versions(context):
   """
   Get all stable versions
   Args:
-    context: a populated EFVersionContext object
+    context: a populated CRFVersionContext object
 
   Returns:
     List of Version objects representing stable versions in this service's history
@@ -400,7 +400,7 @@ def _get_stable_versions(context):
   versions = get_versions(context)
   stable_versions = []
   for version in versions:
-    if version.status == EFConfig.S3_VERSION_STATUS_STABLE:
+    if version.status == CRFConfig.S3_VERSION_STATUS_STABLE:
       stable_versions.append(version)
   return stable_versions
 
@@ -409,7 +409,7 @@ def _get_latest_version(context):
   """
   Get latest version in history of service
   Args:
-    context: a populated EFVersionContext object
+    context: a populated CRFVersionContext object
 
   Returns:
     A Version object representing the latest version in the service's history
@@ -425,14 +425,14 @@ def get_versions(context):
   """
   Get all versions of a key
   Args:
-    context: a populated EFVersionContext object
+    context: a populated CRFVersionContext object
     return_stable: (default:False) If True, stop fetching if 'stable' version is found; return only that version
   Returns:
     List of Version objects sorted in reverse by last_modified (newest version is first).
   """
   s3_key = "{}/{}/{}".format(context.service_name, context.env, context.key)
   object_version_list = context.aws_client("s3").list_object_versions(
-      Bucket=EFConfig.S3_VERSION_BUCKET,
+      Bucket=CRFConfig.S3_VERSION_BUCKET,
       Delimiter='/',
       MaxKeys=context.limit,
       Prefix=s3_key
@@ -444,7 +444,7 @@ def get_versions(context):
   object_versions = []
   for version in object_version_list["Versions"]:
     object_version = Version(context.aws_client("s3").get_object(
-        Bucket=EFConfig.S3_VERSION_BUCKET,
+        Bucket=CRFConfig.S3_VERSION_BUCKET,
         Key=s3_key,
         VersionId=version["VersionId"]
     ))
@@ -472,7 +472,7 @@ def get_version_by_value(context, value):
   """
   Get the latest version that matches the provided ami-id
   Args:
-    context: a populated EFVersionContext object
+    context: a populated CRFVersionContext object
     value: the value of the version to look for
   """
   versions = get_versions(context)
@@ -490,7 +490,7 @@ def cmd_rollback(context):
   Roll back by finding the most recent "stable" tagged version, and putting it again, so that
   it's the new "current" version.
   Args:
-    context: a populated EFVersionContext object
+    context: a populated CRFVersionContext object
   """
   stable_versions = _get_stable_versions(context)
   latest_version = _get_latest_version(context)
@@ -512,7 +512,7 @@ def cmd_rollback_to(context):
   Roll back by finding a specific version in the history of the service and
   putting it as the new current version.
   Args:
-    context: a populated EFVersionContext object
+    context: a populated CRFVersionContext object
   """
   version = get_version_by_value(context, context.rollback_to)
   context.value = version.value
@@ -528,7 +528,7 @@ def _get_deployed_ami_id(context):
   NOTE: Currently not used until the future
   Get the most recent AMI ID for a service
   Args:
-    context: a populated EFVersionContext object
+    context: a populated CRFVersionContext object
   Returns:
     ImageId or None if no images exist or on error
   """
@@ -536,7 +536,7 @@ def _get_deployed_ami_id(context):
     response = context.aws_client("ec2").describe_images(
         Filters=[
             {"Name": "is-public", "Values": ["false"]},
-            {"Name": "name", "Values": [context.service_name + EFConfig.AMI_SUFFIX + "*"]}
+            {"Name": "name", "Values": [context.service_name + CRFConfig.AMI_SUFFIX + "*"]}
         ])
   except:
     return None
@@ -552,13 +552,13 @@ def cmd_set(context):
   If the existing current version and the new version have identical /value/ and /status,
    then nothing is written, to avoid stacking up redundant entreis in the version table.
   Args:
-    context: a populated EFVersionContext object
+    context: a populated CRFVersionContext object
   """
   # If key value is a special symbol, see if this env allows it
-  if context.value in EFConfig.SPECIAL_VERSIONS and context.env_short not in EFConfig.SPECIAL_VERSION_ENVS:
+  if context.value in CRFConfig.SPECIAL_VERSIONS and context.env_short not in CRFConfig.SPECIAL_VERSION_ENVS:
     fail("special version: {} not allowed in env: {}".format(context.value, context.env_short))
   # If key value is a special symbol, the record cannot be marked "stable"
-  if context.value in EFConfig.SPECIAL_VERSIONS and context.stable:
+  if context.value in CRFConfig.SPECIAL_VERSIONS and context.stable:
     fail("special versions such as: {} cannot be marked 'stable'".format(context.value))
 
   # Resolve any references
@@ -567,7 +567,7 @@ def cmd_set(context):
   elif context.value == "=staging":
     context.value = context.versionresolver.lookup("{},{}/{}".format(context.key, "staging", context.service_name))
   elif context.value == "=latest":
-    if not EFConfig.VERSION_KEYS[context.key]["allow_latest"]:
+    if not CRFConfig.VERSION_KEYS[context.key]["allow_latest"]:
       fail("=latest cannot be used with key: {}".format(context.key))
     func_name = "_getlatest_" + context.key.replace("-", "_")
     if func_name in globals() and isfunction(globals()[func_name]):
@@ -577,7 +577,7 @@ def cmd_set(context):
                          context.key, context.env, context.service_name, func_name))
 
   s3_key = "{}/{}/{}".format(context.service_name, context.env, context.key)
-  s3_version_status = EFConfig.S3_VERSION_STATUS_STABLE if context.stable else EFConfig.S3_VERSION_STATUS_UNDEFINED
+  s3_version_status = CRFConfig.S3_VERSION_STATUS_STABLE if context.stable else CRFConfig.S3_VERSION_STATUS_UNDCRFINED
 
   # If the set would put a value and status that are the same as the existing 'current' value/status, don't do it
   context.limit = 1
@@ -597,16 +597,16 @@ def cmd_set(context):
     context.aws_client("s3").put_object(
         ACL='bucket-owner-full-control',
         Body=context.value,
-        Bucket=EFConfig.S3_VERSION_BUCKET,
-        ContentEncoding=EFConfig.S3_VERSION_CONTENT_ENCODING,
+        Bucket=CRFConfig.S3_VERSION_BUCKET,
+        ContentEncoding=CRFConfig.S3_VERSION_CONTENT_ENCODING,
         Key=s3_key,
         Metadata={
-            EFConfig.S3_VERSION_BUILDNUMBER_KEY: context.build_number,
-            EFConfig.S3_VERSION_PIPELINEBUILDNUMBER_KEY: context.pipeline_build_number,
-            EFConfig.S3_VERSION_COMMITHASH_KEY: context.commit_hash,
-            EFConfig.S3_VERSION_LOCATION_KEY: context.location,
-            EFConfig.S3_VERSION_MODIFIEDBY_KEY: context.aws_client("sts").get_caller_identity()["Arn"],
-            EFConfig.S3_VERSION_STATUS_KEY: s3_version_status
+            CRFConfig.S3_VERSION_BUILDNUMBER_KEY: context.build_number,
+            CRFConfig.S3_VERSION_PIPELINEBUILDNUMBER_KEY: context.pipeline_build_number,
+            CRFConfig.S3_VERSION_COMMITHASH_KEY: context.commit_hash,
+            CRFConfig.S3_VERSION_LOCATION_KEY: context.location,
+            CRFConfig.S3_VERSION_MODIFIEDBY_KEY: context.aws_client("sts").get_caller_identity()["Arn"],
+            CRFConfig.S3_VERSION_STATUS_KEY: s3_version_status
         },
         StorageClass='STANDARD'
     )
@@ -639,13 +639,13 @@ def main():
     aws_session_alias = context.account_alias
   # Make AWS clients
   try:
-    context.set_aws_clients(create_aws_clients(EFConfig.DEFAULT_REGION, aws_session_alias, "ec2", "s3", "sts"))
+    context.set_aws_clients(create_aws_clients(CRFConfig.DCRFAULT_REGION, aws_session_alias, "ec2", "s3", "sts"))
   except RuntimeError:
     fail("Exception creating AWS client in region {} with aws account alias {} (None=instance credentials)".format(
-         EFConfig.DEFAULT_REGION, aws_session_alias))
+         CRFConfig.DCRFAULT_REGION, aws_session_alias))
 
   # Instantiate a versionresolver - we'll use some of its methods
-  context._versionresolver = EFVersionResolver(context.aws_client())
+  context._versionresolver = CRFVersionResolver(context.aws_client())
 
   # Carry out the requested action
   if context.get:

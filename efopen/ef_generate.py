@@ -12,7 +12,7 @@ environment, make it.
 If --commit flag is not set, only a dry run occurs; no changes are made.
 
 
-Copyright 2016-2017 Ellation, Inc.
+Copyright 2016-2017 Crunchyroll, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -36,13 +36,13 @@ import time
 
 from botocore.exceptions import ClientError
 
-from ef_aws_resolver import EFAwsResolver
-from ef_config import EFConfig
-from ef_context import EFContext
-from ef_service_registry import EFServiceRegistry
-from ef_template_resolver import EFTemplateResolver
-from ef_utils import create_aws_clients, fail, get_account_id, http_get_metadata
-from ef_conf_utils import pull_repo
+from crf_aws_resolver import CRFAwsResolver
+from crf_config import CRFConfig
+from crf_context import CRFContext
+from crf_service_registry import CRFServiceRegistry
+from crf_template_resolver import CRFTemplateResolver
+from crf_utils import create_aws_clients, fail, get_account_id, http_get_metadata
+from crf_conf_utils import pull_repo
 
 # Globals
 CLIENTS = None
@@ -117,25 +117,25 @@ def handle_args_and_set_context(args):
   Args:
     args: the command line args, probably passed from main() as sys.argv[1:]
   Returns:
-    a populated EFContext object
+    a populated CRFContext object
   Raises:
     IOError: if service registry file can't be found or can't be opened
-    RuntimeError: if branch isn't as spec'd in ef_config.EF_REPO_BRANCH
+    RuntimeError: if branch isn't as spec'd in crf_config.CRF_REPO_BRANCH
     CalledProcessError: if 'git rev-parse' command to find repo root could not be run
   """
   parser = argparse.ArgumentParser(
     description="Generate a security group, IAM role, instance profile, attache managed, custom, or inline "
                 "generated policies to a role, create KMS keys, and create newrelic alerts for a service based "
                 "on the information specified in the service_registry.json.")
-  parser.add_argument("env", help=", ".join(EFConfig.ENV_LIST))
+  parser.add_argument("env", help=", ".join(CRFConfig.ENV_LIST))
   parser.add_argument("--sr", help="optional: /path/to/service_registry_file.json", default=None)
   parser.add_argument("--commit", help="Make changes in AWS (dry run if omitted)", action="store_true", default=False)
   parser.add_argument("--verbose", help="Print additional info", action="store_true", default=False)
   parser.add_argument("--devel", help="Allow running from branch; don't refresh from origin", action="store_true",
                       default=False)
-  parser.add_argument("--only_for", help="optional: run ef-generate for a only specific entry in the service registry", default=None)
+  parser.add_argument("--only_for", help="optional: run crf-generate for a only specific entry in the service registry", default=None)
   parsed_args = vars(parser.parse_args(args))
-  context = EFContext()
+  context = CRFContext()
   context.commit = parsed_args["commit"]
   context.devel = parsed_args["devel"]
   try:
@@ -143,8 +143,8 @@ def handle_args_and_set_context(args):
   except ValueError as e:
     fail("Error in env: {}".format(e))
   # Set up service registry and policy template path which depends on it
-  context.service_registry = EFServiceRegistry(parsed_args["sr"])
-  context.policy_template_path = normpath(dirname(context.service_registry.filespec)) + EFConfig.POLICY_TEMPLATE_PATH_SUFFIX
+  context.service_registry = CRFServiceRegistry(parsed_args["sr"])
+  context.policy_template_path = normpath(dirname(context.service_registry.filespec)) + CRFConfig.POLICY_TEMPLATE_PATH_SUFFIX
   context.verbose = parsed_args["verbose"]
   context.only_for = parsed_args["only_for"]
   return context
@@ -205,10 +205,10 @@ def resolve_policy_document(policy_name):
   print_if_verbose("pre-resolution policy template:\n{}".format(policy_template))
   # If running in EC2, do not set profile and set target_other=True
   if CONTEXT.whereami == "ec2":
-    resolver = EFTemplateResolver(target_other=True, env=CONTEXT.env, region=EFConfig.DEFAULT_REGION,
+    resolver = CRFTemplateResolver(target_other=True, env=CONTEXT.env, region=CRFConfig.DCRFAULT_REGION,
                                   service=CONTEXT.service, verbose=CONTEXT.verbose)
   else:
-    resolver = EFTemplateResolver(profile=CONTEXT.account_alias, env=CONTEXT.env, region=EFConfig.DEFAULT_REGION,
+    resolver = CRFTemplateResolver(profile=CONTEXT.account_alias, env=CONTEXT.env, region=CRFConfig.DCRFAULT_REGION,
                                 service=CONTEXT.service, verbose=CONTEXT.verbose)
   resolver.load(policy_template)
   policy_document = resolver.render()
@@ -624,7 +624,7 @@ def create_newrelic_alerts():
   """
    Create Newrelic Alerts for each entry in the service registry application_services
    Note: Import is inside this function rather than top of the file so that we do not import when running unit tests.
-         (would otherwise require an ef_site_config.yml in the directory where tests are being run)
+         (would otherwise require an crf_site_config.yml in the directory where tests are being run)
   """
   from newrelic_executor import NewRelicAlerts
   print("> Creating NewRelic Alerts")
@@ -646,17 +646,17 @@ def main():
   try:
     # If running in EC2, always use instance credentials. One day we'll have "lambda" in there too, so use "in" w/ list
     if CONTEXT.whereami == "ec2":
-      CLIENTS = create_aws_clients(EFConfig.DEFAULT_REGION, None, "cloudfront", "ec2", "iam", "kms")
+      CLIENTS = create_aws_clients(CRFConfig.DCRFAULT_REGION, None, "cloudfront", "ec2", "iam", "kms")
       CONTEXT.account_id = str(json.loads(http_get_metadata('iam/info'))["InstanceProfileArn"].split(":")[4])
     else:
       # Otherwise, we use local user creds based on the account alias
-      CLIENTS = create_aws_clients(EFConfig.DEFAULT_REGION, CONTEXT.account_alias, "cloudfront", "ec2", "iam", "kms", "sts")
+      CLIENTS = create_aws_clients(CRFConfig.DCRFAULT_REGION, CONTEXT.account_alias, "cloudfront", "ec2", "iam", "kms", "sts")
       CONTEXT.account_id = get_account_id(CLIENTS["sts"])
   except RuntimeError:
     fail("Exception creating AWS clients in region {} with profile {}".format(
-      EFConfig.DEFAULT_REGION, CONTEXT.account_alias))
+      CRFConfig.DCRFAULT_REGION, CONTEXT.account_alias))
   # Instantiate an AWSResolver to lookup AWS resources
-  AWS_RESOLVER = EFAwsResolver(CLIENTS)
+  AWS_RESOLVER = CRFAwsResolver(CLIENTS)
 
   # Show where we're working
   if not CONTEXT.commit:
@@ -667,9 +667,9 @@ def main():
   print("aws account profile: {}".format(CONTEXT.account_alias))
   print("aws account number: {}".format(CONTEXT.account_id))
 
-  # If we're only ef-generate for a specific service, print it out here
+  # If we're only crf-generate for a specific service, print it out here
   if CONTEXT.only_for:
-    print("running ef-generate only for entry: {}".format(CONTEXT.only_for))
+    print("running crf-generate only for entry: {}".format(CONTEXT.only_for))
 
   # Step through all services in the service registry
   for CONTEXT.service in CONTEXT.service_registry.iter_services():
@@ -724,7 +724,7 @@ def main():
       break
 
   # Create newrelic alerts for all "application_services" in the service registry
-  if "newrelic" in EFConfig.PLUGINS:
+  if "newrelic" in CRFConfig.PLUGINS:
     create_newrelic_alerts()
 
   print("Exit: success")

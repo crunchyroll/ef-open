@@ -1,16 +1,16 @@
-# install to: /etc/systemd/system/ef-init.service
+# install to: /etc/systemd/system/crf-init.service
 # systemctl daemon-reload
-# systemctl enable ef-init
+# systemctl enable crf-init
 
 [Unit]
-Description=Load EF config data and initialize system before starting app
+Description=Load CRF config data and initialize system before starting app
 After=network.target syslog.target cloud-config.target
 Requires=network.target
 Wants=cloud-config.target
 
 [Service]
 Type=oneshot
-ExecStart=/usr/bin/python /usr/local/bin/ef-instanceinit
+ExecStart=/usr/bin/python /usr/local/bin/crf-instanceinit
 RemainAfterExit=yes
 StandardOutput=journal+console
 TimeoutStartSec=120

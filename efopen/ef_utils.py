@@ -1,7 +1,7 @@
 """
 provides simple utility functions used in many scripts
 
-Copyright 2016-2017 Ellation, Inc.
+Copyright 2016-2017 Crunchyroll, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -32,8 +32,8 @@ import boto3
 from botocore.exceptions import ClientError
 from botocore.config import Config
 
-__HTTP_DEFAULT_TIMEOUT_SEC = 5
-__METADATA_PREFIX = "http://169.254.169.254/latest/meta-data/"
+__HTTP_DCRFAULT_TIMEOUT_SEC = 5
+__METADATA_PRCRFIX = "http://169.254.169.254/latest/meta-data/"
 __VIRT_WHAT = "/sbin/virt-what"
 __VIRT_WHAT_VIRTUALBOX_WITH_KVM = ["virtualbox", "kvm"]
 
@@ -55,7 +55,7 @@ def fail(message, exception_data=None):
     print(repr(exception_data))
   sys.exit(1)
 
-def http_get_metadata(metadata_path, timeout=__HTTP_DEFAULT_TIMEOUT_SEC):
+def http_get_metadata(metadata_path, timeout=__HTTP_DCRFAULT_TIMEOUT_SEC):
   """
   Fetch AWS metadata from http://169.254.169.254/latest/meta-data/<metadata_path>
   ARGS:
@@ -65,7 +65,7 @@ def http_get_metadata(metadata_path, timeout=__HTTP_DEFAULT_TIMEOUT_SEC):
   RAISE:
     URLError if there was a problem reading metadata
   """
-  metadata_path = __METADATA_PREFIX + metadata_path
+  metadata_path = __METADATA_PRCRFIX + metadata_path
   try:
     response = urllib2.urlopen(metadata_path, None, timeout)
     if response.getcode() != 200:
@@ -100,7 +100,7 @@ def whereami():
   if getenv("JENKINS_URL") and getenv("JENKINS_DOCKER") is None:
     # The addition of the JENKINS_DOCKER is a temporary workaround to have Jenkins Docker machine rely on its instance
     # role and assume roles vs a credentials file. This is an on-going effort to move everything to code with
-    # https://ellation.atlassian.net/browse/OPS-13637
+    # https://crunchyroll.atlassian.net/browse/OPS-13637
     # Regular Jenkins machines will still continue to use their credentials files until we switch over.
     return "jenkins"
 
@@ -214,7 +214,7 @@ def kms_encrypt(kms_client, service, env, secret):
     env (string): environment that the secret is being encrypted for.
     secret (string): value to be encrypted
   Returns:
-    a populated EFPWContext object
+    a populated CRFPWContext object
   Raises:
     SystemExit(1): If there is an error with the boto3 encryption call (ex. missing kms key)
   """
@@ -228,7 +228,7 @@ def kms_encrypt(kms_client, service, env, secret):
     )
   except ClientError as error:
     if error.response['Error']['Code'] == "NotFoundException":
-      fail("Key '{}' not found. You may need to run ef-generate for this environment.".format(key_alias), error)
+      fail("Key '{}' not found. You may need to run crf-generate for this environment.".format(key_alias), error)
     else:
       fail("boto3 exception occurred while performing kms encrypt operation.", error)
   encrypted_secret = base64.b64encode(response['CiphertextBlob'])
@@ -269,7 +269,7 @@ def kms_re_encrypt(kms_client, service, env, secret):
     env (string): environment that the secret is being encrypted for.
     secret (string): base64 encoded value to be reencrypted
   Returns:
-    a populated EFPWContext object
+    a populated CRFPWContext object
   Raises:
     SystemExit(1): If there is an error with the boto3 encryption call (ex. missing kms key)
   """
@@ -285,7 +285,7 @@ def kms_re_encrypt(kms_client, service, env, secret):
     fail("Malformed base64 string data: {}".format(e))
   except ClientError as error:
     if error.response['Error']['Code'] == "NotFoundException":
-      fail("Key '{}' not found. You may need to run ef-generate for this environment.".format(key_alias), error)
+      fail("Key '{}' not found. You may need to run crf-generate for this environment.".format(key_alias), error)
     else:
       fail("boto3 exception occurred while performing kms encrypt operation.", error)
   encrypted_secret = base64.b64encode(response['CiphertextBlob'])

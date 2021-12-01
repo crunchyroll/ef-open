@@ -1,7 +1,7 @@
 # noinspection PyClassHasNoInit
 
 """
-Copyright 2016-2017 Ellation, Inc.
+Copyright 2016-2017 Crunchyroll, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -16,37 +16,37 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-from ef_site_config import EFSiteConfig
+from crf_site_config import CRFSiteConfig
 
 
-class EFConfig(object):
+class CRFConfig(object):
   """
-  Installation-specific and global settings shared by all EF tools
+  Installation-specific and global settings shared by all CRF tools
   Don't change anything here.
-  All supported site-specific customizations are found in ef_site_config.py
+  All supported site-specific customizations are found in crf_site_config.py
   """
 
-  _ef_site_config = EFSiteConfig().load()
+  _crf_site_config = CRFSiteConfig().load()
 
   # Initialize config constants
-  ALLOW_EF_VERSION_SKIP_PRECHECK = _ef_site_config["ALLOW_EF_VERSION_SKIP_PRECHECK"]
-  if "CUSTOM_DATA" in _ef_site_config:
-    CUSTOM_DATA = _ef_site_config["CUSTOM_DATA"]
-  DEFAULT_REGION = _ef_site_config["DEFAULT_REGION"]
-  EF_CF_POLL_PERIOD = _ef_site_config["EF_CF_POLL_PERIOD"]
-  EF_REPO_BRANCH = _ef_site_config["EF_REPO_BRANCH"]
-  ENV_ACCOUNT_MAP = _ef_site_config["ENV_ACCOUNT_MAP"]
-  EPHEMERAL_ENVS = _ef_site_config["EPHEMERAL_ENVS"]
-  S3_CONFIG_BUCKET = _ef_site_config["S3_CONFIG_BUCKET"]
-  S3_VERSION_BUCKET = _ef_site_config["S3_VERSION_BUCKET"]
-  SERVICE_GROUPS = set(_ef_site_config["SERVICE_GROUPS"])
-  SPECIAL_VERSION_ENVS = _ef_site_config["SPECIAL_VERSION_ENVS"]
-  STACK_TERMINATION_PROTECTED_ENVS = _ef_site_config["STACK_TERMINATION_PROTECTED_ENVS"]
-  VAGRANT_ENV = _ef_site_config["VAGRANT_ENV"]
-  PLUGINS = _ef_site_config.get("PLUGINS", {})
+  ALLOW_CRF_VERSION_SKIP_PRECHECK = _crf_site_config["ALLOW_CRF_VERSION_SKIP_PRECHECK"]
+  if "CUSTOM_DATA" in _crf_site_config:
+    CUSTOM_DATA = _crf_site_config["CUSTOM_DATA"]
+  DCRFAULT_REGION = _crf_site_config["DCRFAULT_REGION"]
+  CRF_CF_POLL_PERIOD = _crf_site_config["CRF_CF_POLL_PERIOD"]
+  CRF_REPO_BRANCH = _crf_site_config["CRF_REPO_BRANCH"]
+  ENV_ACCOUNT_MAP = _crf_site_config["ENV_ACCOUNT_MAP"]
+  EPHEMERAL_ENVS = _crf_site_config["EPHEMERAL_ENVS"]
+  S3_CONFIG_BUCKET = _crf_site_config["S3_CONFIG_BUCKET"]
+  S3_VERSION_BUCKET = _crf_site_config["S3_VERSION_BUCKET"]
+  SERVICE_GROUPS = set(_crf_site_config["SERVICE_GROUPS"])
+  SPECIAL_VERSION_ENVS = _crf_site_config["SPECIAL_VERSION_ENVS"]
+  STACK_TERMINATION_PROTECTED_ENVS = _crf_site_config["STACK_TERMINATION_PROTECTED_ENVS"]
+  VAGRANT_ENV = _crf_site_config["VAGRANT_ENV"]
+  PLUGINS = _crf_site_config.get("PLUGINS", {})
 
   # Default service registry file name
-  DEFAULT_SERVICE_REGISTRY_FILE = "service_registry.json"
+  DCRFAULT_SERVICE_REGISTRY_FILE = "service_registry.json"
   PARAMETER_FILE_SUFFIXES = [".parameters.yaml", ".parameters.yml", ".parameters.json"]
   POLICY_TEMPLATE_PATH_SUFFIX = "/policy_templates/"
   # the service group 'fixtures' always exists
@@ -83,20 +83,20 @@ class EFConfig(object):
   # content-encoding for S3 version registry
   S3_VERSION_CONTENT_ENCODING = "utf-8"
   # Metdata key on a version object to indicate who modified it
-  S3_VERSION_BUILDNUMBER_KEY = "ef-buildnumber"
+  S3_VERSION_BUILDNUMBER_KEY = "crf-buildnumber"
   # Metdata key on a version object to indicate what the pipeline build number was for subservice relation
-  S3_VERSION_PIPELINEBUILDNUMBER_KEY = "ef-pipeline-buildnumber"
+  S3_VERSION_PIPELINEBUILDNUMBER_KEY = "crf-pipeline-buildnumber"
   # Metdata key on a version object to indicate who modified it
-  S3_VERSION_COMMITHASH_KEY = "ef-commithash"
+  S3_VERSION_COMMITHASH_KEY = "crf-commithash"
   # Metdata key on a version object to indicate who modified it
-  S3_VERSION_LOCATION_KEY = "ef-location"
+  S3_VERSION_LOCATION_KEY = "crf-location"
   # Metdata key on a version object to indicate who modified it
-  S3_VERSION_MODIFIEDBY_KEY = "ef-modifiedby"
+  S3_VERSION_MODIFIEDBY_KEY = "crf-modifiedby"
   # Metadata key on a version object to indicate its status
-  S3_VERSION_STATUS_KEY = "ef-version-status"
+  S3_VERSION_STATUS_KEY = "crf-version-status"
   # Metadata version status values
   S3_VERSION_STATUS_STABLE = "stable"
-  S3_VERSION_STATUS_UNDEFINED = "undefined"
+  S3_VERSION_STATUS_UNDCRFINED = "undefined"
   VERSION_KEYS = {
       "ami-id": {
           "allow_latest": True,

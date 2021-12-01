@@ -1,5 +1,5 @@
 """
-Copyright 2016-2017 Ellation, Inc.
+Copyright 2016-2017 Crunchyroll, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -22,12 +22,12 @@ from botocore.exceptions import ClientError
 from mock import Mock, patch
 
 import context_paths
-from ef_context import EFContext
+from crf_context import CRFContext
 
-import ef_generate
+import crf_generate
 
 
-class TestEFGenerate(unittest.TestCase):
+class TestCRFGenerate(unittest.TestCase):
   def setUp(self):
     self.role_name = "global-test-role"
     self.service_name = "proto0-test-service"
@@ -49,17 +49,17 @@ class TestEFGenerate(unittest.TestCase):
     # This is literally what the official documentation states is the response, a bunch of ... as a placeholder
     self.mock_kms.enable_key_rotation.return_value = {'ResponseMetadata': {'...': '...'}
 }
-    ef_generate.CONTEXT = EFContext()
-    ef_generate.CONTEXT.commit = True
-    ef_generate.CONTEXT.account_id = "1234"
-    ef_generate.CLIENTS = {"kms": self.mock_kms, "iam": self.mock_iam}
+    crf_generate.CONTEXT = CRFContext()
+    crf_generate.CONTEXT.commit = True
+    crf_generate.CONTEXT.account_id = "1234"
+    crf_generate.CLIENTS = {"kms": self.mock_kms, "iam": self.mock_iam}
 
   def test_attach_managed_policies(self):
     """
     Check that when an existing key is not found that the create key/alias methods are called with the correct
     parameters.
     """
-    ef_generate.conditionally_attach_aws_managed_policies(self.role_name,
+    crf_generate.conditionally_attach_aws_managed_policies(self.role_name,
                                                       self.service_registry['fixtures']['test-role'])
 
     self.mock_iam.attach_role_policy.assert_called_with(
@@ -72,13 +72,13 @@ class TestEFGenerate(unittest.TestCase):
     Check that when an existing key is not found that the create key/alias methods are called with the correct
     parameters.
     """
-    ef_generate.conditionally_attach_customer_managed_policies(self.role_name,
+    crf_generate.conditionally_attach_customer_managed_policies(self.role_name,
                                                       self.service_registry['fixtures']['test-role'])
 
     self.mock_iam.attach_role_policy.assert_called_with(
       RoleName=self.role_name,
       PolicyArn='arn:aws:iam::{}:policy/{}'.format(
-        ef_generate.CONTEXT.account_id,
+        crf_generate.CONTEXT.account_id,
         self.service_registry['fixtures']['test-role']['customer_managed_policies'][0])
     )
 
@@ -87,7 +87,7 @@ class TestEFGenerate(unittest.TestCase):
     Validates that a managed policy is not attached for unsupported service types
     """
     self.service_type = {"type": "invalid_service"}
-    ef_generate.conditionally_attach_aws_managed_policies(self.role_name, self.service_type)
+    crf_generate.conditionally_attach_aws_managed_policies(self.role_name, self.service_type)
 
     self.mock_iam.attach_role_policy.assert_not_called()
 
@@ -95,7 +95,7 @@ class TestEFGenerate(unittest.TestCase):
     """
     Validates that a managed policy is not attached services without the 'aws_managed_policies' key
     """
-    ef_generate.conditionally_attach_aws_managed_policies(self.role_name,
+    crf_generate.conditionally_attach_aws_managed_policies(self.role_name,
                                                       self.service_registry['fixtures']['test-role-2'])
 
     self.mock_iam.attach_role_policy.assert_not_called()
@@ -105,7 +105,7 @@ class TestEFGenerate(unittest.TestCase):
     Check that when an existing key is not found that the create key/alias methods are called with the correct
     parameters.
     """
-    ef_generate.conditionally_create_kms_key(self.service_name, self.service_type)
+    crf_generate.conditionally_create_kms_key(self.service_name, self.service_type)
 
     self.mock_kms.create_key.assert_called()
     self.mock_kms.create_alias.assert_called_with(
@@ -120,7 +120,7 @@ class TestEFGenerate(unittest.TestCase):
     underscore in place of a period for the key alias.
     """
     subservice = self.service_name + ".subservice"
-    ef_generate.conditionally_create_kms_key(subservice, self.service_type)
+    crf_generate.conditionally_create_kms_key(subservice, self.service_type)
 
     self.mock_kms.create_key.assert_called()
     self.mock_kms.create_alias.assert_called_with(
@@ -135,7 +135,7 @@ class TestEFGenerate(unittest.TestCase):
     """
     self.mock_kms.describe_key.side_effect = None
     self.mock_kms.describe_key.return_value = {"KeyMetadata": {"KeyId": "1234"}}
-    ef_generate.conditionally_create_kms_key(self.service_name, self.service_type)
+    crf_generate.conditionally_create_kms_key(self.service_name, self.service_type)
 
     self.mock_kms.create_key.assert_not_called()
     self.mock_kms.create_alias.assert_not_called()
@@ -146,7 +146,7 @@ class TestEFGenerate(unittest.TestCase):
     Verify that a KMS key is created when of service_type "aws_fixture"
     """
     self.service_type = "aws_fixture"
-    ef_generate.conditionally_create_kms_key(self.service_name, self.service_type)
+    crf_generate.conditionally_create_kms_key(self.service_name, self.service_type)
 
     self.mock_kms.create_key.assert_called()
     self.mock_kms.create_alias.assert_called_with(
@@ -160,7 +160,7 @@ class TestEFGenerate(unittest.TestCase):
     Validates that a key/alias is not created for unsupported service types
     """
     self.service_type = "invalid_service"
-    ef_generate.conditionally_create_kms_key(self.service_name, self.service_type)
+    crf_generate.conditionally_create_kms_key(self.service_name, self.service_type)
 
     self.mock_kms.describe_key.assert_not_called()
     self.mock_kms.create_key.assert_not_called()
@@ -178,7 +178,7 @@ class TestEFGenerate(unittest.TestCase):
       self.malformed_policy_client_error,
       {"KeyMetadata": {"KeyId": "1234"}}
     ]
-    ef_generate.conditionally_create_kms_key(self.service_name, self.service_type)
+    crf_generate.conditionally_create_kms_key(self.service_name, self.service_type)
 
     self.mock_kms.create_alias.assert_called_with(
       AliasName='alias/{}'.format(self.service_name),
@@ -192,5 +192,5 @@ class TestEFGenerate(unittest.TestCase):
     """
     self.mock_kms.create_key.side_effect = self.malformed_policy_client_error
     with self.assertRaises(SystemExit) as error:
-      ef_generate.conditionally_create_kms_key(self.service_name, self.service_type)
+      crf_generate.conditionally_create_kms_key(self.service_name, self.service_type)
     self.assertEquals(error.exception.code, 1)

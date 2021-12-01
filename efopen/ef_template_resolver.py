@@ -1,5 +1,5 @@
 """
-Copyright 2016-2017 Ellation, Inc.
+Copyright 2016-2017 Crunchyroll, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -22,11 +22,11 @@ import yaml
 
 import botocore.exceptions
 
-from ef_aws_resolver import EFAwsResolver
-from ef_config import EFConfig
-from ef_config_resolver import EFConfigResolver
-from ef_utils import create_aws_clients, fail, get_account_id, http_get_metadata, whereami
-from ef_version_resolver import EFVersionResolver
+from crf_aws_resolver import CRFAwsResolver
+from crf_config import CRFConfig
+from crf_config_resolver import CRFConfigResolver
+from crf_utils import create_aws_clients, fail, get_account_id, http_get_metadata, whereami
+from crf_version_resolver import CRFVersionResolver
 
 # pattern to find resolvable symbols - finds innermost nestings
 symbol_pattern = re.compile(r'{{\.?([0-9A-Za-z/_,.:\-+=*]+?)}}')
@@ -45,7 +45,7 @@ def get_metadata_or_fail(metadata_key):
     fail("Exception in http_get_metadata {} {}".format(metadata_key, repr(error)))
 
 
-class EFTemplateResolver(object):
+class CRFTemplateResolver(object):
   """
   Resolves {{symbol}} style tokens in a file or string from multiple sources:
     - 1. lookups of AWS resource identifiers, such as a security group ID
@@ -55,13 +55,13 @@ class EFTemplateResolver(object):
     - 5. parameters from a parameter file / dictionary of params
 
   To use:
-    from ef_template_resolver import EFTemplateResolver
+    from crf_template_resolver import CRFTemplateResolver
     # if local (for testing or configuring something other than "self"):
-    a = EFTemplateResolver(profile="proto", env="proto3", region="us-east-1", service="myservice")
+    a = CRFTemplateResolver(profile="proto", env="proto3", region="us-east-1", service="myservice")
     # if in a VM, there is no AWS context available:
-    a = EFTemplateResolver(env="local", service="myservice")
+    a = CRFTemplateResolver(env="local", service="myservice")
     # if in EC2:
-    a = EFTemplateResolver()
+    a = CRFTemplateResolver()
     # then...
     a.load(template, parameters=None, env)
     resolved = a.render() <-- multi-step resolution; returns resolved template
@@ -69,7 +69,7 @@ class EFTemplateResolver(object):
       print("Template has unresolved symbols")
 
   1,2,3: AWS values from the live AWS environment, and secure credential storage
-    see ef_aws_resolver.py for details
+    see crf_aws_resolver.py for details
 
   4: AWS EC2 instance or Lambda context
   These instance-state strings are always available in AWS EC2 and Lambda:
@@ -112,9 +112,9 @@ class EFTemplateResolver(object):
   """
   # class vars
   __CLIENTS = {}  # boto3 clients
-  __AWSR = None   # EFAwsResolver
-  __EFCR = None   # EFConfigResolver
-  __VR = None     # EFVersionResolver
+  __AWSR = None   # CRFAwsResolver
+  __CRFCR = None   # CRFConfigResolver
+  __VR = None     # CRFVersionResolver
 
   def __init__(self,
                profile=None, region=None,  # set both for user access mode
@@ -248,16 +248,16 @@ class EFTemplateResolver(object):
       "waf"
     ]
     try:
-      EFTemplateResolver.__CLIENTS = create_aws_clients(self.resolved["REGION"], profile, *clients)
+      CRFTemplateResolver.__CLIENTS = create_aws_clients(self.resolved["REGION"], profile, *clients)
     except RuntimeError as error:
       fail("Exception logging in with Session()", error)
 
-    # Create EFAwsResolver object for interactive lookups
-    EFTemplateResolver.__AWSR = EFAwsResolver(EFTemplateResolver.__CLIENTS)
-    # Create EFConfigResolver object for ef tooling config lookups
-    EFTemplateResolver.__EFCR = EFConfigResolver()
-    # Create EFVersionResolver object for version lookups
-    EFTemplateResolver.__VR = EFVersionResolver(EFTemplateResolver.__CLIENTS)
+    # Create CRFAwsResolver object for interactive lookups
+    CRFTemplateResolver.__AWSR = CRFAwsResolver(CRFTemplateResolver.__CLIENTS)
+    # Create CRFConfigResolver object for ef tooling config lookups
+    CRFTemplateResolver.__CRFCR = CRFConfigResolver()
+    # Create CRFVersionResolver object for version lookups
+    CRFTemplateResolver.__VR = CRFVersionResolver(CRFTemplateResolver.__CLIENTS)
 
     # Set the internal parameter values for aws
     # self-configuring lambda
@@ -266,11 +266,11 @@ class EFTemplateResolver(object):
       self.resolved["ACCOUNT"] = arn_split[4]
       self.resolved["FUNCTION_NAME"] = arn_split[6]
       try:
-        lambda_desc = EFTemplateResolver.__CLIENTS["lambda"].get_function()
+        lambda_desc = CRFTemplateResolver.__CLIENTS["lambda"].get_function()
       except:
         fail("Exception in get_function: ", sys.exc_info())
       self.resolved["ROLE"] = lambda_desc["Configuration"]["Role"]
-      env = re.search("^({})-".format(EFConfig.VALID_ENV_REGEX), self.resolved["ROLE"])
+      env = re.search("^({})-".format(CRFConfig.VALID_ENV_REGEX), self.resolved["ROLE"])
       if not env:
         fail("Did not find environment in lambda function name.")
       self.resolved["ENV"] = env.group(1)
@@ -293,7 +293,7 @@ class EFTemplateResolver(object):
         if whereami() == "ec2":
           self.resolved["ACCOUNT"] = str(json.loads(http_get_metadata('iam/info'))["InstanceProfileArn"].split(":")[4])
         else:
-          self.resolved["ACCOUNT"] = get_account_id(EFTemplateResolver.__CLIENTS["sts"])
+          self.resolved["ACCOUNT"] = get_account_id(CRFTemplateResolver.__CLIENTS["sts"])
       except botocore.exceptions.ClientError as error:
         fail("Exception in get_user()", error)
       self.resolved["ENV"] = env
@@ -301,7 +301,7 @@ class EFTemplateResolver(object):
 
     # ACCOUNT_ALIAS is resolved consistently for access modes and targets other than virtualbox
     try:
-      self.resolved["ACCOUNT_ALIAS"] = EFTemplateResolver.__CLIENTS["iam"].list_account_aliases()["AccountAliases"][0]
+      self.resolved["ACCOUNT_ALIAS"] = CRFTemplateResolver.__CLIENTS["iam"].list_account_aliases()["AccountAliases"][0]
     except botocore.exceptions.ClientError as error:
       fail("Exception in list_account_aliases", error)
 
@@ -309,7 +309,7 @@ class EFTemplateResolver(object):
     self.resolved["ENV_SHORT"] = self.resolved["ENV"].strip(".0123456789")
 
     # ENV_FULL is resolved the same way for all access modes and targets, depending on previously-resolved values
-    if self.resolved["ENV"] in EFConfig.ACCOUNT_SCOPED_ENVS:
+    if self.resolved["ENV"] in CRFConfig.ACCOUNT_SCOPED_ENVS:
       self.resolved["ENV_FULL"] = "{}.{}".format(self.resolved["ENV"], self.resolved["ACCOUNT_ALIAS"])
     else:
       self.resolved["ENV_FULL"] = self.resolved["ENV"]
@@ -420,16 +420,16 @@ class EFTemplateResolver(object):
         # Don't resolve symbols that are provided as skippable
         if symbol.split(',')[0] in self.skip_symbols:
           resolved_symbol = "SKIPPED_SYMBOL"
-        # Lookups in AWS, only if we have an EFAwsResolver
-        elif symbol[:4] == "aws:" and EFTemplateResolver.__AWSR:
-          resolved_symbol = EFTemplateResolver.__AWSR.lookup(symbol[4:])
+        # Lookups in AWS, only if we have an CRFAwsResolver
+        elif symbol[:4] == "aws:" and CRFTemplateResolver.__AWSR:
+          resolved_symbol = CRFTemplateResolver.__AWSR.lookup(symbol[4:])
         # Lookups in credentials
         elif symbol[:12] == "credentials:":
           pass  #TODO
         elif symbol[:9] == "efconfig:":
-          resolved_symbol = EFTemplateResolver.__EFCR.lookup(symbol[9:])
+          resolved_symbol = CRFTemplateResolver.__CRFCR.lookup(symbol[9:])
         elif symbol[:8] == "version:":
-          resolved_symbol = EFTemplateResolver.__VR.lookup(symbol[8:])
+          resolved_symbol = CRFTemplateResolver.__VR.lookup(symbol[8:])
           if not resolved_symbol:
             print("WARNING: Lookup failed for {{%s}} - placeholder value of 'NONE' used in rendered template" % symbol)
             resolved_symbol = "NONE"

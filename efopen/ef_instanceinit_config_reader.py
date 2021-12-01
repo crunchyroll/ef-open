@@ -1,5 +1,5 @@
 """
-Copyright 2016-2017 Ellation, Inc.
+Copyright 2016-2017 Crunchyroll, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -19,12 +19,12 @@ import yaml
 
 import botocore.exceptions
 
-from ef_config import EFConfig
-import ef_utils
-import ef_conf_utils
+from crf_config import CRFConfig
+import crf_utils
+import crf_conf_utils
 
 
-class EFInstanceinitConfigReader:
+class CRFInstanceinitConfigReader:
   """
   Reads a set of local configs files and parameters, stored locally as files or in s3
   Config_Reader.next() advances to the next item, or returns False if there are no more
@@ -52,7 +52,7 @@ class EFInstanceinitConfigReader:
 
     self.items = []
     if self.service == "s3":
-      bucket = self.s3_resource.Bucket(EFConfig.S3_CONFIG_BUCKET)
+      bucket = self.s3_resource.Bucket(CRFConfig.S3_CONFIG_BUCKET)
       bucket_objects = bucket.objects.filter(Prefix=self.template_prefix)
       # unpack into a list for easier iteration
       for bucket_object in bucket_objects:
@@ -62,7 +62,7 @@ class EFInstanceinitConfigReader:
         for _file in _files:
           self.items.append("{}{}".format(_path, _file))
     else:
-      raise ValueError("invalid service: {} in EFInstanceinitConfigReader; valid: 's3','file'".format(self.service))
+      raise ValueError("invalid service: {} in CRFInstanceinitConfigReader; valid: 's3','file'".format(self.service))
 
   def next(self):
     if len(self.items) <= 0:
@@ -96,16 +96,16 @@ class EFInstanceinitConfigReader:
   @property
   def parameters(self):
     if self.service == "s3":
-      key = ef_conf_utils.get_template_parameters_s3(self.current.key, self.s3_resource)
+      key = crf_conf_utils.get_template_parameters_s3(self.current.key, self.s3_resource)
       self.logger("Loading parameters object: {}".format(key))
       try:
-        obj = self.s3_resource.Object(EFConfig.S3_CONFIG_BUCKET, key)
+        obj = self.s3_resource.Object(CRFConfig.S3_CONFIG_BUCKET, key)
         body = obj.get()['Body'].read()
         return yaml.safe_load(body)
       except botocore.exceptions.ClientError as error:
         raise IOError("Error loading parameters from: {} {}".format(key, repr(error)))
     elif self.service == "file":
-      parameters_file = ef_conf_utils.get_template_parameters_file(self.current)
+      parameters_file = crf_conf_utils.get_template_parameters_file(self.current)
       self.logger("Loading parameters file: {}".format(self.current))
       try:
         return yaml.safe_load(file(parameters_file))

@@ -461,8 +461,8 @@ def get_config():
     cfg = VersioneerConfig()
     cfg.VCS = "git"
     cfg.style = "%(STYLE)s"
-    cfg.tag_prefix = "%(TAG_PREFIX)s"
-    cfg.parentdir_prefix = "%(PARENTDIR_PREFIX)s"
+    cfg.tag_prefix = "%(TAG_PRCRFIX)s"
+    cfg.parentdir_prefix = "%(PARENTDIR_PRCRFIX)s"
     cfg.versionfile_source = "%(VERSIONFILE_SOURCE)s"
     cfg.verbose = False
     return cfg
@@ -1584,8 +1584,8 @@ def get_cmdclass():
                     f.write(LONG %
                             {"DOLLAR": "$",
                              "STYLE": cfg.style,
-                             "TAG_PREFIX": cfg.tag_prefix,
-                             "PARENTDIR_PREFIX": cfg.parentdir_prefix,
+                             "TAG_PRCRFIX": cfg.tag_prefix,
+                             "PARENTDIR_PRCRFIX": cfg.parentdir_prefix,
                              "VERSIONFILE_SOURCE": cfg.versionfile_source,
                              })
         cmds["build_exe"] = cmd_build_exe
@@ -1613,8 +1613,8 @@ def get_cmdclass():
                     f.write(LONG %
                             {"DOLLAR": "$",
                              "STYLE": cfg.style,
-                             "TAG_PREFIX": cfg.tag_prefix,
-                             "PARENTDIR_PREFIX": cfg.parentdir_prefix,
+                             "TAG_PRCRFIX": cfg.tag_prefix,
+                             "PARENTDIR_PRCRFIX": cfg.parentdir_prefix,
                              "VERSIONFILE_SOURCE": cfg.versionfile_source,
                              })
         cmds["py2exe"] = cmd_py2exe
@@ -1714,8 +1714,8 @@ def do_setup():
         LONG = LONG_VERSION_PY[cfg.VCS]
         f.write(LONG % {"DOLLAR": "$",
                         "STYLE": cfg.style,
-                        "TAG_PREFIX": cfg.tag_prefix,
-                        "PARENTDIR_PREFIX": cfg.parentdir_prefix,
+                        "TAG_PRCRFIX": cfg.tag_prefix,
+                        "PARENTDIR_PRCRFIX": cfg.parentdir_prefix,
                         "VERSIONFILE_SOURCE": cfg.versionfile_source,
                         })
 

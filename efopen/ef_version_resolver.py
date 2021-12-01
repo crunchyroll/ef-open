@@ -1,5 +1,5 @@
 """
-Copyright 2016-2017 Ellation, Inc.
+Copyright 2016-2017 Crunchyroll, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -18,9 +18,9 @@ from __future__ import print_function
 
 from botocore.client import ClientError
 
-from ef_config import EFConfig
+from crf_config import CRFConfig
 
-class EFVersionResolver(object):
+class CRFVersionResolver(object):
   """
   Resolves "the correct version" of various things, including AMIs.
   In fact, all this resolves right now is /the latest version/ of an AMI.
@@ -48,8 +48,8 @@ class EFVersionResolver(object):
   def _s3_get(self, env, service, key):
     s3_key = "{}/{}/{}".format(service, env, key)
     try:
-      s3_object = EFVersionResolver.__CLIENTS["s3"].get_object(
-        Bucket = EFConfig.S3_VERSION_BUCKET,
+      s3_object = CRFVersionResolver.__CLIENTS["s3"].get_object(
+        Bucket = CRFConfig.S3_VERSION_BUCKET,
         Key = s3_key
       )
     except ClientError as e:
@@ -61,7 +61,7 @@ class EFVersionResolver(object):
       # Otherwise, an unexpected issue occurred. Stop with error
       raise
     # Else get the value and decide what to do with it
-    return s3_object["Body"].read().decode(EFConfig.S3_VERSION_CONTENT_ENCODING)
+    return s3_object["Body"].read().decode(CRFConfig.S3_VERSION_CONTENT_ENCODING)
 
   def lookup(self, token):
     """
@@ -91,4 +91,4 @@ class EFVersionResolver(object):
       clients - dictionary of ready-to-go boto3 clients using aws prefixes:
       expected: clients["ec2", "iam", "lambda", "s3"]
     """
-    EFVersionResolver.__CLIENTS = clients
+    CRFVersionResolver.__CLIENTS = clients

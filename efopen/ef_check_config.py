@@ -9,7 +9,7 @@ Exit codes:
   3 if some other error occurred
 
 
-Copyright 2016-2017 Ellation, Inc.
+Copyright 2016-2017 Crunchyroll, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -33,7 +33,7 @@ import sys
 
 CONFIGS_RELATIVE_PATH_FROM_SCRIPT_DIR = "../configs"
 PARAMETER_SUFFIX = ".parameters.json"
-DEFAULT_LOGFILE = "/tmp/instanceinit.log"
+DCRFAULT_LOGFILE = "/tmp/instanceinit.log"
 
 def handle_args(args):
   """

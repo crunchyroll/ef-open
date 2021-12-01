@@ -1,5 +1,5 @@
 """
-Copyright 2016-2017 Ellation, Inc.
+Copyright 2016-2017 Crunchyroll, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -22,12 +22,12 @@ from mock import Mock, patch
 # For local application imports, context_paths must be first despite lexicon ordering
 import context_paths
 
-from ef_config import EFConfig
-from ef_service_registry import EFServiceRegistry
+from crf_config import CRFConfig
+from crf_service_registry import CRFServiceRegistry
 
 
-class TestEFUtils(unittest.TestCase):
-  """Tests for 'ef_service_registry.py'"""
+class TestCRFUtils(unittest.TestCase):
+  """Tests for 'crf_service_registry.py'"""
 
   def setUp(self):
     """
@@ -51,17 +51,17 @@ class TestEFUtils(unittest.TestCase):
   def test_sr_loads(self, mock_check_output):
     """Can the default SR be loaded? (requires a default SR)"""
     mock_check_output.side_effect = [os.path.join(os.path.dirname(__file__), '../test_data')]
-    EFConfig.DEFAULT_SERVICE_REGISTRY_FILE = "test_service_registry_1.json"
-    sr = EFServiceRegistry()
+    CRFConfig.DCRFAULT_SERVICE_REGISTRY_FILE = "test_service_registry_1.json"
+    sr = CRFServiceRegistry()
 
   def test_services(self):
     """Does services() return all the services?"""
-    sr = EFServiceRegistry(service_registry_file=self.service_registry_file)
+    sr = CRFServiceRegistry(service_registry_file=self.service_registry_file)
     self.assertEqual(len(sr.services()), 7)
 
   def test_services_one_group(self):
     """Does services("fixtures") return only the services in that group?"""
-    sr = EFServiceRegistry(service_registry_file=self.service_registry_file)
+    sr = CRFServiceRegistry(service_registry_file=self.service_registry_file)
     self.assertEqual(len(sr.services("fixtures")), 2)
     self.assertEqual(len(sr.services("application_services")), 1)
     self.assertEqual(len(sr.services("platform_services")), 3)
@@ -69,28 +69,28 @@ class TestEFUtils(unittest.TestCase):
 
   def test_service_group(self):
     """Does the lookup for the group of a single service work?"""
-    sr = EFServiceRegistry(service_registry_file=self.service_registry_file)
+    sr = CRFServiceRegistry(service_registry_file=self.service_registry_file)
     self.assertRegexpMatches(sr.service_group("test-instance-2"), "^platform_services$")
 
   def test_service_region(self):
     """Does the lookup for the region that was not specified of a single service work?"""
-    sr = EFServiceRegistry(service_registry_file=self.service_registry_file)
+    sr = CRFServiceRegistry(service_registry_file=self.service_registry_file)
     self.assertRegexpMatches(sr.service_region("test-instance-2"), "^us-west-2$")
 
   def test_service_region_override(self):
     """Does the lookup for the region that was specified of a single service work?"""
-    sr = EFServiceRegistry(service_registry_file=self.service_registry_file)
+    sr = CRFServiceRegistry(service_registry_file=self.service_registry_file)
     self.assertRegexpMatches(sr.service_region("test-instance-3"), "^us-east-1$")
 
   def test_service_region_override_negative(self):
     """Does the lookup for the wrong region that was specified of a single service fail?"""
-    sr = EFServiceRegistry(service_registry_file=self.service_registry_file)
+    sr = CRFServiceRegistry(service_registry_file=self.service_registry_file)
     self.assertNotRegexpMatches(sr.service_region("test-instance-3"), "^us-west-2$")
 
   def test_valid_envs(self):
     """Does valid_envs return correct envs?"""
-    sr = EFServiceRegistry(service_registry_file=self.service_registry_file)
+    sr = CRFServiceRegistry(service_registry_file=self.service_registry_file)
     self.assertIn("alpha0", sr.valid_envs("test-instance"))
     self.assertIn("staging", sr.valid_envs("test-instance"))
-    self.assertIn("mgmt.ellationeng", sr.valid_envs("test-instance"))
-    self.assertNotIn("mgmt.ellation", sr.valid_envs("test-instance"))
+    self.assertIn("mgmt.crunchyrolleng", sr.valid_envs("test-instance"))
+    self.assertNotIn("mgmt.crunchyroll", sr.valid_envs("test-instance"))

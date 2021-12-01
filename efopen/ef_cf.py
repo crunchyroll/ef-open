@@ -12,20 +12,20 @@ import time
 
 import botocore.exceptions
 
-from ef_config import EFConfig
-from ef_context import EFContext
-from ef_service_registry import EFServiceRegistry
-from ef_template_resolver import EFTemplateResolver
-from ef_utils import create_aws_clients, get_autoscaling_group_properties, fail
-from ef_conf_utils import pull_repo
+from crf_config import CRFConfig
+from crf_context import CRFContext
+from crf_service_registry import CRFServiceRegistry
+from crf_template_resolver import CRFTemplateResolver
+from crf_utils import create_aws_clients, get_autoscaling_group_properties, fail
+from crf_conf_utils import pull_repo
 
 # CONSTANTS
 # Cloudformation template size limit in bytes (which translates to the length of the template)
 CLOUDFORMATION_SIZE_LIMIT = 51200
 
-class EFCFContext(EFContext):
+class CRFCFContext(CRFContext):
   def __init__(self):
-    super(EFCFContext, self).__init__()
+    super(CRFCFContext, self).__init__()
     self._changeset = None
     self._lint = None
     self._poll_status = None
@@ -81,16 +81,16 @@ def handle_args_and_set_context(args):
   Args:
     args: the command line args, probably passed from main() as sys.argv[1:]
   Returns:
-    a populated EFCFContext object (extends EFContext)
+    a populated CRFCFContext object (extends CRFContext)
   Raises:
     IOError: if service registry file can't be found or can't be opened
-    RuntimeError: if branch isn't as spec'd in ef_config.EF_REPO_BRANCH
+    RuntimeError: if branch isn't as spec'd in crf_config.CRF_REPO_BRANCH
     CalledProcessError: if 'git rev-parse' command to find repo root could not be run
   """
   parser = argparse.ArgumentParser(description="Render cloudformation templates, create changesets, or update "
                                                "cloudformation stacks in an AWS account.")
   parser.add_argument("template_file", help="/path/to/template_file.json")
-  parser.add_argument("env", help=", ".join(EFConfig.ENV_LIST))
+  parser.add_argument("env", help=", ".join(CRFConfig.ENV_LIST))
   parser.add_argument("--sr", help="optional /path/to/service_registry_file.json", default=None)
   parser.add_argument("--verbose", help="Print additional info + resolved template", action="store_true", default=False)
   parser.add_argument("--devel", help="Allow running from branch; don't refresh from origin", action="store_true",
@@ -111,7 +111,7 @@ def handle_args_and_set_context(args):
   parser.add_argument("--custom_rules", help="A directory with custom rules for cfn-lint")
 
   parsed_args = vars(parser.parse_args(args))
-  context = EFCFContext()
+  context = CRFCFContext()
   try:
     context.env = parsed_args["env"]
     context.template_file = parsed_args["template_file"]
@@ -128,13 +128,13 @@ def handle_args_and_set_context(args):
   context.verbose = parsed_args["verbose"]
   context.render = parsed_args["render"]
   # Set up service registry and policy template path which depends on it
-  context.service_registry = EFServiceRegistry(parsed_args["sr"])
+  context.service_registry = CRFServiceRegistry(parsed_args["sr"])
   return context
 
 def resolve_template(template, profile, env, region, service, skip_symbols, verbose):
   # resolve {{SYMBOLS}} in the passed template file
   os.path.isfile(template) or fail("Not a file: {}".format(template))
-  resolver = EFTemplateResolver(profile=profile, target_other=True, env=env,
+  resolver = CRFTemplateResolver(profile=profile, target_other=True, env=env,
                                 region=region, service=service, skip_symbols=skip_symbols, verbose=verbose)
   with open(template) as template_file:
     resolver.load(template_file)
@@ -153,7 +153,7 @@ def resolve_template(template, profile, env, region, service, skip_symbols, verb
 
 
 def is_stack_termination_protected_env(env):
-  return env in EFConfig.STACK_TERMINATION_PROTECTED_ENVS
+  return env in CRFConfig.STACK_TERMINATION_PROTECTED_ENVS
 
 
 def enable_stack_termination_protection(clients, stack_name):
@@ -261,7 +261,7 @@ def main():
   if context.percent and (context.percent <= 0 or context.percent > 100):
     fail("Percent value cannot be less than or equal to 0 and greater than 100")
 
-  # Set the region found in the service_registry. Default is EFConfig.DEFAULT_REGION if region key not found
+  # Set the region found in the service_registry. Default is CRFConfig.DCRFAULT_REGION if region key not found
   region = context.service_registry.service_region(service_name)
 
   if context.verbose:
@@ -411,7 +411,7 @@ def main():
             print("Stack failed with status: {}".format(stack_status))
             sys.exit(1)
           elif re.match(r".*_IN_PROGRESS(?!.)", stack_status) is not None:
-            time.sleep(EFConfig.EF_CF_POLL_PERIOD)
+            time.sleep(CRFConfig.CRF_CF_POLL_PERIOD)
     elif context.lint:
       tester = CFTemplateLinter(template, context.custom_rules)
       tester.run_tests()

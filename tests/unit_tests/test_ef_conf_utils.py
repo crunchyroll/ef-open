@@ -1,5 +1,5 @@
 """
-Copyright 2016-2019 Ellation, Inc.
+Copyright 2016-2019 Crunchyroll, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -25,13 +25,13 @@ from mock import Mock, patch
 # For local application imports, context_paths must be first despite lexicon ordering
 import context_paths
 
-from ef_config import EFConfig
-import ef_conf_utils
+from crf_config import CRFConfig
+import crf_conf_utils
 
 
-class TestEFConfUtils(unittest.TestCase):
+class TestCRFConfUtils(unittest.TestCase):
   """
-  Tests for 'ef_conf_utils.py' Relies on the ef_site_config.py for testing. Look inside that file for where
+  Tests for 'crf_conf_utils.py' Relies on the crf_site_config.py for testing. Look inside that file for where
   some of the test values are coming from.
   """
 
@@ -48,7 +48,7 @@ class TestEFConfUtils(unittest.TestCase):
     """Test method returns valid parameters file"""
     test_template = os.path.join(os.path.dirname(__file__), '../test_data/templates/test.cnf')
     target_parameters = os.path.join(os.path.dirname(__file__), '../test_data/parameters/test.cnf.parameters.yml')
-    test_parameters = ef_conf_utils.get_template_parameters_file(test_template)
+    test_parameters = crf_conf_utils.get_template_parameters_file(test_template)
     self.assertEquals(test_parameters, target_parameters)
 
   def test_global_env_valid(self):
@@ -61,10 +61,10 @@ class TestEFConfUtils(unittest.TestCase):
     Raises:
       AssertionError if any of the assert checks fail
     """
-    if "global" in EFConfig.ENV_ACCOUNT_MAP:
-      self.assertTrue(ef_conf_utils.global_env_valid("global"))
-    if "mgmt" in EFConfig.ENV_ACCOUNT_MAP:
-      self.assertTrue(ef_conf_utils.global_env_valid("mgmt"))
+    if "global" in CRFConfig.ENV_ACCOUNT_MAP:
+      self.assertTrue(crf_conf_utils.global_env_valid("global"))
+    if "mgmt" in CRFConfig.ENV_ACCOUNT_MAP:
+      self.assertTrue(crf_conf_utils.global_env_valid("mgmt"))
 
   def test_global_env_valid_non_scoped_envs(self):
     """
@@ -77,25 +77,25 @@ class TestEFConfUtils(unittest.TestCase):
       AssertionError if any of the assert checks fail
     """
     # Loop through all environments that are not mgmt or global
-    for env in EFConfig.ENV_ACCOUNT_MAP:
+    for env in CRFConfig.ENV_ACCOUNT_MAP:
       if env == "mgmt" or env == "global":
         continue
       with self.assertRaises(ValueError) as exception:
-        ef_conf_utils.global_env_valid(env)
+        crf_conf_utils.global_env_valid(env)
       self.assertIn("Invalid global env", str(exception.exception))
 
     # Hard coded junk values
     with self.assertRaises(ValueError) as exception:
-      ef_conf_utils.global_env_valid("not_global")
+      crf_conf_utils.global_env_valid("not_global")
     self.assertIn("Invalid global env", str(exception.exception))
     with self.assertRaises(ValueError) as exception:
-      ef_conf_utils.global_env_valid("not_mgmt")
+      crf_conf_utils.global_env_valid("not_mgmt")
     self.assertIn("Invalid global env", str(exception.exception))
     with self.assertRaises(ValueError) as exception:
-      ef_conf_utils.global_env_valid("")
+      crf_conf_utils.global_env_valid("")
     self.assertIn("Invalid global env", str(exception.exception))
     with self.assertRaises(ValueError) as exception:
-      ef_conf_utils.global_env_valid(None)
+      crf_conf_utils.global_env_valid(None)
     self.assertIn("Invalid global env", str(exception.exception))
 
   def test_env_valid(self):
@@ -108,19 +108,19 @@ class TestEFConfUtils(unittest.TestCase):
     Raises:
       AssertionError if any of the assert checks fail
     """
-    for env in EFConfig.ENV_ACCOUNT_MAP:
+    for env in CRFConfig.ENV_ACCOUNT_MAP:
       # Attach a numeric value to environments that are ephemeral
-      if env in EFConfig.EPHEMERAL_ENVS:
+      if env in CRFConfig.EPHEMERAL_ENVS:
          env += '0'
-      self.assertTrue(ef_conf_utils.env_valid(env))
+      self.assertTrue(crf_conf_utils.env_valid(env))
 
     # Do tests for global and mgmt envs, which have a special mapping, Example: global.account_alias
-    if "global" in EFConfig.ENV_ACCOUNT_MAP:
-      for account_alias in EFConfig.ENV_ACCOUNT_MAP.values():
-        self.assertTrue(ef_conf_utils.env_valid("global." + account_alias))
-    if "mgmt" in EFConfig.ENV_ACCOUNT_MAP:
-      for account_alias in EFConfig.ENV_ACCOUNT_MAP.values():
-        self.assertTrue(ef_conf_utils.env_valid("mgmt." + account_alias))
+    if "global" in CRFConfig.ENV_ACCOUNT_MAP:
+      for account_alias in CRFConfig.ENV_ACCOUNT_MAP.values():
+        self.assertTrue(crf_conf_utils.env_valid("global." + account_alias))
+    if "mgmt" in CRFConfig.ENV_ACCOUNT_MAP:
+      for account_alias in CRFConfig.ENV_ACCOUNT_MAP.values():
+        self.assertTrue(crf_conf_utils.env_valid("mgmt." + account_alias))
 
   def test_env_valid_invalid_envs(self):
     """
@@ -134,19 +134,19 @@ class TestEFConfUtils(unittest.TestCase):
     """
     # Create junk environment values by attaching numbers to non-ephemeral environments and not attaching numbers
     # to ephemeral environments
-    for env in EFConfig.ENV_ACCOUNT_MAP:
-      if env not in EFConfig.EPHEMERAL_ENVS:
+    for env in CRFConfig.ENV_ACCOUNT_MAP:
+      if env not in CRFConfig.EPHEMERAL_ENVS:
         env += '0'
       with self.assertRaises(ValueError):
-        ef_conf_utils.env_valid(env)
+        crf_conf_utils.env_valid(env)
 
     # Hard coded junk values
     with self.assertRaises(ValueError):
-      ef_conf_utils.env_valid("invalid_env")
+      crf_conf_utils.env_valid("invalid_env")
     with self.assertRaises(ValueError):
-      ef_conf_utils.env_valid("")
+      crf_conf_utils.env_valid("")
     with self.assertRaises(ValueError):
-      ef_conf_utils.env_valid(None)
+      crf_conf_utils.env_valid(None)
 
   def test_get_account_alias(self):
     """
@@ -158,19 +158,19 @@ class TestEFConfUtils(unittest.TestCase):
     Raises:
       AssertionError if any of the assert checks fail
     """
-    for env, account_alias in EFConfig.ENV_ACCOUNT_MAP.items():
+    for env, account_alias in CRFConfig.ENV_ACCOUNT_MAP.items():
       # Attach a numeric value to environments that are ephemeral
-      if env in EFConfig.EPHEMERAL_ENVS:
+      if env in CRFConfig.EPHEMERAL_ENVS:
         env += '0'
-      self.assertEquals(ef_conf_utils.get_account_alias(env), account_alias)
+      self.assertEquals(crf_conf_utils.get_account_alias(env), account_alias)
 
     # Do tests for global and mgmt envs, which have a special mapping, Example: global.account_alias
-    if "global" in EFConfig.ENV_ACCOUNT_MAP:
-      for account_alias in EFConfig.ENV_ACCOUNT_MAP.values():
-        self.assertEquals(ef_conf_utils.get_account_alias("global." + account_alias), account_alias)
-    if "mgmt" in EFConfig.ENV_ACCOUNT_MAP:
-      for account_alias in EFConfig.ENV_ACCOUNT_MAP.values():
-        self.assertEquals(ef_conf_utils.get_account_alias("mgmt." + account_alias), account_alias)
+    if "global" in CRFConfig.ENV_ACCOUNT_MAP:
+      for account_alias in CRFConfig.ENV_ACCOUNT_MAP.values():
+        self.assertEquals(crf_conf_utils.get_account_alias("global." + account_alias), account_alias)
+    if "mgmt" in CRFConfig.ENV_ACCOUNT_MAP:
+      for account_alias in CRFConfig.ENV_ACCOUNT_MAP.values():
+        self.assertEquals(crf_conf_utils.get_account_alias("mgmt." + account_alias), account_alias)
 
   def test_get_account_alias_invalid_env(self):
     """
@@ -184,27 +184,27 @@ class TestEFConfUtils(unittest.TestCase):
     """
     # Create junk environment values by attaching numbers to non-ephemeral environments and not attaching numbers
     # to ephemeral environments
-    for env, account_alias in EFConfig.ENV_ACCOUNT_MAP.items():
-      if env not in EFConfig.EPHEMERAL_ENVS:
+    for env, account_alias in CRFConfig.ENV_ACCOUNT_MAP.items():
+      if env not in CRFConfig.EPHEMERAL_ENVS:
         env += '0'
       with self.assertRaises(ValueError) as exception:
-        ef_conf_utils.get_account_alias(env)
+        crf_conf_utils.get_account_alias(env)
       self.assertIn("unknown env", str(exception.exception))
 
     # Hard coded junk values
     with self.assertRaises(ValueError) as exception:
-      ef_conf_utils.get_account_alias("non-existent-env")
+      crf_conf_utils.get_account_alias("non-existent-env")
     self.assertIn("unknown env", str(exception.exception))
-    with patch('ef_conf_utils.env_valid') as mock_env_valid:
+    with patch('crf_conf_utils.env_valid') as mock_env_valid:
       with self.assertRaises(ValueError) as exception:
         mock_env_valid.return_value = True
-        ef_conf_utils.get_account_alias("non-existent-env")
+        crf_conf_utils.get_account_alias("non-existent-env")
     self.assertIn("has no entry in ENV_ACCOUNT_MAP", str(exception.exception))
     with self.assertRaises(ValueError) as exception:
-      ef_conf_utils.get_account_alias("")
+      crf_conf_utils.get_account_alias("")
     self.assertIn("unknown env", str(exception.exception))
     with self.assertRaises(ValueError) as exception:
-      ef_conf_utils.get_account_alias(None)
+      crf_conf_utils.get_account_alias(None)
     self.assertIn("unknown env", str(exception.exception))
 
   def test_get_template_parameters_s3(self):
@@ -214,7 +214,7 @@ class TestEFConfUtils(unittest.TestCase):
     mock_s3_resource.Object.return_value.get.side_effect = [ClientError(response, "Get Object"), None]
     test_template = os.path.join('test-instance/templates/test.cnf')
     target_parameters = os.path.join('test-instance/parameters/test.cnf.parameters.yml')
-    test_parameters = ef_conf_utils.get_template_parameters_s3(test_template, mock_s3_resource)
+    test_parameters = crf_conf_utils.get_template_parameters_s3(test_template, mock_s3_resource)
     self.assertEquals(test_parameters, target_parameters)
 
   def test_get_env_short(self):
@@ -227,12 +227,12 @@ class TestEFConfUtils(unittest.TestCase):
     Raises:
       AssertionError if any of the assert checks fail
     """
-    for env in EFConfig.ENV_ACCOUNT_MAP:
+    for env in CRFConfig.ENV_ACCOUNT_MAP:
       expected_env_value = env
       # Attach a numeric value to environments that are ephemeral
-      if env in EFConfig.EPHEMERAL_ENVS:
+      if env in CRFConfig.EPHEMERAL_ENVS:
          env += '0'
-      self.assertEquals(ef_conf_utils.get_env_short(env), expected_env_value)
+      self.assertEquals(crf_conf_utils.get_env_short(env), expected_env_value)
 
   def test_get_env_short_invalid_envs(self):
     """
@@ -246,20 +246,20 @@ class TestEFConfUtils(unittest.TestCase):
     """
     # Create junk environment values by attaching numbers to non-ephemeral environments and not attaching numbers
     # to ephemeral environments
-    for env in EFConfig.ENV_ACCOUNT_MAP:
-      if env not in EFConfig.EPHEMERAL_ENVS:
+    for env in CRFConfig.ENV_ACCOUNT_MAP:
+      if env not in CRFConfig.EPHEMERAL_ENVS:
         env += '0'
       with self.assertRaises(ValueError) as exception:
-        ef_conf_utils.get_env_short(env)
+        crf_conf_utils.get_env_short(env)
       self.assertIn("unknown env", str(exception.exception))
 
     # Hard coded junk values
     with self.assertRaises(ValueError) as exception:
-      ef_conf_utils.get_env_short("non-existent-env")
+      crf_conf_utils.get_env_short("non-existent-env")
     self.assertIn("unknown env", str(exception.exception))
     with self.assertRaises(ValueError) as exception:
-      ef_conf_utils.get_env_short("")
+      crf_conf_utils.get_env_short("")
     self.assertIn("unknown env", str(exception.exception))
     with self.assertRaises(ValueError) as exception:
-      ef_conf_utils.get_env_short(None)
+      crf_conf_utils.get_env_short(None)
     self.assertIn("unknown env", str(exception.exception))

@@ -1,5 +1,5 @@
 """
-Copyright 2016-2017 Ellation, Inc.
+Copyright 2016-2017 Crunchyroll, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -19,16 +19,16 @@ import subprocess
 from collections import Counter
 from os.path import isfile, normpath
 
-from ef_config import EFConfig
+from crf_config import CRFConfig
 
 
-class EFServiceRegistry(object):
+class CRFServiceRegistry(object):
   """
   Wraps interactions with the Service Registry
   Tries to find service registry in repo if service_registry_file is omitted in constructor
 
   Args:
-    service_registry_file - /path/to/service_registry; default: EF_Config.DEFAULT_SERVICE_REGISTRY_FILE in repo root
+    service_registry_file - /path/to/service_registry; default: CRF_Config.DCRFAULT_SERVICE_REGISTRY_FILE in repo root
   """
 
   def __init__(self, service_registry_file=None):
@@ -37,13 +37,13 @@ class EFServiceRegistry(object):
       service_registry_file: the file containing the service registry
     Raises:
       IOError: if file can't be found or can't be opened
-      RuntimeError: if branch isn't as spec'd in ef_config.EF_REPO_BRANCH
+      RuntimeError: if branch isn't as spec'd in crf_config.CRF_REPO_BRANCH
       CalledProcessError: if 'git rev-parse' command to find repo root could not be run
     """
     # If a file wasn't provided, try to fetch the default
     if service_registry_file is None:
       repo_root = subprocess.check_output(["git", "rev-parse", "--show-toplevel"]).rstrip()
-      self._service_registry_file = normpath("{}/{}".format(repo_root, EFConfig.DEFAULT_SERVICE_REGISTRY_FILE))
+      self._service_registry_file = normpath("{}/{}".format(repo_root, CRFConfig.DCRFAULT_SERVICE_REGISTRY_FILE))
     else:
       self._service_registry_file = service_registry_file
     if not isfile(self._service_registry_file):
@@ -55,14 +55,14 @@ class EFServiceRegistry(object):
     except ValueError:
       raise Exception("Malformed service registry file")
     # Validate service registry
-    # 1. All service groups listed in EFConfig.SERVICE_GROUPS must be present
-    for service_group in EFConfig.SERVICE_GROUPS:
+    # 1. All service groups listed in CRFConfig.SERVICE_GROUPS must be present
+    for service_group in CRFConfig.SERVICE_GROUPS:
       if service_group not in self.service_registry_json:
-        raise RuntimeError("service registry: {} doesn't have '{}' service group listed in EFConfig".format(
+        raise RuntimeError("service registry: {} doesn't have '{}' service group listed in CRFConfig".format(
                            self._service_registry_file, service_group))
     # 2. A service name must be unique and can only belong to one group
     service_counts = Counter()
-    for service_group in EFConfig.SERVICE_GROUPS:
+    for service_group in CRFConfig.SERVICE_GROUPS:
       service_counts.update(self.services(service_group).keys())
     for service_group in service_counts:
       if service_counts.get(service_group) > 1:
@@ -86,15 +86,15 @@ class EFServiceRegistry(object):
     """
     # Specific service group requested
     if service_group is not None:
-      if service_group not in EFConfig.SERVICE_GROUPS:
-        raise RuntimeError("service registry: {} doesn't have '{}' section listed in EFConfig".format(
+      if service_group not in CRFConfig.SERVICE_GROUPS:
+        raise RuntimeError("service registry: {} doesn't have '{}' section listed in CRFConfig".format(
           self._service_registry_file, service_group))
       else:
         return self.service_registry_json[service_group]
     # Specific service group not requested - flatten and return all service records
     else:
       result = dict()
-      for service_group in EFConfig.SERVICE_GROUPS:
+      for service_group in CRFConfig.SERVICE_GROUPS:
         result.update(self.service_registry_json[service_group])
       return result
 
@@ -107,8 +107,8 @@ class EFServiceRegistry(object):
       if service_group is present, an Iterator over all service records in that group
     """
     if service_group is not None:
-      if service_group not in EFConfig.SERVICE_GROUPS:
-        raise RuntimeError("service registry: {} doesn't have '{}' section listed in EFConfig".format(
+      if service_group not in CRFConfig.SERVICE_GROUPS:
+        raise RuntimeError("service registry: {} doesn't have '{}' section listed in CRFConfig".format(
           self._service_registry_file, service_group))
       return iter(self.service_registry_json[service_group].items())
     else:
@@ -123,8 +123,8 @@ class EFServiceRegistry(object):
     """
     result = []
     for service_env in envlist:
-      if service_env not in EFConfig.PROTECTED_ENVS and service_env in EFConfig.EPHEMERAL_ENVS:
-        result.extend((lambda env=service_env: [env + str(x) for x in range(EFConfig.EPHEMERAL_ENVS[env])])())
+      if service_env not in CRFConfig.PROTECTED_ENVS and service_env in CRFConfig.EPHEMERAL_ENVS:
+        result.extend((lambda env=service_env: [env + str(x) for x in range(CRFConfig.EPHEMERAL_ENVS[env])])())
       else:
         result.append(service_env)
     return result
@@ -202,7 +202,7 @@ class EFServiceRegistry(object):
     Returns:
       the name of the group the service is in, or None of the service was not found
     """
-    for group in EFConfig.SERVICE_GROUPS:
+    for group in CRFConfig.SERVICE_GROUPS:
       if service_name in self.services(group):
         return group
     return None
@@ -212,10 +212,10 @@ class EFServiceRegistry(object):
     Args:
       service_name: the name of the service in the service registry
     Returns:
-      the region the service is in, or EFConfig.DEFAULT_REGION if the region was not found
+      the region the service is in, or CRFConfig.DCRFAULT_REGION if the region was not found
     """
     if "region" not in self.services()[service_name]:
-      return EFConfig.DEFAULT_REGION
+      return CRFConfig.DCRFAULT_REGION
     else:
       return self.services()[service_name]["region"]
 

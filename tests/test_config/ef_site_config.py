@@ -1,5 +1,5 @@
 """
-Copyright 2016-2017 Ellation, Inc.
+Copyright 2016-2017 Crunchyroll, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -20,18 +20,18 @@ import sys
 import yaml
 
 
-class EFSiteConfig(object):
+class CRFSiteConfig(object):
   """
-  Loads ef_site_config.yml
+  Loads crf_site_config.yml
   """
 
   def __init__(self):
-    self._ef_site_config = os.path.join(os.path.dirname(__file__), '../test_data/ef_site_config.yml')
+    self._crf_site_config = os.path.join(os.path.dirname(__file__), '../test_data/crf_site_config.yml')
 
   def load(self):
     """Loads the config"""
     try:
-      with open(self._ef_site_config, 'r') as yml_file:
+      with open(self._crf_site_config, 'r') as yml_file:
         return yaml.safe_load(yml_file)
     except (IOError, yaml.parser.ParserError) as error:
       print("Error: {}".format(error), file=sys.stderr)

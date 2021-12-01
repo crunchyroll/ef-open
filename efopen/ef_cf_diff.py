@@ -1,5 +1,5 @@
 """
-Copyright 2016-2018 Ellation, Inc.
+Copyright 2016-2018 Crunchyroll, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -29,10 +29,10 @@ from difflib import unified_diff
 import click
 from botocore.exceptions import ClientError
 
-from .ef_config import EFConfig
-from .ef_service_registry import EFServiceRegistry
-from .ef_utils import create_aws_clients, whereami
-from .ef_conf_utils import get_account_alias
+from .crf_config import CRFConfig
+from .crf_service_registry import CRFServiceRegistry
+from .crf_utils import create_aws_clients, whereami
+from .crf_conf_utils import get_account_alias
 
 logger = logging.getLogger()
 logger.setLevel(logging.DEBUG)
@@ -63,7 +63,7 @@ def render_local_template(service_name, environment, repo_root, template_file):
     """
     Render a given service's template for a given environment and return it
     """
-    cmd = 'cd {} && ef-cf {} {} --devel --verbose'.format(repo_root, template_file, environment)
+    cmd = 'cd {} && crf-cf {} {} --devel --verbose'.format(repo_root, template_file, environment)
     p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     stdout, stderr = p.communicate()
 
@@ -151,12 +151,12 @@ def wait_for_changeset_creation(cf_client, changeset_id, changeset_stackid):
 def generate_changeset(service_name, environment, repo_root, template_file):
     """
     Given a service name and environment, and the details of where the
-    template file is, call ef-cf to generate a changeset.  Return the json
-    description response that's printed in the ef-cf output.
+    template file is, call crf-cf to generate a changeset.  Return the json
+    description response that's printed in the crf-cf output.
 
-    Will throw Exception if something goes wrong with the ef-cf call.
+    Will throw Exception if something goes wrong with the crf-cf call.
     """
-    cmd = 'cd {} && ef-cf {} {} --changeset --devel'.format(repo_root, template_file, environment)
+    cmd = 'cd {} && crf-cf {} {} --changeset --devel'.format(repo_root, template_file, environment)
     p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     stdout, stderr = p.communicate()
 
@@ -174,7 +174,7 @@ def generate_changeset(service_name, environment, repo_root, template_file):
 
 def get_stack_name(environment, service_name):
     """
-    This should be what ef-open templates call "ENV", that is, the short
+    This should be what crf-open templates call "ENV", that is, the short
     name for the environment.
     """
     environment = environment.split('.', 1)[0]
@@ -198,7 +198,7 @@ def delete_any_existing_changesets(cf_client, service_name, environment):
 
 def diff_sevice_by_changeset(service_name, service, environment, cf_client, repo_root):
     """
-    If an ef-cf call fails, the error will be logged, the retcode set to 2, but
+    If an crf-cf call fails, the error will be logged, the retcode set to 2, but
     the function will run to completion and return the list of non-error
     results.
     """
@@ -395,7 +395,7 @@ def scan_dir_for_template_files(search_dir):
 @click.option('--env', '-e',
               multiple=True,
               required=True,
-              type=click.Choice(EFConfig.ENV_LIST),
+              type=click.Choice(CRFConfig.ENV_LIST),
               help="An environment to evaluate. Can be set several times.")
 @click.option('--template_file', '-t',
               multiple=True,
@@ -412,7 +412,7 @@ def scan_dir_for_template_files(search_dir):
 def main(repo_root, sr, env, template_file, raw_text):
     """Generate a diff based on cloudformation template specified and what's currently deployed."""
     global service_registry
-    service_registry = EFServiceRegistry(sr)
+    service_registry = CRFServiceRegistry(sr)
 
     template_files = scan_dir_for_template_files(repo_root)
 

@@ -18,7 +18,7 @@ entry, then create a key for the alert condition you are attempting to modify. T
   "description": "Example service",
   "repository": "github.com/org/myservice",
   "jira_project": "example",
-  "chef_role": "example",
+  "chcrf_role": "example",
   "environments": ["prod", "staging", "proto", "alpha"],
   "policies": ["global_buckets_ro", "instance_introspection"],
   "alerts": {

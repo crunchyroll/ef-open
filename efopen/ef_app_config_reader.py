@@ -1,5 +1,5 @@
 """
-Copyright 2016-2017 Ellation, Inc.
+Copyright 2016-2017 Crunchyroll, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -18,11 +18,11 @@ import yaml
 
 import botocore.exceptions
 
-from ef_config import EFConfig
-from ef_conf_utils import get_env_short
+from crf_config import CRFConfig
+from crf_conf_utils import get_env_short
 
 
-class EFAppConfigReader:
+class CRFAppConfigReader:
   """
   Reads one set of env-based configs (one object) directly from a S3 for use by an app (no file overlaying).
   Perform hierarchical env-based config overlaying (least-specific to most)
@@ -49,7 +49,7 @@ class EFAppConfigReader:
     parameters_key = self.service + "/parameters/" + self.service + ".parameters.json"
     try:
       parameters_object = self.clients["s3"].get_object(
-        Bucket=EFConfig.S3_CONFIG_BUCKET,
+        Bucket=CRFConfig.S3_CONFIG_BUCKET,
         Key=parameters_key
       )
     except botocore.exceptions.ClientError:
@@ -100,9 +100,9 @@ import boto3
 
 
 def main():
-  session = boto3.Session(profile_name="ellationeng", region_name="us-west-2")
+  session = boto3.Session(profile_name="crunchyrolleng", region_name="us-west-2")
   clients = {"s3": session.client("s3")}
-  configreader = EFAppConfigReader("staging", "qc-pulls", clients)
+  configreader = CRFAppConfigReader("staging", "qc-pulls", clients)
   print("remote username")
   print(configreader.get_value("remote_username"))
 

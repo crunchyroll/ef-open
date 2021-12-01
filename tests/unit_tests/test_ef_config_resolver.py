@@ -1,5 +1,5 @@
 """
-Copyright 2016-2017 Ellation, Inc.
+Copyright 2016-2017 Crunchyroll, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -19,37 +19,37 @@ import unittest
 # For local application imports, context_paths must be first despite lexicon ordering
 import context_paths
 
-from ef_config import EFConfig
-from ef_config_resolver import EFConfigResolver
+from crf_config import CRFConfig
+from crf_config_resolver import CRFConfigResolver
 
 
-class TestEFConfigResolver(unittest.TestCase):
-  """Tests for 'ef_config_resolver.py'"""
+class TestCRFConfigResolver(unittest.TestCase):
+  """Tests for 'crf_config_resolver.py'"""
 
   def test_account_alias_of_env(self):
     """Does accountaliasofenv,prod resolve to the prod account alias"""
-    ef_config_resolver = EFConfigResolver()
-    result_config_data = ef_config_resolver.lookup("accountaliasofenv,test")
+    crf_config_resolver = CRFConfigResolver()
+    result_config_data = crf_config_resolver.lookup("accountaliasofenv,test")
     if result_config_data is None:
       result_config_data = ''
     self.assertRegexpMatches(result_config_data, "^testaccount$")
 
   def test_config_custom_data(self):
     target_custom_data = "custom_data"
-    EFConfig.CUSTOM_DATA = {"mock_data": "custom_data"}
+    CRFConfig.CUSTOM_DATA = {"mock_data": "custom_data"}
 
-    ef_config_resolver = EFConfigResolver()
-    result_custom_data = ef_config_resolver.lookup("customdata,mock_data")
+    crf_config_resolver = CRFConfigResolver()
+    result_custom_data = crf_config_resolver.lookup("customdata,mock_data")
     self.assertEquals(result_custom_data, target_custom_data)
 
   def test_config_custom_data_no_data(self):
-    ef_config_resolver = EFConfigResolver()
-    result_custom_data = ef_config_resolver.lookup("customdata,mock_data")
+    crf_config_resolver = CRFConfigResolver()
+    result_custom_data = crf_config_resolver.lookup("customdata,mock_data")
     self.assertEquals(result_custom_data, None)
 
   def test_config_custom_data_missing_lookup(self):
-    EFConfig.CUSTOM_DATA = {}
+    CRFConfig.CUSTOM_DATA = {}
 
-    ef_config_resolver = EFConfigResolver()
-    result_custom_data = ef_config_resolver.lookup("customdata,mock_data")
+    crf_config_resolver = CRFConfigResolver()
+    result_custom_data = crf_config_resolver.lookup("customdata,mock_data")
     self.assertEquals(result_custom_data, None)

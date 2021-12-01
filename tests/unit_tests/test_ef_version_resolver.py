@@ -1,5 +1,5 @@
 """
-Copyright 2016-2017 Ellation, Inc.
+Copyright 2016-2017 Crunchyroll, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -21,11 +21,11 @@ from mock import call, Mock, patch
 # For local application imports, context_paths must be first despite lexicon ordering
 import context_paths
 
-from ef_version_resolver import EFVersionResolver
+from crf_version_resolver import CRFVersionResolver
 
 
-class TestEFVersionResolver(unittest.TestCase):
-  """Tests for 'ef_version_resolver.py'"""
+class TestCRFVersionResolver(unittest.TestCase):
+  """Tests for 'crf_version_resolver.py'"""
 
   def setUp(self):
     """
@@ -51,10 +51,10 @@ class TestEFVersionResolver(unittest.TestCase):
     """
     pass
 
-  @patch('ef_version_resolver.EFVersionResolver._s3_get')
+  @patch('crf_version_resolver.CRFVersionResolver._s3_get')
   def test_ami_id(self, mock_s3_get):
     """Does ami-id,proto0/test-instance resolve to an AMI id"""
     mock_s3_get.return_value = 'ami-12345678'
     test_string = "ami-id,proto0/test-instance"
-    resolver = EFVersionResolver(self._clients)
+    resolver = CRFVersionResolver(self._clients)
     self.assertRegexpMatches(resolver.lookup(test_string), "^ami-[a-f0-9]{8}$")

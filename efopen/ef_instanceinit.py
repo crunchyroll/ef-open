@@ -4,10 +4,10 @@ This is installed on EC2 instances and local dev to load configuration values at
 Lambda initialization is not available yet.
 
 For config object paths in AWS, see:
-https://ellation.atlassian.net/wiki/display/DEVOPS/VRV+Name+Patterns+and+Paths
+https://crunchyroll.atlassian.net/wiki/display/DEVOPS/VRV+Name+Patterns+and+Paths
 
 
-Copyright 2016-2017 Ellation, Inc.
+Copyright 2016-2017 Crunchyroll, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -34,14 +34,14 @@ import boto3
 import boto3.utils
 import botocore.exceptions
 
-from ef_config import EFConfig
-from ef_instanceinit_config_reader import EFInstanceinitConfigReader
-from ef_utils import http_get_instance_role, http_get_metadata, whereami
-from ef_conf_utils import get_account_alias
-from ef_template_resolver import EFTemplateResolver
+from crf_config import CRFConfig
+from crf_instanceinit_config_reader import CRFInstanceinitConfigReader
+from crf_utils import http_get_instance_role, http_get_metadata, whereami
+from crf_conf_utils import get_account_alias
+from crf_template_resolver import CRFTemplateResolver
 
 # constants
-LOG_IDENT = "ef-instanceinit"
+LOG_IDENT = "crf-instanceinit"
 VIRTUALBOX_CONFIG_ROOT = "/vagrant/configs"
 
 # globals
@@ -91,21 +91,21 @@ def merge_files(service, skip_on_user_group_error=False):
     skip_on_user_group_error: True or False
 
   For S3, full path becomes:
-    s3://ellation-cx-global-configs/<service>/templates/<filename>
-    s3://ellation-cx-global-configs/<service>/parameters/<filename>.parameters.<yaml|yml|json>
+    s3://crunchyroll-cx-global-configs/<service>/templates/<filename>
+    s3://crunchyroll-cx-global-configs/<service>/parameters/<filename>.parameters.<yaml|yml|json>
   For filesystem, full path becomes:
     /vagrant/configs/<service>/templates/<filename>
     /vagrant/configs/<service>/parameters/<filename>.parameters.<yaml|yml|json>
   """
   if WHERE == "ec2":
-    config_reader = EFInstanceinitConfigReader("s3", service, log_info, RESOURCES["s3"])
-    resolver = EFTemplateResolver()
+    config_reader = CRFInstanceinitConfigReader("s3", service, log_info, RESOURCES["s3"])
+    resolver = CRFTemplateResolver()
   elif WHERE == "virtualbox-kvm":
     config_path = "{}/{}".format(VIRTUALBOX_CONFIG_ROOT, service)
-    config_reader = EFInstanceinitConfigReader("file", config_path, log_info)
-    environment = EFConfig.VAGRANT_ENV
-    resolver = EFTemplateResolver(env=environment, profile=get_account_alias(environment),
-                                  region=EFConfig.DEFAULT_REGION, service=service)
+    config_reader = CRFInstanceinitConfigReader("file", config_path, log_info)
+    environment = CRFConfig.VAGRANT_ENV
+    resolver = CRFTemplateResolver(env=environment, profile=get_account_alias(environment),
+                                  region=CRFConfig.DCRFAULT_REGION, service=service)
 
   while config_reader.next():
     log_info("checking: {}".format(config_reader.current_key))

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 """
-Copyright 2016-2017 Ellation, Inc.
+Copyright 2016-2017 Crunchyroll, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -18,8 +18,8 @@ limitations under the License.
 
 from __future__ import print_function
 
-from ef_template_resolver import EFTemplateResolver
-from ef_conf_utils import get_account_alias
+from crf_template_resolver import CRFTemplateResolver
+from crf_conf_utils import get_account_alias
 
 PARAMS = """{
   "params":{
@@ -93,7 +93,7 @@ SSL Certificate ARN us-west-2/cx-proto3.com: {{aws:acm:certificate-arn,us-west-2
 Elastic network interface (ENI) eni-proto0-dnsproxy-1a: {{aws:ec2:eni/eni-id,eni-proto0-dnsproxy-1a}}\n\
 Elastic IP Allocation ID: {{aws:ec2:elasticip/elasticip-id,ElasticIpMgmtCingest1}}\n\
 Elastic IP IP Address: {{aws:ec2:elasticip/elasticip-ipaddress,ElasticIpMgmtCingest1}}\n\
-EFConfig resolver, accountaliasofenv,prod: {{efconfig:accountaliasofenv,staging}}\n\
+CRFConfig resolver, accountaliasofenv,prod: {{efconfig:accountaliasofenv,staging}}\n\
 AMI lookup: {{version:ami-id,proto0/test-instance}}\n\
 Latest AMI for test-instance: {{version:ami-id,proto0/test-instance}}\n\
 Custom Data: \"{{efconfig:customdata,office_ips}}\"\
@@ -103,10 +103,10 @@ GLOBAL_ENV_TEST_STRING = "fully-qualified environment:{{ENV_FULL}}\n"
 
 # Test with proto0
 if LOCAL:
-  resolver = EFTemplateResolver(profile=get_account_alias("proto0"), env="proto0", region="us-west-2",
+  resolver = CRFTemplateResolver(profile=get_account_alias("proto0"), env="proto0", region="us-west-2",
                                 service="mine", verbose=True)
 else:
-  resolver = EFTemplateResolver(verbose=True)
+  resolver = CRFTemplateResolver(verbose=True)
 
 resolver.load(TEST_STRING, PARAMS)
 resolver.render()
@@ -115,20 +115,20 @@ print(resolver.template)
 print("unresolved symbol count: "+str(len(resolver.unresolved_symbols())))
 print("unresolved symbols: "+repr(resolver.unresolved_symbols()))
 print("all template symbols: "+repr(resolver.symbols))
-print("all EFTemplateResolver symbols: "+repr(resolver.resolved))
+print("all CRFTemplateResolver symbols: "+repr(resolver.resolved))
 
 
-# Demo with the global env 'mgmt.ellationeng' (local only)
+# Demo with the global env 'mgmt.crunchyrolleng' (local only)
 if LOCAL:
-  resolver = EFTemplateResolver(profile=get_account_alias("mgmt.ellationeng"), env="mgmt.ellationeng", region="us-west-2",
+  resolver = CRFTemplateResolver(profile=get_account_alias("mgmt.crunchyrolleng"), env="mgmt.crunchyrolleng", region="us-west-2",
                                 service="mine", verbose=True)
 
   resolver.load(GLOBAL_ENV_TEST_STRING, PARAMS)
   resolver.render()
 
-  print("\nDemo 'mgmt.ellationeng' resolution")
+  print("\nDemo 'mgmt.crunchyrolleng' resolution")
   print(resolver.template)
   print("unresolved symbol count: "+str(len(resolver.unresolved_symbols())))
   print("unresolved symbols: "+repr(resolver.unresolved_symbols()))
   print("all template symbols: "+repr(resolver.symbols))
-  print("all EFTemplateResolver symbols: "+repr(resolver.resolved))
+  print("all CRFTemplateResolver symbols: "+repr(resolver.resolved))

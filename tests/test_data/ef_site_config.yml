@@ -1,4 +1,4 @@
-# Copyright 2016-2019 Ellation, Inc.
+# Copyright 2016-2019 Crunchyroll, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,14 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-## Installation-specific and global settings shared by all EF tools
+## Installation-specific and global settings shared by all CRF tools
 
 # Region to work in when no region is otherwise specified (tools only support 1 region at present - this one)
-DEFAULT_REGION: "us-west-2"
+DCRFAULT_REGION: "us-west-2"
 
-# Repo where tools and all EF data are
-EF_REPO: "github.com/crunchyroll/ef-open"
-EF_REPO_BRANCH: "master"
+# Repo where tools and all CRF data are
+CRF_REPO: "github.com/crunchyroll/crf-open"
+CRF_REPO_BRANCH: "master"
 
 # Map environment::account alias (aliases must profiles in .aws/credentials for local use)
 ENV_ACCOUNT_MAP:
@@ -37,7 +37,7 @@ EPHEMERAL_ENVS:
 VAGRANT_ENV: "dev"
 
 # Bucket where late-bound service configs are found
-S3_CONFIG_BUCKET: "ellation-cx-global-configs"
+S3_CONFIG_BUCKET: "crunchyroll-cx-global-configs"
 
 # Services in the service registry are clustered into groups, and can be addressed collectively by some tools.
 # The group "fixtures" is required and will be added to this list in later code; don't list it here.
@@ -48,15 +48,15 @@ SERVICE_GROUPS:
   - "internal_services"
   - "platform_services"
 
-## ef-cf settings ##
+## crf-cf settings ##
 #   polling period for cloudformation stack status
-EF_CF_POLL_PERIOD: 10
+CRF_CF_POLL_PERIOD: 10
 
 #### Version-management settings ####
-# is --noprecheck allowed with ef-version --set and --rollback?
-ALLOW_EF_VERSION_SKIP_PRECHECK: True
+# is --noprecheck allowed with crf-version --set and --rollback?
+ALLOW_CRF_VERSION_SKIP_PRECHECK: True
 # Bucket where versions are found
-S3_VERSION_BUCKET: "ellation-cx-global-versions"
+S3_VERSION_BUCKET: "crunchyroll-cx-global-versions"
 # What envs are allowed to have special versions?
 SPECIAL_VERSION_ENVS:
   - "test"

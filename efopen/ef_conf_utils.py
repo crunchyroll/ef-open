@@ -1,5 +1,5 @@
 """
-Configurable utility functions for ef. Configurable via EFConfig
+Configurable utility functions for ef. Configurable via CRFConfig
 """
 import re
 import subprocess
@@ -7,7 +7,7 @@ from os.path import exists
 
 from botocore.exceptions import ClientError
 
-from ef_config import EFConfig
+from crf_config import CRFConfig
 
 def get_template_parameters_file(template_full_path):
     """
@@ -17,7 +17,7 @@ def get_template_parameters_file(template_full_path):
     Returns:
       filename of parameters file if it exists
     """
-    for suffix in EFConfig.PARAMETER_FILE_SUFFIXES:
+    for suffix in CRFConfig.PARAMETER_FILE_SUFFIXES:
       parameters_file = template_full_path.replace("/templates", "/parameters") + suffix
       if exists(parameters_file):
         return parameters_file
@@ -25,16 +25,16 @@ def get_template_parameters_file(template_full_path):
 
 def global_env_valid(env):
   """
-  Given an env, determine if it's a valid "global" or "mgmt" env as listed in EFConfig
+  Given an env, determine if it's a valid "global" or "mgmt" env as listed in CRFConfig
   Args:
     env: the env to check
   Returns:
-    True if the env is a valid global env in EFConfig
+    True if the env is a valid global env in CRFConfig
   Raises:
     ValueError with message if the env is not valid
   """
-  if env not in EFConfig.ACCOUNT_SCOPED_ENVS:
-    raise ValueError("Invalid global env: {}; global envs are: {}".format(env, EFConfig.ACCOUNT_SCOPED_ENVS))
+  if env not in CRFConfig.ACCOUNT_SCOPED_ENVS:
+    raise ValueError("Invalid global env: {}; global envs are: {}".format(env, CRFConfig.ACCOUNT_SCOPED_ENVS))
   return True
 
 def env_valid(env):
@@ -47,13 +47,13 @@ def env_valid(env):
   Raises:
     ValueError with message if the env is not valid
   """
-  if env not in EFConfig.ENV_LIST:
-    raise ValueError("unknown env: {}; env must be one of: ".format(env) + ", ".join(EFConfig.ENV_LIST))
+  if env not in CRFConfig.ENV_LIST:
+    raise ValueError("unknown env: {}; env must be one of: ".format(env) + ", ".join(CRFConfig.ENV_LIST))
   return True
 
 def pull_repo():
   """
-  Pulls latest version of EF_REPO_BRANCH
+  Pulls latest version of CRF_REPO_BRANCH
   Raises:
     RuntimeError with message if not on the correct branch
   """
@@ -61,10 +61,10 @@ def pull_repo():
     current_branch = subprocess.check_output(["git", "rev-parse", "--abbrev-ref", "HEAD"]).rstrip()
   except subprocess.CalledProcessError as error:
     raise RuntimeError("Exception checking current branch: " + repr(error))
-  if current_branch != EFConfig.EF_REPO_BRANCH:
-    raise RuntimeError("Must be on branch: " + EFConfig.EF_REPO_BRANCH + ". Current branch is: " + current_branch)
+  if current_branch != CRFConfig.CRF_REPO_BRANCH:
+    raise RuntimeError("Must be on branch: " + CRFConfig.CRF_REPO_BRANCH + ". Current branch is: " + current_branch)
   try:
-    subprocess.check_call(["git", "pull", "-q", "origin", EFConfig.EF_REPO_BRANCH])
+    subprocess.check_call(["git", "pull", "-q", "origin", CRFConfig.CRF_REPO_BRANCH])
   except subprocess.CalledProcessError as error:
     raise RuntimeError("Exception running 'git pull': " + repr(error))
 
@@ -86,9 +86,9 @@ def get_account_alias(env):
   # Ordinary env, possibly a proto env ending with a digit that is stripped to look up the alias
   else:
     env_short = env.strip(".0123456789")
-    if env_short not in EFConfig.ENV_ACCOUNT_MAP:
-      raise ValueError("generic env: {} has no entry in ENV_ACCOUNT_MAP of ef_site_config.py".format(env_short))
-    return EFConfig.ENV_ACCOUNT_MAP[env_short]
+    if env_short not in CRFConfig.ENV_ACCOUNT_MAP:
+      raise ValueError("generic env: {} has no entry in ENV_ACCOUNT_MAP of crf_site_config.py".format(env_short))
+    return CRFConfig.ENV_ACCOUNT_MAP[env_short]
 
 def get_template_parameters_s3(template_key, s3_resource):
   """
@@ -99,10 +99,10 @@ def get_template_parameters_s3(template_key, s3_resource):
   Returns:
     filename of parameters file if it exists
   """
-  for suffix in EFConfig.PARAMETER_FILE_SUFFIXES:
+  for suffix in CRFConfig.PARAMETER_FILE_SUFFIXES:
     parameters_key = template_key.replace("/templates", "/parameters") + suffix
     try:
-      obj = s3_resource.Object(EFConfig.S3_CONFIG_BUCKET, parameters_key)
+      obj = s3_resource.Object(CRFConfig.S3_CONFIG_BUCKET, parameters_key)
       obj.get()
       return parameters_key
     except ClientError:

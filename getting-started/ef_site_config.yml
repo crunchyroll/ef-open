@@ -1,4 +1,4 @@
-# Copyright 2016-2018 Ellation, Inc.
+# Copyright 2016-2018 Crunchyroll, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,15 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-## Installation-specific and global settings shared by all EF tools
+## Installation-specific and global settings shared by all CRF tools
 
 # Region to work in when no region is otherwise specified (tools only support 1 region at present - this one)
-#   Example: DEFAULT_REGION: "us-east-1"
-DEFAULT_REGION: ""
+#   Example: DCRFAULT_REGION: "us-east-1"
+DCRFAULT_REGION: ""
 
 # Branch in of repo to deploy CloudFormation templates from; probably "master"
-#   Example: EF_REPO_BRANCH: "master"
-EF_REPO_BRANCH: "master"
+#   Example: CRF_REPO_BRANCH: "master"
+CRF_REPO_BRANCH: "master"
 
 # Map environment::account alias (aliases must profiles in .aws/credentials for local use)
 #   internal: "mycompanyint",
@@ -46,7 +46,7 @@ EPHEMERAL_ENVS:
 VAGRANT_ENV: "local"
 
 # Bucket where late-bound service configs are found
-#   Bucket name should be in this form: <S3PREFIX>-global-configs
+#   Bucket name should be in this form: <S3PRCRFIX>-global-configs
 #   Bucket does not have to exist yet (you will need the built tools to create it via CloudFormation)
 #   Example: S3_CONFIG_BUCKET: "mycompany-myproject-global-configs"
 S3_CONFIG_BUCKET: ""
@@ -60,16 +60,16 @@ SERVICE_GROUPS:
   - "internal_services"
   - "platform_services"
 
-## ef-cf settings ##
+## crf-cf settings ##
 #   polling period for cloudformation stack status
-EF_CF_POLL_PERIOD: 10
+CRF_CF_POLL_PERIOD: 10
 
 #### Version-management settings ####
-# is --noprecheck allowed with ef-version --set and --rollback?
-ALLOW_EF_VERSION_SKIP_PRECHECK: True
+# is --noprecheck allowed with crf-version --set and --rollback?
+ALLOW_CRF_VERSION_SKIP_PRECHECK: True
 
 # Bucket where versions are found
-#   Bucket name should be in this form: <S3PREFIX>-global-versions
+#   Bucket name should be in this form: <S3PRCRFIX>-global-versions
 #   Bucket does not have to exist yet (you will need the built tools to create it via CloudFormation)
 #   Example: S3_VERSION_BUCKET: "mycompany-myproject-global-versions
 S3_VERSION_BUCKET: ""

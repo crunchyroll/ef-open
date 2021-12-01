@@ -11,7 +11,7 @@ def readme():
 
 
 setup(
-    name='ef-open',
+    name='crf-open',
     version=versioneer.get_version(),
     cmdclass=versioneer.get_cmdclass(),
     packages=[
@@ -34,21 +34,21 @@ setup(
     },
     entry_points={
         'console_scripts': [
-            'ef-cf=efopen.ef_cf:main',
-            'ef-cf-diff=efopen.ef_cf_diff:main',
-            'ef-check-config=efopen.ef_check_config:main',
-            'ef-generate=efopen.ef_generate:main',
-            'ef-instanceinit=efopen.ef_instanceinit:main',
-            'ef-password=efopen.ef_password:main',
-            'ef-resolve-config=efopen.ef_resolve_config:main',
-            'ef-version=efopen.ef_version:main'
+            'crf-cf=efopen.crf_cf:main',
+            'crf-cf-diff=efopen.crf_cf_diff:main',
+            'crf-check-config=efopen.crf_check_config:main',
+            'crf-generate=efopen.crf_generate:main',
+            'crf-instanceinit=efopen.crf_instanceinit:main',
+            'crf-password=efopen.crf_password:main',
+            'crf-resolve-config=efopen.crf_resolve_config:main',
+            'crf-version=efopen.crf_version:main'
         ],
     },
-    url='https://github.com/crunchyroll/ef-open',
+    url='https://github.com/crunchyroll/crf-open',
     license="Apache License 2.0",
-    author='Ellation, Inc.',
-    author_email='ops@ellation.com',
-    description='CloudFormation Tools by Ellation',
+    author='Crunchyroll, Inc.',
+    author_email='ops@crunchyroll.com',
+    description='CloudFormation Tools by Crunchyroll',
     long_description=readme(),
     long_description_content_type='text/markdown'
 )
