@@ -43,7 +43,7 @@ def get_config():
     cfg.style = "pep440"
     cfg.tag_prefix = ""
     cfg.parentdir_prefix = "None"
-    cfg.versionfile_source = "efopen/_version.py"
+    cfg.versionfile_source = "crfopen/_version.py"
     cfg.verbose = False
     return cfg
 

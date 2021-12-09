@@ -40,7 +40,7 @@ This project uses Python `unittest` framework for unit tests, and `pylint` for l
 ```
 python setup.py test
 
-pylint --rcfile=./pylintrc ./efopen
+pylint --rcfile=./pylintrc ./crfopen
 ```
 
 ## Versions

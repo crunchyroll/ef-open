@@ -19,7 +19,7 @@ import unittest
 
 from mock import MagicMock, Mock, patch, mock_open
 
-from efopen import crf_site_config
+from crfopen import crf_site_config
 
 
 class TestCRFSiteConfig(unittest.TestCase):
@@ -38,7 +38,7 @@ class TestCRFSiteConfig(unittest.TestCase):
       self.assertEqual(test_config["ENV_ACCOUNT_MAP"]["test"], "testaccount")
 
   def test_site_config_load_local_on_non_ec2(self):
-    with patch('efopen.crf_utils.whereami') as whereami,\
+    with patch('crfopen.crf_utils.whereami') as whereami,\
          patch.object(crf_site_config.CRFSiteConfig,
                       'load_from_local_file') as mock_file_load:
 
@@ -50,7 +50,7 @@ class TestCRFSiteConfig(unittest.TestCase):
         self.assertDictEqual(test_config, mock_file_load.return_value)
 
   def test_site_config_load_from_ssm_on_ec2(self):
-    with patch('efopen.crf_utils.whereami') as whereami,\
+    with patch('crfopen.crf_utils.whereami') as whereami,\
          patch.object(crf_site_config.CRFSiteConfig,
                       'load_from_ssm') as mock_ssm_load:
 
@@ -74,4 +74,4 @@ class TestCRFSiteConfig(unittest.TestCase):
 
       self.assertEqual(test_config, config_value)
       boto3_client_func.assert_called_once_with('ssm', region_name='us-west-2')
-      get_parameter_mock.assert_called_once_with(Name='/efopen/crf_site_config')
+      get_parameter_mock.assert_called_once_with(Name='/crfopen/crf_site_config')

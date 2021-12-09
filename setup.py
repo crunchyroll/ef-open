@@ -15,7 +15,7 @@ setup(
     version=versioneer.get_version(),
     cmdclass=versioneer.get_cmdclass(),
     packages=[
-        'efopen'
+        'crfopen'
     ],
     install_requires=[
         'boto3>=1.17.112',
@@ -34,14 +34,14 @@ setup(
     },
     entry_points={
         'console_scripts': [
-            'crf-cf=efopen.crf_cf:main',
-            'crf-cf-diff=efopen.crf_cf_diff:main',
-            'crf-check-config=efopen.crf_check_config:main',
-            'crf-generate=efopen.crf_generate:main',
-            'crf-instanceinit=efopen.crf_instanceinit:main',
-            'crf-password=efopen.crf_password:main',
-            'crf-resolve-config=efopen.crf_resolve_config:main',
-            'crf-version=efopen.crf_version:main'
+            'crf-cf=crfopen.crf_cf:main',
+            'crf-cf-diff=crfopen.crf_cf_diff:main',
+            'crf-check-config=crfopen.crf_check_config:main',
+            'crf-generate=crfopen.crf_generate:main',
+            'crf-instanceinit=crfopen.crf_instanceinit:main',
+            'crf-password=crfopen.crf_password:main',
+            'crf-resolve-config=crfopen.crf_resolve_config:main',
+            'crf-version=crfopen.crf_version:main'
         ],
     },
     url='https://github.com/crunchyroll/crf-open',

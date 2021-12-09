@@ -32,7 +32,7 @@ class CRFSiteConfig(object):
 
   def __init__(self):
     self._crf_site_config = os.path.join(os.getcwd(), "crf_site_config.yml")
-    self.ssm_parameter_name = os.environ.get('CRF_SSM_SITE_CONFIG_LOCATION', '/efopen/crf_site_config')
+    self.ssm_parameter_name = os.environ.get('CRF_SSM_SITE_CONFIG_LOCATION', '/crfopen/crf_site_config')
     self.ssm_region = os.environ.get('CRF_SSM_SITE_CONFIG_REGION', 'us-west-2')
 
   def load(self):
