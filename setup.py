@@ -24,7 +24,8 @@ setup(
         'cfn-lint',
         'requests<=2.25.1',
         'tenacity==7.0.0',
-        'yamllint<=1.25.0'
+        'yamllint<=1.25.0',
+        'mock==3.0.5'
     ],
     extras_require={
         'test': [
