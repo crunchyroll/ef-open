@@ -27,7 +27,7 @@
       "description": "test ec2 instance",
       "runbook_url": "https://www.google.com/",
       "jira_project": "project",
-      "chcrf_role": "base",
+      "chef_role": "base",
       "team_email": "email@example.com",
       "environments": ["staging", "alpha", "mgmt.crunchyrolleng"],
       "policies": ["policy_1", "policy_2"]
@@ -37,7 +37,7 @@
       "description": "test ec2 instance",
       "runbook_url": "https://www.google.com/",
       "jira_project": "project",
-      "chcrf_role": "base",
+      "chef_role": "base",
       "team_email": "email@example.com",
       "environments": ["staging", "alpha", "mgmt.crunchyrolleng"],
       "policies": ["policy_1", "policy_2"]
@@ -47,7 +47,7 @@
       "description": "test ec2 instance",
       "runbook_url": "https://www.google.com/",
       "jira_project": "project",
-      "chcrf_role": "base",
+      "chef_role": "base",
       "team_email": "email@example.com",
       "environments": ["stag"],
       "policies": ["policy_1", "policy_2"]
@@ -59,7 +59,7 @@
       "description": "test ec2 instance",
       "runbook_url": "https://www.google.com/",
       "jira_project": "project",
-      "chcrf_role": "base",
+      "chef_role": "base",
       "team_email": "email@example.com",
       "region": "us-east-1",
       "environments": ["staging", "alpha", "mgmt.crunchyrolleng"],
@@ -72,7 +72,7 @@
       "description": "test ec2 instance",
       "runbook_url": "https://www.google.com/",
       "jira_project": "project",
-      "chcrf_role": "base",
+      "chef_role": "base",
       "team_email": "email@example.com",
       "environments": ["internal", "mgmt.crunchyrollint"],
       "policies": ["policy_1", "policy_2"]
