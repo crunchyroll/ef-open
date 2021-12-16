@@ -81,7 +81,7 @@ class TestCRFAwsResolver(unittest.TestCase):
     """
     pass
 
-  _CERTIFICATE_ARN_PRCRFIX = "arn:aws:acm:us-west-2:111000:certificate/"
+  _CERTIFICATE_ARN_PREFIX = "arn:aws:acm:us-west-2:111000:certificate/"
 
   def _generate_certificate_summary_list(self, make_empty=False):
     """
@@ -101,15 +101,15 @@ class TestCRFAwsResolver(unittest.TestCase):
       certificate_summary_list = {
         "CertificateSummaryList": [
           {
-            "CertificateArn": self._CERTIFICATE_ARN_PRCRFIX + "not_target_cert",
+            "CertificateArn": self._CERTIFICATE_ARN_PREFIX + "not_target_cert",
             "DomainName": "first.com"
           },
           {
-            "CertificateArn": self._CERTIFICATE_ARN_PRCRFIX + "not_target_cert",
+            "CertificateArn": self._CERTIFICATE_ARN_PREFIX + "not_target_cert",
             "DomainName": "second.com"
           },
           {
-            "CertificateArn": self._CERTIFICATE_ARN_PRCRFIX + "not_target_cert",
+            "CertificateArn": self._CERTIFICATE_ARN_PREFIX + "not_target_cert",
             "DomainName": "third.com"
           }
         ]
@@ -181,7 +181,7 @@ class TestCRFAwsResolver(unittest.TestCase):
       AssertionError if any of the assert checks fail
     """
     # Designate values of target certificate
-    target_certificate_arn = self._CERTIFICATE_ARN_PRCRFIX + "target_cert"
+    target_certificate_arn = self._CERTIFICATE_ARN_PREFIX + "target_cert"
     target_domain_name = "my_target.com"
 
     # Generate certificate summary list with target certificate summary in it
@@ -214,15 +214,15 @@ class TestCRFAwsResolver(unittest.TestCase):
       AssertionError if any of the assert checks fail
     """
     # Designate values of target certificate
-    target_certificate_arn = self._CERTIFICATE_ARN_PRCRFIX + "target_cert"
+    target_certificate_arn = self._CERTIFICATE_ARN_PREFIX + "target_cert"
     target_domain_name = "my_target.com"
 
     # Designate values of old certificate
-    old_certificate_arn = self._CERTIFICATE_ARN_PRCRFIX + "older_target_cert"
+    old_certificate_arn = self._CERTIFICATE_ARN_PREFIX + "older_target_cert"
 
     # Generate certificate summary list with old and target certificate summaries in it
     certificate_summary_list = self._generate_certificate_summary_list()
-    old_certificate_summary = self._generate_certificate_summary(self._CERTIFICATE_ARN_PRCRFIX + "older_target_cert",
+    old_certificate_summary = self._generate_certificate_summary(self._CERTIFICATE_ARN_PREFIX + "older_target_cert",
                                                                  target_domain_name)
     target_certificate_summary  = self._generate_certificate_summary(target_certificate_arn, target_domain_name)
 
@@ -312,11 +312,11 @@ class TestCRFAwsResolver(unittest.TestCase):
       AssertionError if any of the assert checks fail
     """
     # Designate values of target certificate
-    target_certificate_arn = self._CERTIFICATE_ARN_PRCRFIX + "target_cert"
+    target_certificate_arn = self._CERTIFICATE_ARN_PREFIX + "target_cert"
     target_domain_name = "my_target.com"
 
     # Designate values of old certificate
-    old_certificate_arn = self._CERTIFICATE_ARN_PRCRFIX + "older_target_cert"
+    old_certificate_arn = self._CERTIFICATE_ARN_PREFIX + "older_target_cert"
 
     # Generate certificate summary list with old and target certificate summaries in it
     certificate_summary_list = self._generate_certificate_summary_list()
@@ -354,11 +354,11 @@ class TestCRFAwsResolver(unittest.TestCase):
       AssertionError if any of the assert checks fail
     """
     # Designate values of target certificate
-    target_certificate_arn = self._CERTIFICATE_ARN_PRCRFIX + "target_cert"
+    target_certificate_arn = self._CERTIFICATE_ARN_PREFIX + "target_cert"
     target_domain_name = "my_target.com"
 
     # Designate values of old certificate
-    old_certificate_arn = self._CERTIFICATE_ARN_PRCRFIX + "older_target_cert"
+    old_certificate_arn = self._CERTIFICATE_ARN_PREFIX + "older_target_cert"
 
     # Generate certificate summary list with old and target certificate summaries in it
     certificate_summary_list = self._generate_certificate_summary_list()
@@ -1712,7 +1712,7 @@ class TestCRFAwsResolver(unittest.TestCase):
     result = crf_aws_resolver.lookup("waf:web-acl-id,cant_possibly_match")
     self.assertIsNone(result)
 
-  _HOSTED_ZONE_ID_PRCRFIX = "/hostedzone/"
+  _HOSTED_ZONE_ID_PREFIX = "/hostedzone/"
 
   def _generate_hosted_zones_list(self, make_empty=False):
     """
@@ -1737,28 +1737,28 @@ class TestCRFAwsResolver(unittest.TestCase):
             "Config": {
                 "PrivateZone": True
             },
-            "Id": self._HOSTED_ZONE_ID_PRCRFIX + "AAAAA1",
+            "Id": self._HOSTED_ZONE_ID_PREFIX + "AAAAA1",
             "Name": "other_domain.com."
           },
           {
             "Config": {
                 "PrivateZone": False
             },
-            "Id": self._HOSTED_ZONE_ID_PRCRFIX + "AAAAA2",
+            "Id": self._HOSTED_ZONE_ID_PREFIX + "AAAAA2",
             "Name": "other_domain.com."
           },
           {
             "Config": {
                 "PrivateZone": True
             },
-            "Id": self._HOSTED_ZONE_ID_PRCRFIX + "BBBBB1",
+            "Id": self._HOSTED_ZONE_ID_PREFIX + "BBBBB1",
             "Name": "another_domain.com"
           },
           {
             "Config": {
               "PrivateZone": False
             },
-            "Id": self._HOSTED_ZONE_ID_PRCRFIX + "BBBBB2",
+            "Id": self._HOSTED_ZONE_ID_PREFIX + "BBBBB2",
             "Name": "another_domain.com"
           }
         ],
@@ -1782,7 +1782,7 @@ class TestCRFAwsResolver(unittest.TestCase):
         "Config": {
             "PrivateZone": is_private
         },
-        "Id": self._HOSTED_ZONE_ID_PRCRFIX + hosted_zone_id,
+        "Id": self._HOSTED_ZONE_ID_PREFIX + hosted_zone_id,
         "Name": hosted_zone_domain_name
     }
     return hosted_zone

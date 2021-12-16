@@ -46,7 +46,7 @@ EPHEMERAL_ENVS:
 VAGRANT_ENV: "local"
 
 # Bucket where late-bound service configs are found
-#   Bucket name should be in this form: <S3PRCRFIX>-global-configs
+#   Bucket name should be in this form: <S3PREFIX>-global-configs
 #   Bucket does not have to exist yet (you will need the built tools to create it via CloudFormation)
 #   Example: S3_CONFIG_BUCKET: "mycompany-myproject-global-configs"
 S3_CONFIG_BUCKET: ""
@@ -69,7 +69,7 @@ CRF_CF_POLL_PERIOD: 10
 ALLOW_CRF_VERSION_SKIP_PRECHECK: True
 
 # Bucket where versions are found
-#   Bucket name should be in this form: <S3PRCRFIX>-global-versions
+#   Bucket name should be in this form: <S3PREFIX>-global-versions
 #   Bucket does not have to exist yet (you will need the built tools to create it via CloudFormation)
 #   Example: S3_VERSION_BUCKET: "mycompany-myproject-global-versions
 S3_VERSION_BUCKET: ""

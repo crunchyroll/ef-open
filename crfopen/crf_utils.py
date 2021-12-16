@@ -34,7 +34,7 @@ from botocore.exceptions import ClientError
 from botocore.config import Config
 
 __HTTP_DCRFAULT_TIMEOUT_SEC = 5
-__METADATA_PRCRFIX = "http://169.254.169.254/latest/meta-data/"
+__METADATA_PREFIX = "http://169.254.169.254/latest/meta-data/"
 __VIRT_WHAT = "/sbin/virt-what"
 __VIRT_WHAT_VIRTUALBOX_WITH_KVM = ["virtualbox", "kvm"]
 
@@ -66,7 +66,7 @@ def http_get_metadata(metadata_path, timeout=__HTTP_DCRFAULT_TIMEOUT_SEC):
   RAISE:
     URLError if there was a problem reading metadata
   """
-  metadata_path = __METADATA_PRCRFIX + metadata_path
+  metadata_path = __METADATA_PREFIX + metadata_path
   try:
     response = urllib2.urlopen(metadata_path, None, timeout)
     if response.getcode() != 200:
