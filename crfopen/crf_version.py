@@ -577,7 +577,7 @@ def cmd_set(context):
                          context.key, context.env, context.service_name, func_name))
 
   s3_key = "{}/{}/{}".format(context.service_name, context.env, context.key)
-  s3_version_status = CRFConfig.S3_VERSION_STATUS_STABLE if context.stable else CRFConfig.S3_VERSION_STATUS_UNDCRFINED
+  s3_version_status = CRFConfig.S3_VERSION_STATUS_STABLE if context.stable else CRFConfig.S3_VERSION_STATUS_UNDEFINED
 
   # If the set would put a value and status that are the same as the existing 'current' value/status, don't do it
   context.limit = 1

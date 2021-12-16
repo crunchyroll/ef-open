@@ -97,7 +97,7 @@ class CRFConfig(object):
   S3_VERSION_STATUS_KEY = "crf-version-status"
   # Metadata version status values
   S3_VERSION_STATUS_STABLE = "stable"
-  S3_VERSION_STATUS_UNDCRFINED = "undefined"
+  S3_VERSION_STATUS_UNDEFINED = "undefined"
   VERSION_KEYS = {
       "ami-id": {
           "allow_latest": True,
