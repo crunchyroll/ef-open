@@ -367,7 +367,7 @@ Example:<br>
 which is looked up in 'proto3' as:<br>
 ```{{aws:route53:private-hosted-zone-id,mydomain-proto3}}```<br>
 returns:<br>
-```Z20CRFA41X32AM```
+```Z20EFA41X32AM```
 
 #### {{aws:route53:public-hosted-zone-id,\<zone_name>.}}
 Returns: Public Hosted Zone's ID in Route53<br>
@@ -377,7 +377,7 @@ Example:<br>
 which is looked up in 'proto3' as:<br>
 ```{{aws:route53:public-hosted-zone-id,mydomain-proto3}}```<br>
 returns:<br>
-```Z20CRFA87A26E8```
+```Z20EFA87A26E8```
 
 #### {{aws:waf:rule-id,\<waf_rule_name>}}
 Returns: WAF rule's ID<br>
