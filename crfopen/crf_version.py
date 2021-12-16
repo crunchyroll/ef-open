@@ -639,10 +639,10 @@ def main():
     aws_session_alias = context.account_alias
   # Make AWS clients
   try:
-    context.set_aws_clients(create_aws_clients(CRFConfig.DCRFAULT_REGION, aws_session_alias, "ec2", "s3", "sts"))
+    context.set_aws_clients(create_aws_clients(CRFConfig.DEFAULT_REGION, aws_session_alias, "ec2", "s3", "sts"))
   except RuntimeError:
     fail("Exception creating AWS client in region {} with aws account alias {} (None=instance credentials)".format(
-         CRFConfig.DCRFAULT_REGION, aws_session_alias))
+         CRFConfig.DEFAULT_REGION, aws_session_alias))
 
   # Instantiate a versionresolver - we'll use some of its methods
   context._versionresolver = CRFVersionResolver(context.aws_client())

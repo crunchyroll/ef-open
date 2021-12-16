@@ -28,7 +28,7 @@ from crf_template_resolver import CRFTemplateResolver
 from crf_conf_utils import get_account_alias
 
 TEST_PROFILE = get_account_alias("test")
-TEST_REGION = CRFConfig.DCRFAULT_REGION
+TEST_REGION = CRFConfig.DEFAULT_REGION
 TEST_ENV = "test"
 TEST_SERVICE = "none"
 

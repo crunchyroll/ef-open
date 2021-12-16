@@ -206,10 +206,10 @@ def resolve_policy_document(policy_name):
   print_if_verbose("pre-resolution policy template:\n{}".format(policy_template))
   # If running in EC2, do not set profile and set target_other=True
   if CONTEXT.whereami == "ec2":
-    resolver = CRFTemplateResolver(target_other=True, env=CONTEXT.env, region=CRFConfig.DCRFAULT_REGION,
+    resolver = CRFTemplateResolver(target_other=True, env=CONTEXT.env, region=CRFConfig.DEFAULT_REGION,
                                   service=CONTEXT.service, verbose=CONTEXT.verbose)
   else:
-    resolver = CRFTemplateResolver(profile=CONTEXT.account_alias, env=CONTEXT.env, region=CRFConfig.DCRFAULT_REGION,
+    resolver = CRFTemplateResolver(profile=CONTEXT.account_alias, env=CONTEXT.env, region=CRFConfig.DEFAULT_REGION,
                                 service=CONTEXT.service, verbose=CONTEXT.verbose)
   resolver.load(policy_template)
   policy_document = resolver.render()
@@ -647,15 +647,15 @@ def main():
   try:
     # If running in EC2, always use instance credentials. One day we'll have "lambda" in there too, so use "in" w/ list
     if CONTEXT.whereami == "ec2":
-      CLIENTS = create_aws_clients(CRFConfig.DCRFAULT_REGION, None, "cloudfront", "ec2", "iam", "kms")
+      CLIENTS = create_aws_clients(CRFConfig.DEFAULT_REGION, None, "cloudfront", "ec2", "iam", "kms")
       CONTEXT.account_id = str(json.loads(http_get_metadata('iam/info'))["InstanceProfileArn"].split(":")[4])
     else:
       # Otherwise, we use local user creds based on the account alias
-      CLIENTS = create_aws_clients(CRFConfig.DCRFAULT_REGION, CONTEXT.account_alias, "cloudfront", "ec2", "iam", "kms", "sts")
+      CLIENTS = create_aws_clients(CRFConfig.DEFAULT_REGION, CONTEXT.account_alias, "cloudfront", "ec2", "iam", "kms", "sts")
       CONTEXT.account_id = get_account_id(CLIENTS["sts"])
   except RuntimeError:
     fail("Exception creating AWS clients in region {} with profile {}".format(
-      CRFConfig.DCRFAULT_REGION, CONTEXT.account_alias))
+      CRFConfig.DEFAULT_REGION, CONTEXT.account_alias))
   # Instantiate an AWSResolver to lookup AWS resources
   AWS_RESOLVER = CRFAwsResolver(CLIENTS)
 

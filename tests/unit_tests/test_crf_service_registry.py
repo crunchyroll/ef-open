@@ -52,7 +52,7 @@ class TestCRFUtils(unittest.TestCase):
   def test_sr_loads(self, mock_check_output):
     """Can the default SR be loaded? (requires a default SR)"""
     mock_check_output.side_effect = [os.path.join(os.path.dirname(__file__), '../test_data')]
-    CRFConfig.DCRFAULT_SERVICE_REGISTRY_FILE = "test_service_registry_1.json"
+    CRFConfig.DEFAULT_SERVICE_REGISTRY_FILE = "test_service_registry_1.json"
     sr = CRFServiceRegistry()
 
   def test_services(self):

@@ -34,7 +34,7 @@ import sys
 
 CONFIGS_RELATIVE_PATH_FROM_SCRIPT_DIR = "../configs"
 PARAMETER_SUFFIX = ".parameters.json"
-DCRFAULT_LOGFILE = "/tmp/instanceinit.log"
+DEFAULT_LOGFILE = "/tmp/instanceinit.log"
 
 def handle_args(args):
   """

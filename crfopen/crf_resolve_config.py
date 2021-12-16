@@ -83,7 +83,7 @@ def handle_args_and_set_context(args):
 
   return Context(
       get_account_alias(parsed["env"]),
-      CRFConfig.DCRFAULT_REGION,
+      CRFConfig.DEFAULT_REGION,
       parsed["env"],
       service,
       path_to_template,

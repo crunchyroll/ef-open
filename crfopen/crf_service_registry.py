@@ -29,7 +29,7 @@ class CRFServiceRegistry(object):
   Tries to find service registry in repo if service_registry_file is omitted in constructor
 
   Args:
-    service_registry_file - /path/to/service_registry; default: CRF_Config.DCRFAULT_SERVICE_REGISTRY_FILE in repo root
+    service_registry_file - /path/to/service_registry; default: CRF_Config.DEFAULT_SERVICE_REGISTRY_FILE in repo root
   """
 
   def __init__(self, service_registry_file=None):
@@ -44,7 +44,7 @@ class CRFServiceRegistry(object):
     # If a file wasn't provided, try to fetch the default
     if service_registry_file is None:
       repo_root = subprocess.check_output(["git", "rev-parse", "--show-toplevel"]).rstrip()
-      self._service_registry_file = normpath("{}/{}".format(repo_root, CRFConfig.DCRFAULT_SERVICE_REGISTRY_FILE))
+      self._service_registry_file = normpath("{}/{}".format(repo_root, CRFConfig.DEFAULT_SERVICE_REGISTRY_FILE))
     else:
       self._service_registry_file = service_registry_file
     if not isfile(self._service_registry_file):
@@ -213,10 +213,10 @@ class CRFServiceRegistry(object):
     Args:
       service_name: the name of the service in the service registry
     Returns:
-      the region the service is in, or CRFConfig.DCRFAULT_REGION if the region was not found
+      the region the service is in, or CRFConfig.DEFAULT_REGION if the region was not found
     """
     if "region" not in self.services()[service_name]:
-      return CRFConfig.DCRFAULT_REGION
+      return CRFConfig.DEFAULT_REGION
     else:
       return self.services()[service_name]["region"]
 

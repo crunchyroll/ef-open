@@ -15,8 +15,8 @@
 ## Installation-specific and global settings shared by all CRF tools
 
 # Region to work in when no region is otherwise specified (tools only support 1 region at present - this one)
-#   Example: DCRFAULT_REGION: "us-east-1"
-DCRFAULT_REGION: ""
+#   Example: DEFAULT_REGION: "us-east-1"
+DEFAULT_REGION: ""
 
 # Branch in of repo to deploy CloudFormation templates from; probably "master"
 #   Example: CRF_REPO_BRANCH: "master"

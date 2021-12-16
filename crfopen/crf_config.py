@@ -33,7 +33,7 @@ class CRFConfig(object):
   ALLOW_CRF_VERSION_SKIP_PRECHECK = _crf_site_config["ALLOW_CRF_VERSION_SKIP_PRECHECK"]
   if "CUSTOM_DATA" in _crf_site_config:
     CUSTOM_DATA = _crf_site_config["CUSTOM_DATA"]
-  DCRFAULT_REGION = _crf_site_config["DCRFAULT_REGION"]
+  DEFAULT_REGION = _crf_site_config["DEFAULT_REGION"]
   CRF_CF_POLL_PERIOD = _crf_site_config["CRF_CF_POLL_PERIOD"]
   CRF_REPO_BRANCH = _crf_site_config["CRF_REPO_BRANCH"]
   ENV_ACCOUNT_MAP = _crf_site_config["ENV_ACCOUNT_MAP"]
@@ -47,7 +47,7 @@ class CRFConfig(object):
   PLUGINS = _crf_site_config.get("PLUGINS", {})
 
   # Default service registry file name
-  DCRFAULT_SERVICE_REGISTRY_FILE = "service_registry.json"
+  DEFAULT_SERVICE_REGISTRY_FILE = "service_registry.json"
   PARAMETER_FILE_SUFFIXES = [".parameters.yaml", ".parameters.yml", ".parameters.json"]
   POLICY_TEMPLATE_PATH_SUFFIX = "/policy_templates/"
   # the service group 'fixtures' always exists

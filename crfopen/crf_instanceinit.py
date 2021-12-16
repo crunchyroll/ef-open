@@ -4,7 +4,7 @@ This is installed on EC2 instances and local dev to load configuration values at
 Lambda initialization is not available yet.
 
 For config object paths in AWS, see:
-https://crunchyroll.atlassian.net/wiki/display/DEVOPS/VRV+Name+Patterns+and+Paths
+https://wiki.tenkasu.net/display/PCI/Name+Patterns+and+Paths
 
 
 Copyright 2016-2021 Ellation, Inc.
@@ -106,7 +106,7 @@ def merge_files(service, skip_on_user_group_error=False):
     config_reader = CRFInstanceinitConfigReader("file", config_path, log_info)
     environment = CRFConfig.VAGRANT_ENV
     resolver = CRFTemplateResolver(env=environment, profile=get_account_alias(environment),
-                                  region=CRFConfig.DCRFAULT_REGION, service=service)
+                                  region=CRFConfig.DEFAULT_REGION, service=service)
 
   while config_reader.next():
     log_info("checking: {}".format(config_reader.current_key))

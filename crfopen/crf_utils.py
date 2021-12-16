@@ -33,7 +33,7 @@ import boto3
 from botocore.exceptions import ClientError
 from botocore.config import Config
 
-__HTTP_DCRFAULT_TIMEOUT_SEC = 5
+__HTTP_DEFAULT_TIMEOUT_SEC = 5
 __METADATA_PREFIX = "http://169.254.169.254/latest/meta-data/"
 __VIRT_WHAT = "/sbin/virt-what"
 __VIRT_WHAT_VIRTUALBOX_WITH_KVM = ["virtualbox", "kvm"]
@@ -56,7 +56,7 @@ def fail(message, exception_data=None):
     print(repr(exception_data))
   sys.exit(1)
 
-def http_get_metadata(metadata_path, timeout=__HTTP_DCRFAULT_TIMEOUT_SEC):
+def http_get_metadata(metadata_path, timeout=__HTTP_DEFAULT_TIMEOUT_SEC):
   """
   Fetch AWS metadata from http://169.254.169.254/latest/meta-data/<metadata_path>
   ARGS:

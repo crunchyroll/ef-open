@@ -237,10 +237,10 @@ def main():
   profile = None if context.whereami == "ec2" else context.account_alias
 
   try:
-    clients = crf_utils.create_aws_clients(CRFConfig.DCRFAULT_REGION, profile, "kms")
+    clients = crf_utils.create_aws_clients(CRFConfig.DEFAULT_REGION, profile, "kms")
   except RuntimeError as error:
     crf_utils.fail(
-      "Exception creating clients in region {} with profile {}".format(CRFConfig.DCRFAULT_REGION, profile),
+      "Exception creating clients in region {} with profile {}".format(CRFConfig.DEFAULT_REGION, profile),
       error
     )
 

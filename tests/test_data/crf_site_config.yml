@@ -15,7 +15,7 @@
 ## Installation-specific and global settings shared by all CRF tools
 
 # Region to work in when no region is otherwise specified (tools only support 1 region at present - this one)
-DCRFAULT_REGION: "us-west-2"
+DEFAULT_REGION: "us-west-2"
 
 # Repo where tools and all CRF data are
 CRF_REPO: "github.com/crunchyroll/crf-open"

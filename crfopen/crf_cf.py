@@ -261,7 +261,7 @@ def main():
   if context.percent and (context.percent <= 0 or context.percent > 100):
     fail("Percent value cannot be less than or equal to 0 and greater than 100")
 
-  # Set the region found in the service_registry. Default is CRFConfig.DCRFAULT_REGION if region key not found
+  # Set the region found in the service_registry. Default is CRFConfig.DEFAULT_REGION if region key not found
   region = context.service_registry.service_region(service_name)
 
   if context.verbose:
