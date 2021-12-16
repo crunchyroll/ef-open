@@ -7,7 +7,8 @@ This is mostly for testing and teaching - accepts a config file as input, finds
 the matching config blob in /configs, resolves everything, and outputs the result
 as it would be written to a file on an instance when starting up
 
-Copyright 2016-2017 Crunchyroll, Inc.
+Copyright 2016-2021 Ellation, Inc.
+Copyright 2021-2022 Crunchyroll, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.

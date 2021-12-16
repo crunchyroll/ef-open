@@ -74,5 +74,6 @@ The Jenkins CI pipeline will then recognize the new tag, build it, and publish i
 _DO NOT_ delete a tag and retag the same tag on a different commit.  This will not result in a replacement in PyPI, it will just make you sad.
 
 # License
-Copyright 2016-2017 Crunchyroll, Inc.
+Copyright 2016-2021 Ellation, Inc.
+Copyright 2021-2022 Crunchyroll, Inc.
 Licensed under the Apache 2.0 License
