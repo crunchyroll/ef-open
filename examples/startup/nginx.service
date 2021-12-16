@@ -4,8 +4,8 @@
 
 [Unit]
 Description=The nginx HTTP and reverse proxy server
-After=network.target remote-fs.target nss-lookup.target ef-init.service
-Requires=ef-init.service
+After=network.target remote-fs.target nss-lookup.target crf-init.service
+Requires=crf-init.service
 
 [Service]
 Type=forking

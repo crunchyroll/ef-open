@@ -1,2 +1,2 @@
 include versioneer.py
-include efopen/_version.py
+include crfopen/_version.py

@@ -1,38 +1,38 @@
-[![crunchyroll](https://circleci.com/gh/crunchyroll/ef-open.svg?style=svg)](https://circleci.com/gh/crunchyroll/ef-open)
+[![crunchyroll](https://circleci.com/gh/crunchyroll/crf-open.svg?style=svg)](https://circleci.com/gh/crunchyroll/crf-open)
 
-# ef_open
-EllationFormation: CloudFormation Tools for AWS by Ellation
+# crf_open
+CrunchyrollFormation: CloudFormation Tools for AWS by Crunchyroll
 
 # Installation
-The easiest way to install ef-open is to use pip in a virtualenv:
+The easiest way to install crf-open is to use pip in a virtualenv:
 
-    $ pip install ef-open
+    $ pip install crf-open
 
 or, if you are not installing in a virtualenv, to install globally:
 
-    $ sudo pip install ef-open
+    $ sudo pip install crf-open
 
 or for your user:
 
-    $ pip install --user ef-open
+    $ pip install --user crf-open
 
-If you have the ef-open installed and want to upgrade to the latest version you can run:
+If you have the crf-open installed and want to upgrade to the latest version you can run:
 
-    $ pip install --upgrade ef-open
+    $ pip install --upgrade crf-open
 
 # Python version
 You may need to use python3 on your local system this may map to:
-    $ pip3 install ef-open
+    $ pip3 install crf-open
 
 # Use
-`ef-cf` - Evaluate templatized CloudFormation templates, with the option to generate changesets or apply them
-`ef-cf-diff` - Test some or all templates against a target environment, for differences
-`ef-check-config` - Validate the config files for JSON correctness
-`ef-generate` - Ensure the existence of various standard elements for a target environment
-`ef-instanceinit` - Host startup script which copies customized instance config from S3 to the local host
-`ef-password` - Manage an encrypted secrets file, with the keys stored in AWS's KMS
-`ef-resolve-config` - Generate late-bind config assets, for testing
-`ef-version` - Manage versioned tagging for AMI's and static assets
+`crf-cf` - Evaluate templatized CloudFormation templates, with the option to generate changesets or apply them
+`crf-cf-diff` - Test some or all templates against a target environment, for differences
+`crf-check-config` - Validate the config files for JSON correctness
+`crf-generate` - Ensure the existence of various standard elements for a target environment
+`crf-instanceinit` - Host startup script which copies customized instance config from S3 to the local host
+`crf-password` - Manage an encrypted secrets file, with the keys stored in AWS's KMS
+`crf-resolve-config` - Generate late-bind config assets, for testing
+`crf-version` - Manage versioned tagging for AMI's and static assets
 
 # Development
 ## Testing and Linting
@@ -40,7 +40,7 @@ This project uses Python `unittest` framework for unit tests, and `pylint` for l
 ```
 python setup.py test
 
-pylint --rcfile=./pylintrc ./efopen
+pylint --rcfile=./pylintrc ./crfopen
 ```
 
 ## Versions
@@ -74,5 +74,6 @@ The Jenkins CI pipeline will then recognize the new tag, build it, and publish i
 _DO NOT_ delete a tag and retag the same tag on a different commit.  This will not result in a replacement in PyPI, it will just make you sad.
 
 # License
-Copyright 2016-2017 Ellation, Inc.
+Copyright 2016-2021 Ellation, Inc.
+Copyright 2021-2022 Crunchyroll, Inc.
 Licensed under the Apache 2.0 License

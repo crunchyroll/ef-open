@@ -5,7 +5,7 @@
       "description": "test role",
       "runbook_url": "https://www.google.com/",
       "team_email": "email@example.com",
-      "environments": ["global.ellationeng"],
+      "environments": ["global.crunchyrolleng"],
       "aws_managed_policies": ["AwsManagedPolicy"],
       "customer_managed_policies": ["CustomerManagedPolicy"],
       "policies": ["policy_1", "policy_2"],
@@ -16,7 +16,7 @@
       "description": "test role",
       "runbook_url": "https://www.google.com/",
       "team_email": "email@example.com",
-      "environments": ["global.ellationeng"],
+      "environments": ["global.crunchyrolleng"],
       "policies": ["policy_1", "policy_2"],
       "assume_role_policy": "assume_role_policy"
     }
@@ -29,7 +29,7 @@
       "jira_project": "project",
       "chef_role": "base",
       "team_email": "email@example.com",
-      "environments": ["staging", "alpha", "mgmt.ellationeng"],
+      "environments": ["staging", "alpha", "mgmt.crunchyrolleng"],
       "policies": ["policy_1", "policy_2"]
     },
     "test-instance-2": {
@@ -39,7 +39,7 @@
       "jira_project": "project",
       "chef_role": "base",
       "team_email": "email@example.com",
-      "environments": ["staging", "alpha", "mgmt.ellationeng"],
+      "environments": ["staging", "alpha", "mgmt.crunchyrolleng"],
       "policies": ["policy_1", "policy_2"]
     },
     "test-instance-error": {
@@ -62,7 +62,7 @@
       "chef_role": "base",
       "team_email": "email@example.com",
       "region": "us-east-1",
-      "environments": ["staging", "alpha", "mgmt.ellationeng"],
+      "environments": ["staging", "alpha", "mgmt.crunchyrolleng"],
       "policies": ["policy_1", "policy_2"]
     }
   },
@@ -74,7 +74,7 @@
       "jira_project": "project",
       "chef_role": "base",
       "team_email": "email@example.com",
-      "environments": ["internal", "mgmt.ellationint"],
+      "environments": ["internal", "mgmt.crunchyrollint"],
       "policies": ["policy_1", "policy_2"]
     }
   }
