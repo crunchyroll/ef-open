@@ -620,10 +620,13 @@ def conditionally_create_kms_key(role_name, service_type):
       fail("Error in enabling key rotation: {} {}".format(role_name, error))
 
 
-def conditionally_create_blackhole_target_groups(env, target_name, service_type):
+def conditionally_create_blackhole_target_groups(env, target_name, service_type, sr_entry):
   if service_type != "http_service":
     print_if_verbose("skipping black hole target group creation, {} is not an http_service".format(target_name))
     return
+
+  if "short_name" in sr_entry:
+    target_name = "{}-{}".format(env, sr_entry["short_name"])
 
   vpc_name = "vpc-{}".format(env)
   vpc_id = AWS_RESOLVER.ec2_vpc_vpc_id(vpc_name)
@@ -632,19 +635,19 @@ def conditionally_create_blackhole_target_groups(env, target_name, service_type)
     print_if_verbose("Creating {} blackhole target groups".format(target_name))
     try:
       CLIENTS["elbv2"].create_target_group(
-        Name="{}-i-blackhole".format(target_name),
+        Name="{}-i-bh".format(target_name),
         Protocol='HTTP',
-        Port=8000,
+        Port=8080,
         VpcId=vpc_id
       )
       CLIENTS["elbv2"].create_target_group(
-        Name="{}-e-blackhole".format(target_name),
+        Name="{}-e-bh".format(target_name),
         Protocol='HTTP',
-        Port=8000,
+        Port=8080,
         VpcId=vpc_id
       )
     except ClientError as error:
-      fail("Error creating {} blackhole target groups".format(target_name))
+      fail("Error creating {} blackhole target groups\n{}".format(target_name, error))
 
 
 def create_newrelic_alerts():
@@ -747,7 +750,7 @@ def main():
     conditionally_inline_policies(target_name, sr_entry)
 
     # 7. CREATE BLACKHOLE TARGET GROUPS FOR SERVICES WITH A LOAD BALANCER
-    conditionally_create_blackhole_target_groups(CONTEXT.env, target_name, service_type)
+    conditionally_create_blackhole_target_groups(CONTEXT.env, target_name, service_type, sr_entry)
 
     # Break from the loop if we've finished working on the targeted entry
     if CONTEXT.only_for:
