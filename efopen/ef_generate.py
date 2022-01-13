@@ -625,8 +625,15 @@ def conditionally_create_blackhole_target_groups(env, target_name, service_type,
     print_if_verbose("skipping black hole target group creation, {} is not an http_service".format(target_name))
     return
 
+  # Checking for a short_name field in case of service's with a long name due to a 32 character limit on target groups.
+  # The longest a service name can be is 19 characters because it will be prefixed with '{{ENV}}-' and suffixed with '-i-bh'
   if "short_name" in sr_entry:
-    target_name = "{}-{}".format(env, sr_entry["short_name"])
+    target_group_name = "{}-{}".format(env, sr_entry["short_name"])
+  else:
+    target_group_name = target_name
+
+  # Periods are not a valid character in target group names
+  target_group_name = target_group_name.replace('.', '-')
 
   vpc_name = "vpc-{}".format(env)
   vpc_id = AWS_RESOLVER.ec2_vpc_vpc_id(vpc_name)
@@ -635,16 +642,28 @@ def conditionally_create_blackhole_target_groups(env, target_name, service_type,
     print_if_verbose("Creating {} blackhole target groups".format(target_name))
     try:
       CLIENTS["elbv2"].create_target_group(
-        Name="{}-i-bh".format(target_name),
+        Name="{}-i-bh".format(target_group_name),
         Protocol='HTTP',
         Port=8080,
-        VpcId=vpc_id
+        VpcId=vpc_id,
+        Tags=[
+          {
+            'Key': 'Service',
+            'Value': target_name
+          },
+        ]
       )
       CLIENTS["elbv2"].create_target_group(
-        Name="{}-e-bh".format(target_name),
+        Name="{}-e-bh".format(target_group_name),
         Protocol='HTTP',
         Port=8080,
-        VpcId=vpc_id
+        VpcId=vpc_id,
+        Tags=[
+           {
+             'Key': 'Service',
+             'Value': target_name
+           },
+         ]
       )
     except ClientError as error:
       fail("Error creating {} blackhole target groups\n{}".format(target_name, error))
