@@ -478,6 +478,22 @@ class EFAwsResolver(object):
     except ClientError:
       return default
 
+  def elbv2_target_group_arn(self, lookup, default=None):
+    """
+    Args:
+      lookup: the friendly name of the v2 elb target group
+      default: value to return in case of no match
+    Returns:
+      The full ARN of the target group matching the lookup
+    """
+    try:
+      client = EFAwsResolver.__CLIENTS['elbv2']
+      elbs = client.describe_target_groups(Names=[lookup])
+      elb = elbs['TargetGroups'][0]
+      return elb['TargetGroupArn']
+    except ClientError:
+      return default
+
   def elbv2_target_group_arn_suffix(self, lookup, default=None):
     """
     Args:
@@ -985,6 +1001,8 @@ class EFAwsResolver(object):
       return self.elbv2_load_balancer_hosted_zone(*kv[1:])
     elif kv[0] == "elbv2:load-balancer/arn-suffix":
       return self.elbv2_load_balancer_arn_suffix(*kv[1:])
+    elif kv[0] == "elbv2:target-group/arn":
+      return self.elbv2_target_group_arn(*kv[1:])
     elif kv[0] == "elbv2:target-group/arn-suffix":
       return self.elbv2_target_group_arn_suffix(*kv[1:])
     elif kv[0] == "kms:decrypt":

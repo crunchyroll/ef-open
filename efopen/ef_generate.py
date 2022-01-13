@@ -620,6 +620,55 @@ def conditionally_create_kms_key(role_name, service_type):
       fail("Error in enabling key rotation: {} {}".format(role_name, error))
 
 
+def conditionally_create_blackhole_target_groups(env, target_name, service_type, sr_entry):
+  if service_type != "http_service":
+    print_if_verbose("skipping black hole target group creation, {} is not an http_service".format(target_name))
+    return
+
+  # Checking for a short_name field in case of service's with a long name due to a 32 character limit on target groups.
+  # The longest a service name can be is 19 characters because it will be prefixed with '{{ENV}}-' and suffixed with '-i-bh'
+  if "short_name" in sr_entry:
+    target_group_name = "{}-{}".format(env, sr_entry["short_name"])
+  else:
+    target_group_name = target_name
+
+  # Periods are not a valid character in target group names
+  target_group_name = target_group_name.replace('.', '-')
+
+  vpc_name = "vpc-{}".format(env)
+  vpc_id = AWS_RESOLVER.ec2_vpc_vpc_id(vpc_name)
+
+  if CONTEXT.commit:
+    print_if_verbose("Creating {} blackhole target groups".format(target_name))
+    try:
+      CLIENTS["elbv2"].create_target_group(
+        Name="{}-i-bh".format(target_group_name),
+        Protocol='HTTP',
+        Port=8080,
+        VpcId=vpc_id,
+        Tags=[
+          {
+            'Key': 'Service',
+            'Value': target_name
+          },
+        ]
+      )
+      CLIENTS["elbv2"].create_target_group(
+        Name="{}-e-bh".format(target_group_name),
+        Protocol='HTTP',
+        Port=8080,
+        VpcId=vpc_id,
+        Tags=[
+           {
+             'Key': 'Service',
+             'Value': target_name
+           },
+         ]
+      )
+    except ClientError as error:
+      fail("Error creating {} blackhole target groups\n{}".format(target_name, error))
+
+
 def create_newrelic_alerts():
   """
    Create Newrelic Alerts for each entry in the service registry application_services
@@ -646,11 +695,11 @@ def main():
   try:
     # If running in EC2, always use instance credentials. One day we'll have "lambda" in there too, so use "in" w/ list
     if CONTEXT.whereami == "ec2":
-      CLIENTS = create_aws_clients(EFConfig.DEFAULT_REGION, None, "cloudfront", "ec2", "iam", "kms")
+      CLIENTS = create_aws_clients(EFConfig.DEFAULT_REGION, None, "cloudfront", "ec2", "elbv2", "iam", "kms")
       CONTEXT.account_id = str(json.loads(http_get_metadata('iam/info'))["InstanceProfileArn"].split(":")[4])
     else:
       # Otherwise, we use local user creds based on the account alias
-      CLIENTS = create_aws_clients(EFConfig.DEFAULT_REGION, CONTEXT.account_alias, "cloudfront", "ec2", "iam", "kms", "sts")
+      CLIENTS = create_aws_clients(EFConfig.DEFAULT_REGION, CONTEXT.account_alias, "cloudfront", "ec2", "elbv2", "iam", "kms", "sts")
       CONTEXT.account_id = get_account_id(CLIENTS["sts"])
   except RuntimeError:
     fail("Exception creating AWS clients in region {} with profile {}".format(
@@ -703,8 +752,8 @@ def main():
     if CONTEXT.env != "global":
       conditionally_create_profile(target_name, service_type)
 
-      # 2. SECURITY GROUP(S) FOR THE SERVICE : only some types of services get security groups
-      conditionally_create_security_groups(CONTEXT.env, service_name, service_type)
+    # 2. SECURITY GROUP(S) FOR THE SERVICE : only some types of services get security groups
+    conditionally_create_security_groups(CONTEXT.env, service_name, service_type)
 
     # 3. KMS KEY FOR THE SERVICE : only some types of services get kms keys
     conditionally_create_kms_key(target_name, service_type)
@@ -718,6 +767,9 @@ def main():
     # 6. INLINE SERVICE'S POLICIES INTO ROLE
     # only eligible service types with "policies" sections in the service registry get policies
     conditionally_inline_policies(target_name, sr_entry)
+
+    # 7. CREATE BLACKHOLE TARGET GROUPS FOR SERVICES WITH A LOAD BALANCER
+    conditionally_create_blackhole_target_groups(CONTEXT.env, target_name, service_type, sr_entry)
 
     # Break from the loop if we've finished working on the targeted entry
     if CONTEXT.only_for:
