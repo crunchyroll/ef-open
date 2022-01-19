@@ -752,8 +752,8 @@ def main():
     if CONTEXT.env != "global":
       conditionally_create_profile(target_name, service_type)
 
-    # 2. SECURITY GROUP(S) FOR THE SERVICE : only some types of services get security groups
-    conditionally_create_security_groups(CONTEXT.env, service_name, service_type)
+      # 2. SECURITY GROUP(S) FOR THE SERVICE : only some types of services get security groups
+      conditionally_create_security_groups(CONTEXT.env, service_name, service_type)
 
     # 3. KMS KEY FOR THE SERVICE : only some types of services get kms keys
     conditionally_create_kms_key(target_name, service_type)
