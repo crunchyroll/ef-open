@@ -1,0 +1,26 @@
+name: semgrep
+
+on: [pull_request]
+
+jobs:
+  semgrep:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - id: semgrep-report
+        name: semgrep-report
+        uses: returntocorp/semgrep-action@v1
+        with:
+          config: >-
+            p/python
+            p/bandit
+            p/ci
+            p/secrets
+            r/contrib.dlint
+            r/python.requests
+          generateSarif: "1"
+      - if: ${{always()}}
+        uses: actions/upload-artifact@v2
+        with:
+          name: semgrep
+          path: semgrep.sarif
