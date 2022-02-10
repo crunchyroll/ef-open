@@ -573,6 +573,69 @@ class EFAwsResolver(object):
       else:
         return default
 
+  def wafv2_ip_set_id(self, lookup, default=None):
+    """
+    Args:
+      lookup: the friendly name of a Waf v2 IP set
+      default: the optional value to return if lookup failed; returns None if not set
+    Returns:
+      the ID of the IP set whose name matches 'lookup' or default/None if no match found
+    """
+    # list_rules returns at most 100 rules per request
+    list_limit = 100
+    list_ip_sets = EFAwsResolver.__CLIENTS["wafv2"].list_ip_sets
+    ip_sets = list_ip_sets(Limit=list_limit, Scope="CLOUDFRONT")
+    while True:
+      for set in ip_sets["IPSets"]:
+        if set["Name"] == lookup:
+          return set["Id"]
+      if "NextMarker" in ip_sets:
+        ip_sets = list_ip_sets(Limit=list_limit, Scope="CLOUDFRONT", NextMarker=ip_sets["NextMarker"])
+      else:
+        return default
+
+  def wafv2_rule_group_id(self, lookup, default=None):
+    """
+    Args:
+      lookup: the friendly name of a Waf v2 rule group
+      default: the optional value to return if lookup failed; returns None if not set
+    Returns:
+      the ID of the WAF v2 rule group whose name matches 'lookup' or default/None if no match found
+    """
+    # list_rules returns at most 100 rules per request
+    list_limit = 100
+    rule_groups = EFAwsResolver.__CLIENTS["wafv2"].list_rule_groups(Limit=list_limit, Scope="CLOUDFRONT")
+    while True:
+      for group in rule_groups["RuleGroups"]:
+        if group["Name"] == lookup:
+          return group["Id"]
+      if "NextMarker" in rule_groups:
+        rule_groups = EFAwsResolver.__CLIENTS["wafv2"].list_rule_groups(
+          Limit=list_limit, Scope="CLOUDFRONT", NextMarker=rule_groups["NextMarker"])
+      else:
+        return default
+
+  def wafv2_web_acl_id(self, lookup, default=None):
+    """
+    Args:
+      lookup: the friendly name of a Waf v2 ACL
+      default: the optional value to return if lookup failed; returns None if not set
+    Returns:
+      the ID of the WAF v2 Web ACL whose name matches rule_name or default/None if no match found
+    """
+    # list_rules returns at most 100 rules per request
+    list_limit = 100
+    acls = EFAwsResolver.__CLIENTS["wafv2"].list_web_acls(Limit=list_limit, Scope="CLOUDFRONT")
+    while True:
+      for acl in acls["WebACLs"]:
+        if acl["Name"] == lookup:
+          return acl["Id"]
+      if "NextMarker" in acls:
+        acls = EFAwsResolver.__CLIENTS["wafv2"].list_web_acls(
+          Limit=list_limit, Scope="CLOUDFRONT", NextMarker=acls["NextMarker"])
+      else:
+        return default
+
   def route53_public_hosted_zone_id(self, lookup, default=None):
     """
     Args:
@@ -1023,6 +1086,12 @@ class EFAwsResolver(object):
       return self.waf_rule_id(*kv[1:])
     elif kv[0] == "waf:web-acl-id":
       return self.waf_web_acl_id(*kv[1:])
+    elif kv[0] == "wafv2:ip-set-id":
+      return self.wafv2_ip_set_id(*kv[1:])
+    elif kv[0] == "wafv2:rule-group-id":
+      return self.wafv2_rule_group_id(*kv[1:])
+    elif kv[0] == "wafv2:web-acl-id":
+      return self.wafv2_web_acl_id(*kv[1:])
     else:
       return None
       # raise("No lookup function for: "+kv[0])
