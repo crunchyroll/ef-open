@@ -595,19 +595,18 @@ class EFAwsResolver(object):
        CIDRs in this array will be broken down to multiple /16's if original prefix is /1-/15
         due to limitations with WAFv1
     """
-    cidr_array = self.get_cloudflare_cidrs()
-    converted_cidr_array = []
-    for cidr in cidr_array:
+    cidr_list = []
+    for cidr in self.get_cloudflare_cidrs():
       net = IPNetwork(cidr)
       if net.size > 65536:  # greater than /16
         subnets = net.subnet(16)
         for subnet in subnets:
-          converted_cidr_array.append(str(subnet))
+          cidr_list.append(str(subnet))
       else:
-        converted_cidr_array.append(str(cidr))
+        cidr_list.append(str(cidr))
 
-    converted_cidr_array.sort()
-    ip_set = map(lambda ip: {"Type": "IPV4", "Value": ip}, converted_cidr_array)
+    cidr_list.sort()
+    ip_set = map(lambda ip: {"Type": "IPV4", "Value": ip}, cidr_list)
     return json.dumps(list(ip_set))
 
   def wafv2_cloudflare_ip_list(self):
