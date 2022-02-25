@@ -17,9 +17,11 @@ limitations under the License.
 from __future__ import print_function
 
 import datetime
-import re
+import json
 
 from botocore.exceptions import ClientError
+from netaddr import IPNetwork
+import requests
 
 import ef_utils
 
@@ -571,7 +573,49 @@ class EFAwsResolver(object):
       if "NextMarker" in acls:
         acls = EFAwsResolver.__CLIENTS["waf"].list_web_acls(Limit=list_limit, NextMarker=acls["NextMarker"])
       else:
-        return default
+        return
+
+  def get_cloudflare_cidrs(self):
+    """
+     Args: None
+     Returns:
+       List of Cloudflare CIDR blocks for whitelisting in AWS WAF
+    """
+    r = requests.get('https://cloudflare.com/ips-v4')
+    r.raise_for_status()
+    return r.text.split('\n')
+
+  def waf_cloudflare_ip_list(self):
+    """
+     Args: None
+     Returns:
+       JSON array of WAFv1 IPSetDescriptors containing all Cloudflare CIDR IPs
+     Notes:
+       CIDRs in this array will be broken down to multiple /16's if original prefix is /1-/15
+        due to limitations with WAFv1
+    """
+    cidr_array = self.get_cloudflare_cidrs()
+    converted_cidr_array = []
+    for cidr in cidr_array:
+      net = IPNetwork(cidr)
+      if net.size > 65536:  # greater than /16
+        subnets = net.subnet(16)
+        for subnet in subnets:
+          converted_cidr_array.append(str(subnet))
+      else:
+        converted_cidr_array.append(str(cidr))
+
+    converted_cidr_array.sort()
+    ip_set = map(lambda ip: {"Type": "IPV4", "Value": ip}, converted_cidr_array)
+    return json.dumps(list(ip_set))
+
+  def wafv2_cloudflare_ip_list(self):
+    """
+     Args: None
+     Returns:
+       JSON array of Cloudflare IPs in CIDR notation for whitelisting in WAFv2
+    """
+    return json.dumps(list(self.get_cloudflare_cidrs()))
 
   def wafv2_global_ip_set_arn(self, lookup, default=None):
     """
@@ -1089,12 +1133,16 @@ class EFAwsResolver(object):
       return self.waf_rule_id(*kv[1:])
     elif kv[0] == "waf:web-acl-id":
       return self.waf_web_acl_id(*kv[1:])
+    elif kv[0] == "waf:cloudflare/ip-list":
+      return self.waf_cloudflare_ip_list()
     elif kv[0] == "wafv2:global/ip-set-arn":
       return self.wafv2_global_ip_set_arn(*kv[1:])
     elif kv[0] == "wafv2:global/rule-group-arn":
       return self.wafv2_global_rule_group_arn(*kv[1:])
     elif kv[0] == "wafv2:global/web-acl-arn":
       return self.wafv2_global_web_acl_arn(*kv[1:])
+    elif kv[0] == "wafv2:cloudflare/ip-list":
+      return self.wafv2_cloudflare_ip_list()
     else:
       return None
       # raise("No lookup function for: "+kv[0])
@@ -1102,7 +1150,7 @@ class EFAwsResolver(object):
 
   def __init__(self, clients):
     """
-    ARGS
+    ARG
       clients - dictionary of ready-to-go boto3 clients using aws prefixes:
       expected: clients["ec2"], clients["iam"], clients["lambda"]
     """
