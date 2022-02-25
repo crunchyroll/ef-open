@@ -18,6 +18,7 @@ from __future__ import print_function
 
 import datetime
 import json
+import re
 
 from botocore.exceptions import ClientError
 from netaddr import IPNetwork
