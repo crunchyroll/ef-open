@@ -582,7 +582,7 @@ class EFAwsResolver(object):
      Returns:
        List of Cloudflare CIDR blocks for whitelisting in AWS WAF
     """
-    r = requests.get('https://cloudflare.com/ips-v4')
+    r = requests.get('https://cloudflare.com/ips-v4', timeout=10)
     r.raise_for_status()
     return r.text.split('\n')
 
