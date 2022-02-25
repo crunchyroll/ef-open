@@ -574,7 +574,7 @@ class EFAwsResolver(object):
       if "NextMarker" in acls:
         acls = EFAwsResolver.__CLIENTS["waf"].list_web_acls(Limit=list_limit, NextMarker=acls["NextMarker"])
       else:
-        return
+        return default
 
   def get_cloudflare_cidrs(self):
     """
@@ -1151,7 +1151,7 @@ class EFAwsResolver(object):
 
   def __init__(self, clients):
     """
-    ARG
+    ARGS
       clients - dictionary of ready-to-go boto3 clients using aws prefixes:
       expected: clients["ec2"], clients["iam"], clients["lambda"]
     """
