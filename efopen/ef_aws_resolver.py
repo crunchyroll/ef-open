@@ -600,8 +600,8 @@ class EFAwsResolver(object):
       net = IPNetwork(cidr)
       if net.size > 65536:  # greater than /16
         subnets = net.subnet(16)
-        for subnet in subnets:
-          cidr_list.append(str(subnet))
+        for subnet_cidr in subnets:
+          cidr_list.append(str(subnet_cidr))
       else:
         cidr_list.append(str(cidr))
 
