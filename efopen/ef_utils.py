@@ -194,7 +194,7 @@ def create_aws_clients(region, profile, *clients):
 
     # add the created clients to the cache
     client_cache[client_key] = aws_clients
-    return aws_clients
+    return dict(aws_clients)
   except ClientError as error:
     raise RuntimeError("Exception logging in with Session() and creating clients", error)
 
