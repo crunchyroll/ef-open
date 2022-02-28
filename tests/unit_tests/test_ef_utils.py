@@ -545,7 +545,7 @@ class TestEFUtils(unittest.TestCase):
       self.assertEquals(new_clients.get(service), client)
 
   @patch('boto3.Session')
-  def test_create_aws_clients_cache_posoning(self, mock_session_constructor):
+  def test_create_aws_clients_cache_poisoning(self, mock_session_constructor):
     """
     Test that create_aws_clients does not allow cache poisoning by returning a
     different dict at the same time.
