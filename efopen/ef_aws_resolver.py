@@ -17,9 +17,12 @@ limitations under the License.
 from __future__ import print_function
 
 import datetime
+import json
 import re
 
 from botocore.exceptions import ClientError
+from netaddr import IPNetwork
+import requests
 
 import ef_utils
 
@@ -573,6 +576,47 @@ class EFAwsResolver(object):
       else:
         return default
 
+  def get_cloudflare_cidrs(self):
+    """
+     Args: None
+     Returns:
+       List of Cloudflare CIDR blocks for whitelisting in AWS WAF
+    """
+    r = requests.get('https://cloudflare.com/ips-v4', timeout=10)
+    r.raise_for_status()
+    return r.text.split('\n')
+
+  def waf_cloudflare_ip_list(self):
+    """
+     Args: None
+     Returns:
+       JSON array of WAFv1 IPSetDescriptors containing all Cloudflare CIDR IPs
+     Notes:
+       CIDRs in this array will be broken down to multiple /16's if original prefix is /1-/15
+        due to limitations with WAFv1
+    """
+    cidr_list = []
+    for cidr in self.get_cloudflare_cidrs():
+      net = IPNetwork(cidr)
+      if net.size > 65536:  # greater than /16
+        subnets = net.subnet(16)
+        for subnet_cidr in subnets:
+          cidr_list.append(str(subnet_cidr))
+      else:
+        cidr_list.append(str(cidr))
+
+    cidr_list.sort()
+    ip_set = map(lambda ip: {"Type": "IPV4", "Value": ip}, cidr_list)
+    return json.dumps(list(ip_set))
+
+  def wafv2_cloudflare_ip_list(self):
+    """
+     Args: None
+     Returns:
+       JSON array of Cloudflare IPs in CIDR notation for whitelisting in WAFv2
+    """
+    return json.dumps(list(self.get_cloudflare_cidrs()))
+
   def wafv2_global_ip_set_arn(self, lookup, default=None):
     """
     Args:
@@ -1089,12 +1133,16 @@ class EFAwsResolver(object):
       return self.waf_rule_id(*kv[1:])
     elif kv[0] == "waf:web-acl-id":
       return self.waf_web_acl_id(*kv[1:])
+    elif kv[0] == "waf:cloudflare/ip-list":
+      return self.waf_cloudflare_ip_list()
     elif kv[0] == "wafv2:global/ip-set-arn":
       return self.wafv2_global_ip_set_arn(*kv[1:])
     elif kv[0] == "wafv2:global/rule-group-arn":
       return self.wafv2_global_rule_group_arn(*kv[1:])
     elif kv[0] == "wafv2:global/web-acl-arn":
       return self.wafv2_global_web_acl_arn(*kv[1:])
+    elif kv[0] == "wafv2:cloudflare/ip-list":
+      return self.wafv2_cloudflare_ip_list()
     else:
       return None
       # raise("No lookup function for: "+kv[0])

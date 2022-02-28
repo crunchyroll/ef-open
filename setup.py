@@ -22,6 +22,7 @@ setup(
         'click<=7.1.2',
         'PyYAML<=5.4.1',
         'cfn-lint',
+        'netaddr==0.8.0',
         'requests<=2.25.1',
         'tenacity==7.0.0',
         'yamllint<=1.25.0'
