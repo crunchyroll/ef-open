@@ -544,6 +544,43 @@ class TestEFUtils(unittest.TestCase):
     for service, client in built_clients.items():
       self.assertEquals(new_clients.get(service), client)
 
+  @patch('boto3.Session')
+  def test_create_aws_clients_cache_posoning(self, mock_session_constructor):
+    """
+    Test that create_aws_clients does not allow cache poisoning by returning a
+    different dict at the same time.
+
+    Check that we get the same clients every time.
+
+    Args:
+      mock_session_constructor: MagicMock, returns Mock object representing a boto3.Session object
+
+    Returns:
+      None
+
+    Raises:
+      AssertionError if any of the assert checks fail
+    """
+    mock_session = Mock(name="mock-boto3-session")
+    # make sure we get different clients on every call
+    mock_session.client.side_effect = lambda *args, **kwargs: Mock(name="mock-boto3-session")
+    mock_session_constructor.return_value = mock_session
+    amazon_services = ["acm", "batch", "ec2", "sqs"]
+    new_amazon_services = amazon_services + ["cloudfront"]
+    region, profile = "us-west-2", "testing"
+
+    clients = ef_utils.create_aws_clients(region, profile, *amazon_services)
+
+    clients.update([('not-a-service', 'not-a-client')])
+
+    new_clients = ef_utils.create_aws_clients(region, profile, *amazon_services)
+
+    test_service = amazon_services[0]
+
+    self.assertIs(clients[test_service], new_clients[test_service], "Old clients should be the same in both dicts, as they are cached")
+    self.assertIsNot(clients, new_clients, "New client dicts should not be the same object as old client dicts, even though the clients are the same")
+    self.assertNotEqual(clients, new_clients, "New clients should not be affected by the update")
+
 
   def test_get_account_id(self):
     """
