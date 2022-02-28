@@ -575,9 +575,8 @@ class TestEFUtils(unittest.TestCase):
 
     new_clients = ef_utils.create_aws_clients(region, profile, *amazon_services)
 
-    test_service = amazon_services[0]
-
-    self.assertIs(clients[test_service], new_clients[test_service], "Old clients should be the same in both dicts, as they are cached")
+    for k in new_clients:
+      self.assertIs(clients[k], new_clients[k], "Old clients should be the same in both dicts, as they are cached")
     self.assertIsNot(clients, new_clients, "New client dicts should not be the same object as old client dicts, even though the clients are the same")
     self.assertNotEqual(clients, new_clients, "New clients should not be affected by the update")
 
