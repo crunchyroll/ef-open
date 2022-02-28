@@ -585,8 +585,6 @@ class TestEFUtils(unittest.TestCase):
     Test that create_aws_clients does not allow cache poisoning by returning a
     different dict at the same time.
 
-    Check that we get the same clients every time.
-
     Args:
       mock_session_constructor: MagicMock, returns Mock object representing a boto3.Session object
 
