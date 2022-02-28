@@ -174,7 +174,7 @@ def create_aws_clients(region, profile, *clients):
 
 
   if not new_clients:
-    return aws_clients
+    return dict(aws_clients)
   #boto3 retry config
   config = Config(
     retries={
