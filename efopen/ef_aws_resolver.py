@@ -182,6 +182,26 @@ class EFAwsResolver(object):
     else:
       return default
 
+  def ec2_eni_eni_ip(self, lookup, default=None):
+    """
+    Args:
+      lookup: the description of the Elastic Network Interface (ENI) to look up
+      default: the optional value to return if lookup failed; returns None if not set
+    Returns:
+      List of IP for each ENI found with a description matching 'lookup' or default/None if no match found
+    """
+    enis = EFAwsResolver.__CLIENTS["ec2"].describe_network_interfaces(Filters=[{
+      'Name': 'description',
+      'Values': [lookup]
+    }])
+    if len(enis.get("NetworkInterfaces")) > 0:
+      extIps = []
+      for i in range(len(enis.get("NetworkInterfaces"))):
+        extIps.append(enis["NetworkInterfaces"][i]["PrivateIpAddress"] + "/32")
+      return extIps
+    else:
+      return default
+
   def ec2_network_network_acl_id(self, lookup, default=None):
     """
     Args:
@@ -1071,6 +1091,8 @@ class EFAwsResolver(object):
       return self.ec2_elasticip_elasticip_ipaddress(*kv[1:])
     elif kv[0] == "ec2:eni/eni-id":
       return self.ec2_eni_eni_id(*kv[1:])
+    elif kv[0] == "ec2:eni/eni-ip":
+      return self.ec2_eni_eni_ip(*kv[1:])
     elif kv[0] == "ec2:network/network-acl-id":
       return self.ec2_network_network_acl_id(*kv[1:])
     elif kv[0] == "ec2:route-table/main-route-table-id":
