@@ -506,6 +506,48 @@ class TestEFAwsResolver(unittest.TestCase):
     result = ef_aws_resolver.lookup("ec2:eni/eni-id,no_matching_description")
     self.assertIsNone(result)
 
+  def test_ec2_eni_eni_ip(self):
+    """
+    Tests ec2_eni_eni_ip to see it returns back a network interface ip based on description given
+    Example Input: ec2:eni/eni-ip,some_description
+
+    Returns:
+      None
+
+    Raises:
+      AssertionError if any of the assert checks fail
+    """
+    target_network_interface_ip = ["192.168.0.1"]
+    network_interfaces_response = {
+      "NetworkInterfaces": [
+        {
+          "PrivateIpAddress": "192.168.0.1",
+        }
+      ]
+    }
+    self._clients["ec2"].describe_network_interfaces.return_value = network_interfaces_response
+    ef_aws_resolver = EFAwsResolver(self._clients)
+    result = ef_aws_resolver.lookup("ec2:eni/eni-ip,target_description")
+    self.assertEquals(target_network_interface_ip, result)
+
+  def test_ec2_eni_eni_ip_no_match(self):
+    """
+    Tests ec2_eni_eni_ip returns None when there is no match
+
+    Returns:
+      None
+
+    Raises:
+      AssertionError if any of the assert checks fail
+    """
+    network_interfaces_response = {
+      "NetworkInterfaces": []
+    }
+    self._clients["ec2"].describe_network_interfaces.return_value = network_interfaces_response
+    ef_aws_resolver = EFAwsResolver(self._clients)
+    result = ef_aws_resolver.lookup("ec2:eni/eni-ip,no_matching_description")
+    self.assertIsNone(result)
+
   def test_ec2_network_network_acl_id(self):
     """
     Tests ec2_network_network_acl_id to see if it returns a network ACL ID based on matching network ACL name in tag
