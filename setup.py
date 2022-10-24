@@ -21,7 +21,7 @@ setup(
         'boto3>=1.17.112',
         'click<=7.1.2',
         'PyYAML<=5.4.1',
-        'cfn-lint>=0.68.1',
+        'cfn-lint==0.59.1',
         'netaddr==0.8.0',
         'requests<=2.25.1',
         'tenacity==7.0.0',
