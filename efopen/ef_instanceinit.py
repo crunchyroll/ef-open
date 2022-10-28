@@ -83,12 +83,15 @@ def get_user_group(dest):
   return dest["user_group"].split(":")
 
 
-def merge_files(service, skip_on_user_group_error=False):
+def merge_files(service, skip_on_user_group_error=False, render_dest_path_as_template=False):
   """
   Given a prefix, find all templates below; merge with parameters; write to "dest"
   Args:
     service: "<service>", "all", or "ssh"
     skip_on_user_group_error: True or False
+    render_dest_path_as_template: True or False
+    if True, dest.path will be treated as a *template* and rendered, using the same context
+    and parameters as with the other templates; if False, dest.path will be used as-is
 
   For S3, full path becomes:
     s3://ellation-cx-global-configs/<service>/templates/<filename>
@@ -97,21 +100,44 @@ def merge_files(service, skip_on_user_group_error=False):
     /vagrant/configs/<service>/templates/<filename>
     /vagrant/configs/<service>/parameters/<filename>.parameters.<yaml|yml|json>
   """
+  resolver_params = {}
   if WHERE == "ec2":
     config_reader = EFInstanceinitConfigReader("s3", service, log_info, RESOURCES["s3"])
-    resolver = EFTemplateResolver()
+    
   elif WHERE == "virtualbox-kvm":
     config_path = "{}/{}".format(VIRTUALBOX_CONFIG_ROOT, service)
     config_reader = EFInstanceinitConfigReader("file", config_path, log_info)
     environment = EFConfig.VAGRANT_ENV
-    resolver = EFTemplateResolver(env=environment, profile=get_account_alias(environment),
-                                  region=EFConfig.DEFAULT_REGION, service=service)
+    resolver_params = {
+            "env": environment,
+            "profile": get_account_alias(environment),
+            "region": EFConfig.DEFAULT_REGION,
+            "service": service,
+    }
+  resolver = EFTemplateResolver(**resolver_params)
 
   while config_reader.next():
     log_info("checking: {}".format(config_reader.current_key))
 
-    # if 'dest' for the current object contains an 'environments' list, check it
     dest = config_reader.dest
+
+    # if requested, treat dest.path as a template, and render it
+    if render_dest_path_as_template:
+      dest_path_resolver = EFTemplateResolver(**resolver_params)
+      raw_dest_path = dest["path"]
+      dest_path_resolver.load(raw_dest_path)
+      rendered_dest_path = dest_path_resolver.render()
+
+      if not dest_path_resolver.resolved_ok():
+        critical("Couldn't resolve all symbols for destination path; template has leftover {{ or }}: {}".format(dest_path_resolver.unresolved_symbols()))
+
+      if raw_dest_path != rendered_dest_path:
+        log_info("Rendered destination path: '{}' => '{}'".format(raw_dest_path, rendered_dest_path))
+        dest["path"] = rendered_dest_path
+      else:
+        log_info("Destination path ('{}') was unchanged by template rendering".format(raw_dest_path))
+
+    # if 'dest' for the current object contains an 'environments' list, check it
     if "environments" in dest:
       if not resolver.resolved["ENV_SHORT"] in dest["environments"]:
         log_info("Environment: {} not enabled for {}".format(
@@ -208,7 +234,7 @@ def main():
 
   log_info("platform: {} service: {}".format(WHERE, service))
 
-  merge_files("all")
+  merge_files("all", render_dest_path_as_template=True)
   merge_files("ssh", skip_on_user_group_error=True)
   merge_files(service)
 
