@@ -359,6 +359,23 @@ def main():
 
   print("Template passed validation")
 
+  # Create stack-level tags that will be applied to all resources that support tagging.
+  team = context.service_registry.service_record(service_name).get("team_opsgenie", "")
+  tags = [
+    {
+      "Key": "service",
+      "Value": service_name,
+    },
+    {
+      "Key": "env",
+      "Value": context.env,
+    },
+    {
+      "Key": "team",
+      "Value": team,
+    }
+  ]
+
   # DO IT
   try:
     if context.changeset:
@@ -369,7 +386,8 @@ def main():
         Parameters=parameters,
         Capabilities=['CAPABILITY_AUTO_EXPAND', 'CAPABILITY_IAM', 'CAPABILITY_NAMED_IAM'],
         ChangeSetName=stack_name,
-        ClientToken=stack_name
+        ClientToken=stack_name,
+        Tags=tags
       )
       if is_stack_termination_protected_env(context.env):
         enable_stack_termination_protection(clients, stack_name)
@@ -383,7 +401,8 @@ def main():
           StackName=stack_name,
           TemplateBody=template,
           Parameters=parameters,
-          Capabilities=['CAPABILITY_AUTO_EXPAND', 'CAPABILITY_IAM', 'CAPABILITY_NAMED_IAM']
+          Capabilities=['CAPABILITY_AUTO_EXPAND', 'CAPABILITY_IAM', 'CAPABILITY_NAMED_IAM'],
+          Tags=tags
         )
         if is_stack_termination_protected_env(context.env):
           enable_stack_termination_protection(clients, stack_name)
