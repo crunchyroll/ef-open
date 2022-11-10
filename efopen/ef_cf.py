@@ -151,24 +151,6 @@ def resolve_template(template, profile, env, region, service, skip_symbols, verb
   else:
     return resolver.template
 
-def resolve_tags(tags, profile, env, region, service, skip_symbols, verbose):
-  # resolve {{SYMBOLS}} in the passed tags array
-  resolver = EFTemplateResolver(profile=profile, target_other=True, env=env,
-                                region=region, service=service, skip_symbols=skip_symbols, verbose=verbose)
-  for tag in tags:
-    key = tag.get("Key")
-    value = tag.get("Value")
-    if key is None or value is None:
-      fail("Tags for service {} are malformed. Tags should follow the following structure:"
-           "[{{'Key': 'string', 'Value': 'string'}}],".format(service))
-    resolver.load(str(key))
-    new_key = resolver.render()
-    resolver.load(str(value))
-    new_value = resolver.render()
-    tag["Key"] = new_key
-    tag["Value"] = new_value
-  return tags
-
 
 def is_stack_termination_protected_env(env):
   return env in EFConfig.STACK_TERMINATION_PROTECTED_ENVS
@@ -377,18 +359,22 @@ def main():
 
   print("Template passed validation")
 
-  # Get tags from service_registry.
-  service_tags = context.service_registry.service_record(service_name).get("tags", [])
-  if len(service_tags) > 0:
-    service_tags = resolve_tags(
-      tags=service_tags,
-      profile=profile,
-      env=context.env,
-      region=region,
-      service=service_name,
-      skip_symbols=context.skip_symbols,
-      verbose=context.verbose
-    )
+  # Create stack-level tags that will be applied to all resources that support tagging.
+  team = context.service_registry.service_record(service_name).get("team_opsgenie", "")
+  tags = [
+    {
+      "Key": "service",
+      "Value": service_name,
+    },
+    {
+      "Key": "env",
+      "Value": context.env,
+    },
+    {
+      "Key": "team",
+      "Value": team,
+    }
+  ]
 
   # DO IT
   try:
@@ -401,7 +387,7 @@ def main():
         Capabilities=['CAPABILITY_AUTO_EXPAND', 'CAPABILITY_IAM', 'CAPABILITY_NAMED_IAM'],
         ChangeSetName=stack_name,
         ClientToken=stack_name,
-        Tags=service_tags
+        Tags=tags
       )
       if is_stack_termination_protected_env(context.env):
         enable_stack_termination_protection(clients, stack_name)
@@ -416,7 +402,7 @@ def main():
           TemplateBody=template,
           Parameters=parameters,
           Capabilities=['CAPABILITY_AUTO_EXPAND', 'CAPABILITY_IAM', 'CAPABILITY_NAMED_IAM'],
-          Tags=service_tags
+          Tags=tags
         )
         if is_stack_termination_protected_env(context.env):
           enable_stack_termination_protection(clients, stack_name)
