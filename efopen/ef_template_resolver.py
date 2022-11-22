@@ -243,6 +243,7 @@ class EFTemplateResolver(object):
       "lambda",
       "ram",
       "route53",
+      "secretsmanager",
       "s3",
       "sts",
       "waf"
