@@ -992,6 +992,27 @@ class EFAwsResolver(object):
     else:
       return default
 
+  def secrets_manager_secret_arn(self, lookup, default=None):
+    """
+    Args:
+      lookup: the name of the secret
+      default: the optional value to return if lookup failed; returns None if not set
+    Returns:
+      The arn of the first secret found with a name matching 'lookup' or default/None if no match found
+    """
+    secrets = EFAwsResolver.__CLIENTS["secretsmanager"].list_secrets(
+      Filters=[
+        {
+          'Key': 'name',
+          'Values': [lookup]
+        },
+      ]
+    )
+    if len(secrets.get('SecretList')) > 0:
+      return secrets['SecretList'][0]['ARN']
+    else:
+      return default
+
   def ec2_transit_gateway_id(self, lookup, default=None):
     """
     Args:
@@ -1127,6 +1148,8 @@ class EFAwsResolver(object):
       return self.route53_private_hosted_zone_id(*kv[1:])
     elif kv[0] == "route53:public-hosted-zone-id":
       return self.route53_public_hosted_zone_id(*kv[1:])
+    elif kv[0] == "secretsmanager:secret-arn":
+      return self.secrets_manager_secret_arn(*kv[1:])
     elif kv[0] == "waf:ip-set-id":
       return self.waf_ip_set_id(*kv[1:])
     elif kv[0] == "waf:rule-id":
