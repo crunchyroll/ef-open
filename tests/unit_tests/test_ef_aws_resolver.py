@@ -197,7 +197,7 @@ class TestEFAwsResolver(unittest.TestCase):
 
     # Test actual function and assert results
     self._clients["SESSION"].client.return_value = mock_acm_client
-    ef_aws_resolver = EFAwsResolver(self._clients)
+    ef_aws_resolver = EFAwsResolver(self._clients, self._clients)
     result_certificate_arn = ef_aws_resolver.lookup("acm:certificate-arn,us-west-2/" + target_domain_name)
     self.assertEqual(result_certificate_arn, target_certificate_arn)
 
@@ -239,7 +239,7 @@ class TestEFAwsResolver(unittest.TestCase):
 
     # Test actual function and assert results
     self._clients["SESSION"].client.return_value = mock_acm_client
-    ef_aws_resolver = EFAwsResolver(self._clients)
+    ef_aws_resolver = EFAwsResolver(self._clients, self._clients)
     result_certificate_arn = ef_aws_resolver.lookup("acm:certificate-arn,us-west-2/" + target_domain_name)
     self.assertEquals(result_certificate_arn, target_certificate_arn)
 
@@ -254,17 +254,17 @@ class TestEFAwsResolver(unittest.TestCase):
       AssertionError if any of the assert checks fail
     """
     lookup_token = "acm:certificate-arn,junk_value"
-    ef_aws_resolver = EFAwsResolver(self._clients)
+    ef_aws_resolver = EFAwsResolver(self._clients, self._clients)
     result_certificate_arn = ef_aws_resolver.lookup(lookup_token)
     self.assertIsNone(result_certificate_arn)
 
     lookup_token = "acm:certificate-arn,None"
-    ef_aws_resolver = EFAwsResolver(self._clients)
+    ef_aws_resolver = EFAwsResolver(self._clients, self._clients)
     result_certificate_arn = ef_aws_resolver.lookup(lookup_token)
     self.assertIsNone(result_certificate_arn)
 
     lookup_token = "acm:certificate-arn,"
-    ef_aws_resolver = EFAwsResolver(self._clients)
+    ef_aws_resolver = EFAwsResolver(self._clients, self._clients)
     result_certificate_arn = ef_aws_resolver.lookup(lookup_token)
     self.assertIsNone(result_certificate_arn)
 
@@ -286,7 +286,7 @@ class TestEFAwsResolver(unittest.TestCase):
 
     # Test actual function and assert results
     self._clients["SESSION"].client.return_value = mock_acm_client
-    ef_aws_resolver = EFAwsResolver(self._clients)
+    ef_aws_resolver = EFAwsResolver(self._clients, self._clients)
     result_certificate_arn = ef_aws_resolver.lookup("acm:certificate-arn,us-west-2/cant_possibly_match")
     self.assertIsNone(result_certificate_arn)
 
@@ -337,7 +337,7 @@ class TestEFAwsResolver(unittest.TestCase):
 
     # Test actual function and assert results
     self._clients["SESSION"].client.return_value = mock_acm_client
-    ef_aws_resolver = EFAwsResolver(self._clients)
+    ef_aws_resolver = EFAwsResolver(self._clients, self._clients)
     result_certificate_arn = ef_aws_resolver.lookup("acm:certificate-arn,us-west-2/" + target_domain_name)
     self.assertEquals(result_certificate_arn, target_certificate_arn)
 
@@ -378,7 +378,7 @@ class TestEFAwsResolver(unittest.TestCase):
 
     # Test actual function and assert results
     self._clients["SESSION"].client.return_value = mock_acm_client
-    ef_aws_resolver = EFAwsResolver(self._clients)
+    ef_aws_resolver = EFAwsResolver(self._clients, self._clients)
     result_certificate_arn = ef_aws_resolver.lookup("acm:certificate-arn,us-west-2/" + target_domain_name)
     self.assertEquals(result_certificate_arn, target_certificate_arn)
 
@@ -407,7 +407,7 @@ class TestEFAwsResolver(unittest.TestCase):
       ]
     }
 
-    ef_aws_resolver = EFAwsResolver(self._clients)
+    ef_aws_resolver = EFAwsResolver(self._clients, self._clients)
     result = ef_aws_resolver.lookup("ec2:elasticip/elasticip-id,ElasticIpEnvironmentService1")
     self.assertEquals(allocation_id, result)
 
@@ -422,7 +422,7 @@ class TestEFAwsResolver(unittest.TestCase):
     Raises:
       AssertionError if any of the assert checks fail
     """
-    ef_aws_resolver = EFAwsResolver(self._clients)
+    ef_aws_resolver = EFAwsResolver(self._clients, self._clients)
     result = ef_aws_resolver.lookup("ec2:elasticip/elasticip-id,cant_possibly_match")
     self.assertIsNone(result)
 
@@ -445,7 +445,7 @@ class TestEFAwsResolver(unittest.TestCase):
         }
       ]
     }
-    ef_aws_resolver = EFAwsResolver(self._clients)
+    ef_aws_resolver = EFAwsResolver(self._clients, self._clients)
     result = ef_aws_resolver.lookup("ec2:elasticip/elasticip-ipaddress,ElasticIpEnvironmentService1")
     self.assertEquals(result, ip_address)
 
@@ -460,7 +460,7 @@ class TestEFAwsResolver(unittest.TestCase):
       AssertionError if any of the assert checks fail
     """
 
-    ef_aws_resolver = EFAwsResolver(self._clients)
+    ef_aws_resolver = EFAwsResolver(self._clients, self._clients)
     result = ef_aws_resolver.lookup("ec2:elasticip/elasticip-ipaddress,cant_possibly_match")
     self.assertIsNone(result)
 
@@ -484,7 +484,7 @@ class TestEFAwsResolver(unittest.TestCase):
       ]
     }
     self._clients["ec2"].describe_network_interfaces.return_value = network_interfaces_response
-    ef_aws_resolver = EFAwsResolver(self._clients)
+    ef_aws_resolver = EFAwsResolver(self._clients, self._clients)
     result = ef_aws_resolver.lookup("ec2:eni/eni-id,target_description")
     self.assertEquals(target_network_interface_id, result)
 
@@ -502,7 +502,7 @@ class TestEFAwsResolver(unittest.TestCase):
       "NetworkInterfaces": []
     }
     self._clients["ec2"].describe_network_interfaces.return_value = network_interfaces_response
-    ef_aws_resolver = EFAwsResolver(self._clients)
+    ef_aws_resolver = EFAwsResolver(self._clients, self._clients)
     result = ef_aws_resolver.lookup("ec2:eni/eni-id,no_matching_description")
     self.assertIsNone(result)
 
@@ -525,7 +525,7 @@ class TestEFAwsResolver(unittest.TestCase):
       ]
     }
     self._clients["ec2"].describe_network_acls.return_value = network_acl_response
-    ef_aws_resolver = EFAwsResolver(self._clients)
+    ef_aws_resolver = EFAwsResolver(self._clients, self._clients)
     result = ef_aws_resolver.lookup("ec2:network/network-acl-id,target_network_acl_name")
     self.assertEquals(target_network_acl_id, result)
 
@@ -543,7 +543,7 @@ class TestEFAwsResolver(unittest.TestCase):
       "NetworkAcls": []
     }
     self._clients["ec2"].describe_network_acls.return_value = network_acl_response
-    ef_aws_resolver = EFAwsResolver(self._clients)
+    ef_aws_resolver = EFAwsResolver(self._clients, self._clients)
     result = ef_aws_resolver.lookup("ec2:network/network-acl-id,cant_possibly_match")
     self.assertIsNone(result)
 
@@ -566,7 +566,7 @@ class TestEFAwsResolver(unittest.TestCase):
       ]
     }
     self._clients["ec2"].describe_security_groups.return_value = security_group_response
-    ef_aws_resolver = EFAwsResolver(self._clients)
+    ef_aws_resolver = EFAwsResolver(self._clients, self._clients)
     result = ef_aws_resolver.lookup("ec2:security-group/security-group-id,my_security_group")
     self.assertEquals(target_security_group_id, result)
 
@@ -584,7 +584,7 @@ class TestEFAwsResolver(unittest.TestCase):
       "SecurityGroups": []
     }
     self._clients["ec2"].describe_security_groups.return_value = security_group_response
-    ef_aws_resolver = EFAwsResolver(self._clients)
+    ef_aws_resolver = EFAwsResolver(self._clients, self._clients)
     result = ef_aws_resolver.lookup("ec2:security-group/security-group-id,cant_possibly_match")
     self.assertIsNone(result)
 
@@ -607,7 +607,7 @@ class TestEFAwsResolver(unittest.TestCase):
       ]
     }
     self._clients["ec2"].describe_subnets.return_value = subnet_response
-    ef_aws_resolver = EFAwsResolver(self._clients)
+    ef_aws_resolver = EFAwsResolver(self._clients, self._clients)
     result = ef_aws_resolver.lookup("ec2:subnet/subnet-cidr,target_subnet_name")
     self.assertEquals(target_subnet_cidr, result)
 
@@ -625,7 +625,7 @@ class TestEFAwsResolver(unittest.TestCase):
       "Subnets": []
     }
     self._clients["ec2"].describe_subnets.return_value = subnet_response
-    ef_aws_resolver = EFAwsResolver(self._clients)
+    ef_aws_resolver = EFAwsResolver(self._clients, self._clients)
     result = ef_aws_resolver.lookup("ec2:subnet/subnet-cidr,cant_possibly_match")
     self.assertIsNone(result)
 
@@ -648,7 +648,7 @@ class TestEFAwsResolver(unittest.TestCase):
       ]
     }
     self._clients["ec2"].describe_subnets.return_value = subnet_response
-    ef_aws_resolver = EFAwsResolver(self._clients)
+    ef_aws_resolver = EFAwsResolver(self._clients, self._clients)
     result = ef_aws_resolver.lookup("ec2:subnet/subnet-id,target_subnet_name")
     self.assertEquals(target_subnet_id, result)
 
@@ -666,7 +666,7 @@ class TestEFAwsResolver(unittest.TestCase):
       "Subnets": []
     }
     self._clients["ec2"].describe_subnets.return_value = subnet_response
-    ef_aws_resolver = EFAwsResolver(self._clients)
+    ef_aws_resolver = EFAwsResolver(self._clients, self._clients)
     result = ef_aws_resolver.lookup("ec2:subnet/subnet-id,cant_possibly_match")
     self.assertIsNone(result)
 
@@ -690,7 +690,7 @@ class TestEFAwsResolver(unittest.TestCase):
       ]
     }
     self._clients["ec2"].describe_transit_gateways.return_value = transit_gateway_response
-    ef_aws_resolver = EFAwsResolver(self._clients)
+    ef_aws_resolver = EFAwsResolver(self._clients, self._clients)
     result = ef_aws_resolver.lookup("ec2:transit-gateway/transit-gateway-id,target_transit_gateway_arn")
     self.assertEquals(target_transit_gateway_id, result)
 
@@ -708,7 +708,7 @@ class TestEFAwsResolver(unittest.TestCase):
       "TransitGateways": []
     }
     self._clients["ec2"].describe_transit_gateways.return_value = transit_gateway_response
-    ef_aws_resolver = EFAwsResolver(self._clients)
+    ef_aws_resolver = EFAwsResolver(self._clients, self._clients)
     result = ef_aws_resolver.lookup("ec2:transit-gateway/transit-gateway-id,cant_possibly_match")
     self.assertIsNone(result)
 
@@ -737,7 +737,7 @@ class TestEFAwsResolver(unittest.TestCase):
       ]
     }
     self._clients["ec2"].describe_subnets.return_value = availabilityzones_response
-    ef_aws_resolver = EFAwsResolver(self._clients)
+    ef_aws_resolver = EFAwsResolver(self._clients, self._clients)
     result = ef_aws_resolver.lookup("ec2:vpc/availabilityzones,target_subnet_name")
     self.assertEquals(target_availability_zone, result)
 
@@ -756,7 +756,7 @@ class TestEFAwsResolver(unittest.TestCase):
       AssertionError if any of the assert checks fail
     """
     mock_ec2_vpc_vpc_id.return_value = None
-    ef_aws_resolver = EFAwsResolver(self._clients)
+    ef_aws_resolver = EFAwsResolver(self._clients, self._clients)
     result = ef_aws_resolver.lookup("ec2:vpc/availabilityzones,target_subnet_name")
     self.assertIsNone(result)
 
@@ -779,7 +779,7 @@ class TestEFAwsResolver(unittest.TestCase):
       "Subnets": []
     }
     self._clients["ec2"].describe_subnets.return_value = availabilityzones_response
-    ef_aws_resolver = EFAwsResolver(self._clients)
+    ef_aws_resolver = EFAwsResolver(self._clients, self._clients)
     result = ef_aws_resolver.lookup("ec2:vpc/availabilityzones,cant_possibly_match")
     self.assertIsNone(result)
 
@@ -807,7 +807,7 @@ class TestEFAwsResolver(unittest.TestCase):
       ]
     }
     self._clients["ec2"].describe_subnets.return_value = subnets_response
-    ef_aws_resolver = EFAwsResolver(self._clients)
+    ef_aws_resolver = EFAwsResolver(self._clients, self._clients)
     result = ef_aws_resolver.lookup("ec2:vpc/subnets,target_subnet_name")
     self.assertEquals(target_subnet_id, result)
 
@@ -830,7 +830,7 @@ class TestEFAwsResolver(unittest.TestCase):
       "Subnets": []
     }
     self._clients["ec2"].describe_subnets.return_value = availabilityzones_response
-    ef_aws_resolver = EFAwsResolver(self._clients)
+    ef_aws_resolver = EFAwsResolver(self._clients, self._clients)
     result = ef_aws_resolver.lookup("ec2:vpc/subnets,cant_possibly_match")
     self.assertIsNone(result)
 
@@ -853,7 +853,7 @@ class TestEFAwsResolver(unittest.TestCase):
       ]
     }
     self._clients["ec2"].describe_vpcs.return_value = vpc_response
-    ef_aws_resolver = EFAwsResolver(self._clients)
+    ef_aws_resolver = EFAwsResolver(self._clients, self._clients)
     result = ef_aws_resolver.lookup("ec2:vpc/cidrblock,target_vpc_name")
     self.assertEquals(target_cidr_block, result)
 
@@ -871,7 +871,7 @@ class TestEFAwsResolver(unittest.TestCase):
       "Vpcs": []
     }
     self._clients["ec2"].describe_vpcs.return_value = vpc_response
-    ef_aws_resolver = EFAwsResolver(self._clients)
+    ef_aws_resolver = EFAwsResolver(self._clients, self._clients)
     result = ef_aws_resolver.lookup("ec2:vpc/cidrblock,cant_possibly_match")
     self.assertIsNone(result)
 
@@ -894,7 +894,7 @@ class TestEFAwsResolver(unittest.TestCase):
       ]
     }
     self._clients["ec2"].describe_vpcs.return_value = vpc_response
-    ef_aws_resolver = EFAwsResolver(self._clients)
+    ef_aws_resolver = EFAwsResolver(self._clients, self._clients)
     result = ef_aws_resolver.lookup("ec2:vpc/vpc-id,target_vpc_name")
     self.assertEquals(target_vpc_id, result)
 
@@ -912,7 +912,7 @@ class TestEFAwsResolver(unittest.TestCase):
       "Vpcs": []
     }
     self._clients["ec2"].describe_vpcs.return_value = vpc_response
-    ef_aws_resolver = EFAwsResolver(self._clients)
+    ef_aws_resolver = EFAwsResolver(self._clients, self._clients)
     result = ef_aws_resolver.lookup("ec2:vpc/vpc-id,target_vpc_name")
     self.assertIsNone(result)
 
@@ -938,7 +938,7 @@ class TestEFAwsResolver(unittest.TestCase):
       ]
     }
     self._clients["ec2"].describe_vpc_endpoints.return_value = describe_vpce_response
-    ef_aws_resolver = EFAwsResolver(self._clients)
+    ef_aws_resolver = EFAwsResolver(self._clients, self._clients)
     result = ef_aws_resolver.lookup("ec2:vpc-endpoint/vpc-endpoint-id,target_vpc_endpoint_name")
     self.assertEquals(expected_vpce_id, result)
 
@@ -956,7 +956,7 @@ class TestEFAwsResolver(unittest.TestCase):
       "VpcEndpoints": []
     }
     self._clients["ec2"].describe_vpc_endpoints.return_value = describe_vpce_response
-    ef_aws_resolver = EFAwsResolver(self._clients)
+    ef_aws_resolver = EFAwsResolver(self._clients, self._clients)
     result = ef_aws_resolver.lookup("ec2:vpc-endpoint/vpc-endpoint-id,target_vpc_endpoint_name")
     self.assertIsNone(result)
 
@@ -992,7 +992,7 @@ class TestEFAwsResolver(unittest.TestCase):
     }
     self._clients["ec2"].describe_vpcs.return_value = describe_vpc_response
     self._clients["ec2"].describe_vpc_endpoints.return_value = describe_vpce_response
-    ef_aws_resolver = EFAwsResolver(self._clients)
+    ef_aws_resolver = EFAwsResolver(self._clients, self._clients)
     result = ef_aws_resolver.lookup("ec2:vpc-endpoint/vpc-endpoint-id/by-vpc-service,target_vpc_name/target_service_name")
     self.assertEquals(expected_vpce_id, result)
 
@@ -1042,7 +1042,7 @@ class TestEFAwsResolver(unittest.TestCase):
     }
     self._clients["ec2"].describe_vpcs.return_value = describe_vpc_response
     self._clients["ec2"].describe_vpc_endpoints.return_value = describe_vpce_response
-    ef_aws_resolver = EFAwsResolver(self._clients)
+    ef_aws_resolver = EFAwsResolver(self._clients, self._clients)
     result = ef_aws_resolver.lookup("ec2:vpc-endpoint/vpc-endpoint-id/by-vpc-service,target_vpc_name/target_service_name")
     self.assertEquals(expected_vpce_id, result)
 
@@ -1060,7 +1060,7 @@ class TestEFAwsResolver(unittest.TestCase):
       "Vpcs": []
     }
     self._clients["ec2"].describe_vpcs.return_value = describe_vpc_response
-    ef_aws_resolver = EFAwsResolver(self._clients)
+    ef_aws_resolver = EFAwsResolver(self._clients, self._clients)
     result = ef_aws_resolver.lookup("ec2:vpc-endpoint/vpc-endpoint-id/by-vpc-service,target_vpc_name/target_service_name,default-value")
     self.assertEquals("default-value", result)
 
@@ -1087,7 +1087,7 @@ class TestEFAwsResolver(unittest.TestCase):
     }
     self._clients["ec2"].describe_vpcs.return_value = describe_vpc_response
     self._clients["ec2"].describe_vpc_endpoints.return_value = describe_vpce_response
-    ef_aws_resolver = EFAwsResolver(self._clients)
+    ef_aws_resolver = EFAwsResolver(self._clients, self._clients)
     result = ef_aws_resolver.lookup("ec2:vpc-endpoint/vpc-endpoint-id/by-vpc-service,target_vpc_name/target_service_name,default-value")
     self.assertEquals("default-value", result)
 
@@ -1101,7 +1101,7 @@ class TestEFAwsResolver(unittest.TestCase):
     Raises:
       AssertionError if any of the assert checks fail
     """
-    ef_aws_resolver = EFAwsResolver(self._clients)
+    ef_aws_resolver = EFAwsResolver(self._clients, self._clients)
     try:
       ef_aws_resolver.lookup("ec2:vpc-endpoint/vpc-endpoint-id/by-vpc-service,target_vpc_name,default-value")
       self.assertIsNone("Should have raised an error")
@@ -1144,7 +1144,7 @@ class TestEFAwsResolver(unittest.TestCase):
       ]
     }
     self._clients["ec2"].describe_vpc_endpoints.return_value = describe_vpce_response
-    ef_aws_resolver = EFAwsResolver(self._clients)
+    ef_aws_resolver = EFAwsResolver(self._clients, self._clients)
     result = ef_aws_resolver.lookup("ec2:vpc-endpoint/dns-name,target_vpc_endpoint_name")
     self.assertEquals(expected_dns_name, result)
 
@@ -1169,7 +1169,7 @@ class TestEFAwsResolver(unittest.TestCase):
       ]
     }
     self._clients["ec2"].describe_vpc_endpoints.return_value = describe_vpce_response
-    ef_aws_resolver = EFAwsResolver(self._clients)
+    ef_aws_resolver = EFAwsResolver(self._clients, self._clients)
     result = ef_aws_resolver.lookup("ec2:vpc-endpoint/dns-name,target_vpc_endpoint_name")
     self.assertIsNone(result)
 
@@ -1187,7 +1187,7 @@ class TestEFAwsResolver(unittest.TestCase):
       "VpcEndpoints": []
     }
     self._clients["ec2"].describe_vpc_endpoints.return_value = describe_vpce_response
-    ef_aws_resolver = EFAwsResolver(self._clients)
+    ef_aws_resolver = EFAwsResolver(self._clients, self._clients)
     result = ef_aws_resolver.lookup("ec2:vpc-endpoint/dns-name,target_vpc_endpoint_name")
     self.assertIsNone(result)
 
@@ -1237,7 +1237,7 @@ class TestEFAwsResolver(unittest.TestCase):
     }
     self._clients["ec2"].describe_vpcs.return_value = describe_vpc_response
     self._clients["ec2"].describe_vpc_endpoints.return_value = describe_vpce_response
-    ef_aws_resolver = EFAwsResolver(self._clients)
+    ef_aws_resolver = EFAwsResolver(self._clients, self._clients)
     result = ef_aws_resolver.lookup("ec2:vpc-endpoint/dns-name/by-vpc-service,target_vpc_name/target_service_name")
     self.assertEquals(expected_dns_name, result)
 
@@ -1273,7 +1273,7 @@ class TestEFAwsResolver(unittest.TestCase):
     }
     self._clients["ec2"].describe_vpcs.return_value = describe_vpc_response
     self._clients["ec2"].describe_vpc_endpoints.return_value = describe_vpce_response
-    ef_aws_resolver = EFAwsResolver(self._clients)
+    ef_aws_resolver = EFAwsResolver(self._clients, self._clients)
     result = ef_aws_resolver.lookup("ec2:vpc-endpoint/dns-name/by-vpc-service,target_vpc_name/target_service_name")
     self.assertIsNone(result)
 
@@ -1341,7 +1341,7 @@ class TestEFAwsResolver(unittest.TestCase):
     }
     self._clients["ec2"].describe_vpcs.return_value = describe_vpc_response
     self._clients["ec2"].describe_vpc_endpoints.return_value = describe_vpce_response
-    ef_aws_resolver = EFAwsResolver(self._clients)
+    ef_aws_resolver = EFAwsResolver(self._clients, self._clients)
     result = ef_aws_resolver.lookup("ec2:vpc-endpoint/dns-name/by-vpc-service,target_vpc_name/target_service_name")
     self.assertEquals(expected_dns_name, result)
 
@@ -1403,7 +1403,7 @@ class TestEFAwsResolver(unittest.TestCase):
     }
     self._clients["ec2"].describe_vpcs.return_value = describe_vpc_response
     self._clients["ec2"].describe_vpc_endpoints.return_value = describe_vpce_response
-    ef_aws_resolver = EFAwsResolver(self._clients)
+    ef_aws_resolver = EFAwsResolver(self._clients, self._clients)
     result = ef_aws_resolver.lookup("ec2:vpc-endpoint/dns-name/by-vpc-service,target_vpc_name/target_service_name")
     self.assertIsNone(result)
 
@@ -1421,7 +1421,7 @@ class TestEFAwsResolver(unittest.TestCase):
       "Vpcs": []
     }
     self._clients["ec2"].describe_vpcs.return_value = describe_vpc_response
-    ef_aws_resolver = EFAwsResolver(self._clients)
+    ef_aws_resolver = EFAwsResolver(self._clients, self._clients)
     result = ef_aws_resolver.lookup("ec2:vpc-endpoint/dns-name/by-vpc-service,target_vpc_name/target_service_name,default-value")
     self.assertEquals("default-value", result)
 
@@ -1447,7 +1447,7 @@ class TestEFAwsResolver(unittest.TestCase):
     }
     self._clients["ec2"].describe_vpcs.return_value = describe_vpc_response
     self._clients["ec2"].describe_vpc_endpoints.return_value = describe_vpce_response
-    ef_aws_resolver = EFAwsResolver(self._clients)
+    ef_aws_resolver = EFAwsResolver(self._clients, self._clients)
     result = ef_aws_resolver.lookup("ec2:vpc-endpoint/dns-name/by-vpc-service,target_vpc_name/target_service_name,default-value")
     self.assertEquals("default-value", result)
 
@@ -1461,7 +1461,7 @@ class TestEFAwsResolver(unittest.TestCase):
     Raises:
       AssertionError if any of the assert checks fail
     """
-    ef_aws_resolver = EFAwsResolver(self._clients)
+    ef_aws_resolver = EFAwsResolver(self._clients, self._clients)
     try:
       ef_aws_resolver.lookup("ec2:vpc-endpoint/dns-name/by-vpc-service,target_vpc_name,default-value")
       self.assertIsNone("Should have raised an error")
@@ -1481,7 +1481,7 @@ class TestEFAwsResolver(unittest.TestCase):
       ]
     }
     self._clients["ec2"].describe_vpn_gateways.return_value = vpn_gateway_response
-    ef_aws_resolver = EFAwsResolver(self._clients)
+    ef_aws_resolver = EFAwsResolver(self._clients, self._clients)
     result = ef_aws_resolver.lookup("ec2:vpc/vpn-gateway-id,vpnGateway-name")
     self.assertEquals(vpn_gateway_id, result)
 
@@ -1513,7 +1513,7 @@ class TestEFAwsResolver(unittest.TestCase):
       ]
     }
     self._clients["waf"].list_rules.return_value = rules_response
-    ef_aws_resolver = EFAwsResolver(self._clients)
+    ef_aws_resolver = EFAwsResolver(self._clients, self._clients)
     result = ef_aws_resolver.lookup("waf:rule-id,rule_3")
     self.assertEquals(target_rule_id, result)
 
@@ -1556,7 +1556,7 @@ class TestEFAwsResolver(unittest.TestCase):
       ]
     }
     self._clients["waf"].list_rules.side_effect = [first_rules_response, second_rules_response]
-    ef_aws_resolver = EFAwsResolver(self._clients)
+    ef_aws_resolver = EFAwsResolver(self._clients, self._clients)
     result = ef_aws_resolver.lookup("waf:rule-id," + target_rule_name)
     self.assertEquals(target_rule_id, result)
 
@@ -1587,7 +1587,7 @@ class TestEFAwsResolver(unittest.TestCase):
       ]
     }
     self._clients["waf"].list_rules.return_value = rules_response
-    ef_aws_resolver = EFAwsResolver(self._clients)
+    ef_aws_resolver = EFAwsResolver(self._clients, self._clients)
     result = ef_aws_resolver.lookup("waf:rule-id,rule_4")
     self.assertIsNone(result)
 
@@ -1626,7 +1626,7 @@ class TestEFAwsResolver(unittest.TestCase):
       ]
     }
     self._clients["waf"].list_web_acls.return_value = web_acls_response
-    ef_aws_resolver = EFAwsResolver(self._clients)
+    ef_aws_resolver = EFAwsResolver(self._clients, self._clients)
     result = ef_aws_resolver.lookup("waf:web-acl-id,third_web_acl")
     self.assertEquals(target_web_acl_id, result)
 
@@ -1669,7 +1669,7 @@ class TestEFAwsResolver(unittest.TestCase):
       ]
     }
     self._clients["waf"].list_web_acls.side_effect = [first_web_acls_response, second_web_acls_response]
-    ef_aws_resolver = EFAwsResolver(self._clients)
+    ef_aws_resolver = EFAwsResolver(self._clients, self._clients)
     result = ef_aws_resolver.lookup("waf:web-acl-id," + target_web_acl_name)
     self.assertEquals(target_web_acl_id, result)
 
@@ -1700,7 +1700,7 @@ class TestEFAwsResolver(unittest.TestCase):
       ]
     }
     self._clients["waf"].list_web_acls.return_value = web_acls_response
-    ef_aws_resolver = EFAwsResolver(self._clients)
+    ef_aws_resolver = EFAwsResolver(self._clients, self._clients)
     result = ef_aws_resolver.lookup("waf:web-acl-id,cant_possibly_match")
     self.assertIsNone(result)
 
@@ -1838,7 +1838,7 @@ class TestEFAwsResolver(unittest.TestCase):
 
     # Test the function and assert the results
     self._clients["route53"].list_hosted_zones_by_name.return_value = hosted_zones_list
-    ef_aws_resolver = EFAwsResolver(self._clients)
+    ef_aws_resolver = EFAwsResolver(self._clients, self._clients)
     result = ef_aws_resolver.lookup("route53:public-hosted-zone-id," + target_hosted_zone_name)
     self.assertEquals(target_hosted_zone_id, result)
 
@@ -1868,7 +1868,7 @@ class TestEFAwsResolver(unittest.TestCase):
 
     # Test the function and assert the results
     self._clients["route53"].list_hosted_zones_by_name.side_effect = [first_hosted_zones_list, second_hosted_zones_list]
-    ef_aws_resolver = EFAwsResolver(self._clients)
+    ef_aws_resolver = EFAwsResolver(self._clients, self._clients)
     result = ef_aws_resolver.lookup("route53:public-hosted-zone-id," + target_hosted_zone_name)
     self.assertEquals(target_hosted_zone_id, result)
 
@@ -1882,7 +1882,7 @@ class TestEFAwsResolver(unittest.TestCase):
     Raises:
       AssertionError if any of the assert checks fail
     """
-    ef_aws_resolver = EFAwsResolver(self._clients)
+    ef_aws_resolver = EFAwsResolver(self._clients, self._clients)
     result = ef_aws_resolver.lookup("route53:public-hosted-zone-id,malformed_url.com")
     self.assertIsNone(result)
 
@@ -1901,7 +1901,7 @@ class TestEFAwsResolver(unittest.TestCase):
 
     # Test the function and assert the results
     self._clients["route53"].list_hosted_zones_by_name.return_value = hosted_zones_list
-    ef_aws_resolver = EFAwsResolver(self._clients)
+    ef_aws_resolver = EFAwsResolver(self._clients, self._clients)
     result = ef_aws_resolver.lookup("route53:public-hosted-zone-id,cant_possibly_match.")
     self.assertIsNone(result)
 
@@ -1935,7 +1935,7 @@ class TestEFAwsResolver(unittest.TestCase):
 
     # Test the function and assert the results
     self._clients["route53"].list_hosted_zones_by_name.return_value = hosted_zones_list
-    ef_aws_resolver = EFAwsResolver(self._clients)
+    ef_aws_resolver = EFAwsResolver(self._clients, self._clients)
     result = ef_aws_resolver.lookup("route53:private-hosted-zone-id," + target_hosted_zone_name)
     self.assertEquals(target_hosted_zone_id, result)
 
@@ -1963,7 +1963,7 @@ class TestEFAwsResolver(unittest.TestCase):
     # Test the function and assert the results
     self._clients["route53"].list_hosted_zones_by_name.side_effect = [first_hosted_zones_list,
                                                                       second_hosted_zones_list]
-    ef_aws_resolver = EFAwsResolver(self._clients)
+    ef_aws_resolver = EFAwsResolver(self._clients, self._clients)
     result = ef_aws_resolver.lookup("route53:private-hosted-zone-id," + target_hosted_zone_name)
     self.assertEquals(target_hosted_zone_id, result)
 
@@ -1977,7 +1977,7 @@ class TestEFAwsResolver(unittest.TestCase):
     Raises:
       AssertionError if any of the assert checks fail
     """
-    ef_aws_resolver = EFAwsResolver(self._clients)
+    ef_aws_resolver = EFAwsResolver(self._clients, self._clients)
     result = ef_aws_resolver.lookup("route53:private-hosted-zone-id,malformed_url.com")
     self.assertIsNone(result)
 
@@ -1996,7 +1996,7 @@ class TestEFAwsResolver(unittest.TestCase):
 
     # Test the function and assert the results
     self._clients["route53"].list_hosted_zones_by_name.return_value = hosted_zones_list
-    ef_aws_resolver = EFAwsResolver(self._clients)
+    ef_aws_resolver = EFAwsResolver(self._clients, self._clients)
     result = ef_aws_resolver.lookup("route53:private-hosted-zone-id,cant_possibly_match.")
     self.assertIsNone(result)
 
@@ -2032,7 +2032,7 @@ class TestEFAwsResolver(unittest.TestCase):
       ]
     }
     self._clients["ec2"].describe_route_tables.return_value = route_table_response
-    ef_aws_resolver = EFAwsResolver(self._clients)
+    ef_aws_resolver = EFAwsResolver(self._clients, self._clients)
     result = ef_aws_resolver.lookup("ec2:route-table/main-route-table-id,target_vpc_name")
     self.assertEquals(target_route_table_id, result)
 
@@ -2062,7 +2062,7 @@ class TestEFAwsResolver(unittest.TestCase):
       ]
     }
     self._clients["ec2"].describe_route_tables.return_value = route_table_response
-    ef_aws_resolver = EFAwsResolver(self._clients)
+    ef_aws_resolver = EFAwsResolver(self._clients, self._clients)
     result = ef_aws_resolver.lookup("ec2:route-table/main-route-table-id,target_vpc_name")
     self.assertIsNone(result)
 
@@ -2103,7 +2103,7 @@ class TestEFAwsResolver(unittest.TestCase):
       }
     }
     self._clients["cloudfront"].list_distributions.return_value = distribution_response
-    ef_aws_resolver = EFAwsResolver(self._clients)
+    ef_aws_resolver = EFAwsResolver(self._clients, self._clients)
     result = ef_aws_resolver.lookup("cloudfront:domain-name," + target_distribution_alias)
     self.assertEquals(target_domain_name, result)
 
@@ -2156,7 +2156,7 @@ class TestEFAwsResolver(unittest.TestCase):
     }
     self._clients["cloudfront"].list_distributions.side_effect = [first_distribution_response,
                                                                   second_distribution_response]
-    ef_aws_resolver = EFAwsResolver(self._clients)
+    ef_aws_resolver = EFAwsResolver(self._clients, self._clients)
     result = ef_aws_resolver.lookup("cloudfront:domain-name," + target_distribution_alias)
     self.assertEquals(target_domain_name, result)
 
@@ -2188,7 +2188,7 @@ class TestEFAwsResolver(unittest.TestCase):
       }
     }
     self._clients["cloudfront"].list_distributions.return_value = distribution_response
-    ef_aws_resolver = EFAwsResolver(self._clients)
+    ef_aws_resolver = EFAwsResolver(self._clients, self._clients)
     result = ef_aws_resolver.lookup("cloudfront:domain-name,cant_possibly_match")
     self.assertIsNone(result)
 
@@ -2323,7 +2323,7 @@ class TestEFAwsResolver(unittest.TestCase):
     # Test method and assert results
     self._clients["cloudfront"].list_cloud_front_origin_access_identities.return_value = \
       cloudfront_origin_access_identity_list
-    ef_aws_resolver = EFAwsResolver(self._clients)
+    ef_aws_resolver = EFAwsResolver(self._clients, self._clients)
     result = ef_aws_resolver.lookup("cloudfront:origin-access-identity/oai-id," + target_comment)
     self.assertEquals(target_id, result)
 
@@ -2354,7 +2354,7 @@ class TestEFAwsResolver(unittest.TestCase):
     # Test method and assert results
     self._clients["cloudfront"].list_cloud_front_origin_access_identities.side_effect = \
       [first_cloudfront_origin_access_identity_list, second_cloudfront_origin_access_identity_list]
-    ef_aws_resolver = EFAwsResolver(self._clients)
+    ef_aws_resolver = EFAwsResolver(self._clients, self._clients)
     result = ef_aws_resolver.lookup("cloudfront:origin-access-identity/oai-id," + target_comment)
     self.assertEquals(target_id, result)
 
@@ -2373,7 +2373,7 @@ class TestEFAwsResolver(unittest.TestCase):
 
     self._clients["cloudfront"].list_cloud_front_origin_access_identities.return_value = \
       cloudfront_origin_access_identity_list
-    ef_aws_resolver = EFAwsResolver(self._clients)
+    ef_aws_resolver = EFAwsResolver(self._clients, self._clients)
     result = ef_aws_resolver.lookup("cloudfront:origin-access-identity/oai-id,cant_possibly_match")
     self.assertIsNone(result)
 
@@ -2410,7 +2410,7 @@ class TestEFAwsResolver(unittest.TestCase):
     # Test method and assert results
     self._clients["cloudfront"].list_cloud_front_origin_access_identities.return_value = \
       cloudfront_origin_access_identity_list
-    ef_aws_resolver = EFAwsResolver(self._clients)
+    ef_aws_resolver = EFAwsResolver(self._clients, self._clients)
     result = ef_aws_resolver.lookup("cloudfront:origin-access-identity/oai-canonical-user-id," + target_comment)
     self.assertEquals(target_s3_canonical_user_id, result)
 
@@ -2443,7 +2443,7 @@ class TestEFAwsResolver(unittest.TestCase):
     # Test method and assert results
     self._clients["cloudfront"].list_cloud_front_origin_access_identities.side_effect = \
       [first_cloudfront_origin_access_identity_list, second_cloudfront_origin_access_identity_list]
-    ef_aws_resolver = EFAwsResolver(self._clients)
+    ef_aws_resolver = EFAwsResolver(self._clients, self._clients)
     result = ef_aws_resolver.lookup("cloudfront:origin-access-identity/oai-canonical-user-id," + target_comment)
     self.assertEquals(target_s3_canonical_user_id, result)
 
@@ -2463,7 +2463,7 @@ class TestEFAwsResolver(unittest.TestCase):
     # Test method and assert results
     self._clients["cloudfront"].list_cloud_front_origin_access_identities.return_value = \
       cloudfront_origin_access_identity_list
-    ef_aws_resolver = EFAwsResolver(self._clients)
+    ef_aws_resolver = EFAwsResolver(self._clients, self._clients)
     result = ef_aws_resolver.lookup("cloudfront:origin-access-identity/oai-canonical-user-id,cant_possibly_match")
     self.assertIsNone(result)
 
@@ -2497,7 +2497,7 @@ class TestEFAwsResolver(unittest.TestCase):
     self._clients["cognito-identity"].list_identity_pools.return_value = \
       self._generate_cognito_identity_identity_pool_list()
 
-    ef_aws_resolver = EFAwsResolver(self._clients)
+    ef_aws_resolver = EFAwsResolver(self._clients, self._clients)
     result = ef_aws_resolver.lookup("cognito-identity:identity-pool-arn,proto0_cms_identity_pool")
     self.assertEqual("arn:aws:cognito-identity:{{REGION}}:{{ACCOUNT}}:identitypool/us-west-2:proto0_pool_id",
                      result)
@@ -2507,7 +2507,7 @@ class TestEFAwsResolver(unittest.TestCase):
     self._clients["cognito-identity"].list_identity_pools.return_value = \
       self._generate_cognito_identity_identity_pool_list()
 
-    ef_aws_resolver = EFAwsResolver(self._clients)
+    ef_aws_resolver = EFAwsResolver(self._clients, self._clients)
     result = ef_aws_resolver.lookup("cognito-identity:identity-pool-arn,no_match")
     self.assertIsNone(result)
 
@@ -2516,7 +2516,7 @@ class TestEFAwsResolver(unittest.TestCase):
     self._clients["cognito-identity"].list_identity_pools.return_value = \
       self._generate_cognito_identity_identity_pool_list()
 
-    ef_aws_resolver = EFAwsResolver(self._clients)
+    ef_aws_resolver = EFAwsResolver(self._clients, self._clients)
     result = ef_aws_resolver.lookup("cognito-identity:identity-pool-id,proto0_cms_identity_pool")
     self.assertEqual("us-west-2:proto0_pool_id", result)
 
@@ -2525,7 +2525,7 @@ class TestEFAwsResolver(unittest.TestCase):
     self._clients["cognito-identity"].list_identity_pools.return_value = \
       self._generate_cognito_identity_identity_pool_list()
 
-    ef_aws_resolver = EFAwsResolver(self._clients)
+    ef_aws_resolver = EFAwsResolver(self._clients, self._clients)
     result = ef_aws_resolver.lookup("cognito-identity:identity-pool-id,no_match")
     self.assertIsNone(result)
 
@@ -2560,7 +2560,7 @@ class TestEFAwsResolver(unittest.TestCase):
     self._clients["cognito-idp"].list_user_pools.return_value = self._generate_cognito_idp_user_pool_list()
     self._clients["cognito-idp"].describe_user_pool.return_value = self._generate_cognito_idp_user_pool()
 
-    ef_aws_resolver = EFAwsResolver(self._clients)
+    ef_aws_resolver = EFAwsResolver(self._clients, self._clients)
     result = ef_aws_resolver.lookup("cognito-idp:user-pool-arn,proto0-cms-user-pool")
     self.assertEqual("arn:aws:cognito-idp:us-west-2:123:userpool/us-west-2_proto0-user-pool-id", result)
 
@@ -2569,7 +2569,7 @@ class TestEFAwsResolver(unittest.TestCase):
     self._clients["cognito-idp"].list_user_pools.return_value = self._generate_cognito_idp_user_pool_list()
     self._clients["cognito-idp"].describe_user_pool.return_value = self._generate_cognito_idp_user_pool()
 
-    ef_aws_resolver = EFAwsResolver(self._clients)
+    ef_aws_resolver = EFAwsResolver(self._clients, self._clients)
     result = ef_aws_resolver.lookup("cognito-idp:user-pool-arn,no_match")
     self.assertIsNone(result)
 
@@ -2577,7 +2577,7 @@ class TestEFAwsResolver(unittest.TestCase):
     # Mock the return values involved with this lookup
     self._clients["cognito-idp"].list_user_pools.return_value = self._generate_cognito_idp_user_pool_list()
 
-    ef_aws_resolver = EFAwsResolver(self._clients)
+    ef_aws_resolver = EFAwsResolver(self._clients, self._clients)
     result = ef_aws_resolver.lookup("cognito-idp:user-pool-id,proto0-cms-user-pool")
     self.assertEqual("us-west-2_proto0-user-pool-id", result)
 
@@ -2585,7 +2585,7 @@ class TestEFAwsResolver(unittest.TestCase):
     # Mock the return values involved with this lookup
     self._clients["cognito-idp"].list_user_pools.return_value = self._generate_cognito_idp_user_pool_list()
 
-    ef_aws_resolver = EFAwsResolver(self._clients)
+    ef_aws_resolver = EFAwsResolver(self._clients, self._clients)
     result = ef_aws_resolver.lookup("cognito-idp:user-pool-id,no_match")
     self.assertIsNone(result)
 
@@ -2602,7 +2602,7 @@ class TestEFAwsResolver(unittest.TestCase):
     Raises:
       AssertionError if any of the assert checks fail
     """
-    ef_aws_resolver = EFAwsResolver(self._clients)
+    ef_aws_resolver = EFAwsResolver(self._clients, self._clients)
 
     result = ef_aws_resolver.lookup(None)
     self.assertIsNone(result)
@@ -2632,7 +2632,7 @@ class TestEFAwsResolver(unittest.TestCase):
       "KeyId": "KEY_ID"
     }
 
-    ef_aws_resolver = EFAwsResolver(self._clients)
+    ef_aws_resolver = EFAwsResolver(self._clients, self._clients)
 
     result = ef_aws_resolver.lookup("kms:decrypt,{}=".format(encrypted_value))
 
@@ -2666,7 +2666,7 @@ class TestEFAwsResolver(unittest.TestCase):
         }
       }
 
-    ef_aws_resolver = EFAwsResolver(self._clients)
+    ef_aws_resolver = EFAwsResolver(self._clients, self._clients)
     result = ef_aws_resolver.lookup("kms:key_arn,alias/proto0-master-key")
     self.assertEquals(result, "arn:aws:kms:us-west-2:8888:key/88888888-8888")
 
@@ -2688,7 +2688,7 @@ class TestEFAwsResolver(unittest.TestCase):
       },
       'describe_key'
     )
-    ef_aws_resolver = EFAwsResolver(self._clients)
+    ef_aws_resolver = EFAwsResolver(self._clients, self._clients)
     with self.assertRaises(RuntimeError):
       ef_aws_resolver.lookup("kms:key_arn,alias/key_no_exist")
 
@@ -2706,7 +2706,7 @@ class TestEFAwsResolver(unittest.TestCase):
           'repositoryUri': repository_uri,
         }]
       }
-    ef_aws_resolver = EFAwsResolver(self._clients)
+    ef_aws_resolver = EFAwsResolver(self._clients, self._clients)
     self.assertEqual(
       ef_aws_resolver.lookup("ecr:repository/repository-uri,%s" % image_name),
       repository_uri
@@ -2729,7 +2729,7 @@ class TestEFAwsResolver(unittest.TestCase):
       },
       'describe_repositories'
     )
-    ef_aws_resolver = EFAwsResolver(self._clients)
+    ef_aws_resolver = EFAwsResolver(self._clients, self._clients)
     self.assertIsNone(ef_aws_resolver.lookup("ecr:repository/repository-uri,%s" % image_name))
 
   def test_elbv2_load_balancer_hosted_zone(self):
@@ -2746,7 +2746,7 @@ class TestEFAwsResolver(unittest.TestCase):
             }],
         }
     self._clients["elbv2"].describe_load_balancers.return_value = lb_description
-    ef_aws_resolver = EFAwsResolver(self._clients)
+    ef_aws_resolver = EFAwsResolver(self._clients, self._clients)
     self.assertEqual(
       ef_aws_resolver.lookup("elbv2:load-balancer/hosted-zone,%s" % lb_name),
       hosted_zone)
@@ -2768,7 +2768,7 @@ class TestEFAwsResolver(unittest.TestCase):
 
     self._clients["elbv2"].describe_load_balancers.side_effect = error
 
-    ef_aws_resolver = EFAwsResolver(self._clients)
+    ef_aws_resolver = EFAwsResolver(self._clients, self._clients)
 
     lookup_input = "elbv2:load-balancer/hosted-zone,{}".format(lb_name)
     self.assertEqual(
@@ -2806,7 +2806,7 @@ class TestEFAwsResolver(unittest.TestCase):
             }],
         }
     self._clients["elbv2"].describe_load_balancers.return_value = lb_description
-    ef_aws_resolver = EFAwsResolver(self._clients)
+    ef_aws_resolver = EFAwsResolver(self._clients, self._clients)
     self.assertEqual(
       ef_aws_resolver.lookup("elbv2:load-balancer/dns-name,%s" % lb_name),
       dns_name)
@@ -2823,7 +2823,7 @@ class TestEFAwsResolver(unittest.TestCase):
             u'LoadBalancerArn': lb_arn,
             }],
         }
-    ef_aws_resolver = EFAwsResolver(self._clients)
+    ef_aws_resolver = EFAwsResolver(self._clients, self._clients)
     self.assertEqual(
       ef_aws_resolver.lookup("elbv2:load-balancer/arn-suffix,%s" % lb_name),
       lb_arn_suffix)
@@ -2840,7 +2840,7 @@ class TestEFAwsResolver(unittest.TestCase):
             u'TargetGroupArn': tg_arn,
             }],
         }
-    ef_aws_resolver = EFAwsResolver(self._clients)
+    ef_aws_resolver = EFAwsResolver(self._clients, self._clients)
     self.assertEqual(
       ef_aws_resolver.lookup("elbv2:target-group/arn-suffix,%s" % tg_name),
       tg_arn_suffix)
@@ -2865,7 +2865,7 @@ class TestEFAwsResolver(unittest.TestCase):
       ]
     }
     self._clients["ram"].get_resource_shares.return_value = resource_share_response
-    ef_aws_resolver = EFAwsResolver(self._clients)
+    ef_aws_resolver = EFAwsResolver(self._clients, self._clients)
     result = ef_aws_resolver.lookup("ram:resource-share/resource-share-arn,target_resource_share_name")
     self.assertEquals(target_resource_share_arn, result)
 
@@ -2883,7 +2883,7 @@ class TestEFAwsResolver(unittest.TestCase):
       "resourceShares": []
     }
     self._clients["ram"].get_resource_shares.return_value = resource_share_response
-    ef_aws_resolver = EFAwsResolver(self._clients)
+    ef_aws_resolver = EFAwsResolver(self._clients, self._clients)
     result = ef_aws_resolver.lookup("ram:resource-share/resource-share-arn,cant_possibly_match")
     self.assertIsNone(result)
 
@@ -2907,7 +2907,7 @@ class TestEFAwsResolver(unittest.TestCase):
       ]
     }
     self._clients["ram"].list_resources.return_value = resource_response
-    ef_aws_resolver = EFAwsResolver(self._clients)
+    ef_aws_resolver = EFAwsResolver(self._clients, self._clients)
     result = ef_aws_resolver.lookup("ram:resource-share/resource-arn,target_resource_share_arn")
     self.assertEquals(target_resource_arn, result)
 
@@ -2925,7 +2925,7 @@ class TestEFAwsResolver(unittest.TestCase):
       "resources": []
     }
     self._clients["ram"].list_resources.return_value = resource_response
-    ef_aws_resolver = EFAwsResolver(self._clients)
+    ef_aws_resolver = EFAwsResolver(self._clients, self._clients)
     result = ef_aws_resolver.lookup("ram:resource-share/resource-arn,cant_possibly_match")
     self.assertIsNone(result)
 
@@ -2938,7 +2938,7 @@ class TestEFAwsResolver(unittest.TestCase):
     }
     self._clients["dynamodb"].describe_table.return_value = resource_response
 
-    ef_aws_resolver = EFAwsResolver(self._clients)
+    ef_aws_resolver = EFAwsResolver(self._clients, self._clients)
     result = ef_aws_resolver.lookup("dynamodb:stream-arn,alpha0-dynamodb-dummy-table")
     self.assertEqual("arn:aws:dynamodb:us-west-2:490645551402:table/alpha0-dynamodb-dummy-table/stream/2020-09-14T23:42:19.796", result)
 
@@ -2947,6 +2947,6 @@ class TestEFAwsResolver(unittest.TestCase):
     resource_response = None
     self._clients["dynamodb"].describe_table.return_value = resource_response
 
-    ef_aws_resolver = EFAwsResolver(self._clients)
+    ef_aws_resolver = EFAwsResolver(self._clients, self._clients)
     result = ef_aws_resolver.lookup("dynamodb:stream-arn,alpha0-dynamodb-dummy-table")
     self.assertIsNone(result)
