@@ -250,17 +250,18 @@ class EFTemplateResolver(object):
     ]
     # Create clients in the us-east-1 region. This is required for certain APIs.
     us_east_1_clients = [
+      "lambda",
       "wafv2"
     ]
 
     try:
       EFTemplateResolver.__CLIENTS = create_aws_clients(self.resolved["REGION"], profile, *clients)
-      EFTemplateResolver.__CLIENTS.update(create_aws_clients("us-east-1", profile, *us_east_1_clients))
+      EFTemplateResolver.__US_EAST_1_CLIENTS = create_aws_clients("us-east-1", profile, *us_east_1_clients)
     except RuntimeError as error:
       fail("Exception logging in with Session()", error)
 
     # Create EFAwsResolver object for interactive lookups
-    EFTemplateResolver.__AWSR = EFAwsResolver(EFTemplateResolver.__CLIENTS)
+    EFTemplateResolver.__AWSR = EFAwsResolver(EFTemplateResolver.__CLIENTS, EFTemplateResolver.__US_EAST_1_CLIENTS)
     # Create EFConfigResolver object for ef tooling config lookups
     EFTemplateResolver.__EFCR = EFConfigResolver()
     # Create EFVersionResolver object for version lookups
