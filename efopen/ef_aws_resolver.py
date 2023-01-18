@@ -26,6 +26,7 @@ import requests
 
 import ef_utils
 
+
 class EFAwsResolver(object):
   """
   For keys to look up, we use partial ARN syntax to identify system and information sought:
@@ -52,6 +53,7 @@ class EFAwsResolver(object):
 
   # dictionary of boto3 clients: {"ec2":ec2_client, ... } made with ef_utils.create_aws_clients
   __CLIENTS = {}
+  __US_EAST_1_CLIENTS = {}
 
   def _elbv2_load_balancer(self, lookup):
     """
@@ -628,7 +630,7 @@ class EFAwsResolver(object):
     """
     # list_rules returns at most 100 rules per request
     list_limit = 100
-    list_ip_sets = EFAwsResolver.__CLIENTS["wafv2"].list_ip_sets
+    list_ip_sets = EFAwsResolver.__US_EAST_1_CLIENTS["wafv2"].list_ip_sets
     ip_sets = list_ip_sets(Limit=list_limit, Scope="CLOUDFRONT")
     while True:
       for set in ip_sets["IPSets"]:
@@ -650,13 +652,13 @@ class EFAwsResolver(object):
     """
     # list_rules returns at most 100 rules per request
     list_limit = 100
-    rule_groups = EFAwsResolver.__CLIENTS["wafv2"].list_rule_groups(Limit=list_limit, Scope="CLOUDFRONT")
+    rule_groups = EFAwsResolver.__US_EAST_1_CLIENTS["wafv2"].list_rule_groups(Limit=list_limit, Scope="CLOUDFRONT")
     while True:
       for group in rule_groups["RuleGroups"]:
         if group["Name"] == lookup:
           return "arn:aws:wafv2:us-east-1:{{{{ACCOUNT}}}}:global/rulegroup/{}/{}".format(lookup, group["Id"])
       if "NextMarker" in rule_groups:
-        rule_groups = EFAwsResolver.__CLIENTS["wafv2"].list_rule_groups(
+        rule_groups = EFAwsResolver.__US_EAST_1_CLIENTS["wafv2"].list_rule_groups(
           Limit=list_limit, Scope="CLOUDFRONT", NextMarker=rule_groups["NextMarker"])
       else:
         return default
@@ -672,13 +674,13 @@ class EFAwsResolver(object):
     """
     # list_rules returns at most 100 rules per request
     list_limit = 100
-    acls = EFAwsResolver.__CLIENTS["wafv2"].list_web_acls(Limit=list_limit, Scope="CLOUDFRONT")
+    acls = EFAwsResolver.__US_EAST_1_CLIENTS["wafv2"].list_web_acls(Limit=list_limit, Scope="CLOUDFRONT")
     while True:
       for acl in acls["WebACLs"]:
         if acl["Name"] == lookup:
           return "arn:aws:wafv2:us-east-1:{{{{ACCOUNT}}}}:global/webacl/{}/{}".format(lookup, acl["Id"])
       if "NextMarker" in acls:
-        acls = EFAwsResolver.__CLIENTS["wafv2"].list_web_acls(
+        acls = EFAwsResolver.__US_EAST_1_CLIENTS["wafv2"].list_web_acls(
           Limit=list_limit, Scope="CLOUDFRONT", NextMarker=acls["NextMarker"])
       else:
         return default
@@ -938,6 +940,45 @@ class EFAwsResolver(object):
 
     return default
 
+  def lambda_latest_version(self, lookup, client, default=None):
+    """
+    Not called directly by a lookup, used instead by the functions
+    lambda_get_latest_version and lambda_edge_get_latest_version
+    Args:
+      lookup: the name or arn of the lambda to be retrieved
+    Returns:
+      The number of the latest version
+    """
+    paginator = client.get_paginator('list_versions_by_function')
+    versions = []
+    try:
+      for page in paginator.paginate(FunctionName=lookup):
+        versions += page['Versions']
+    except ClientError:
+        return default
+    latest_version = max(versions, key=lambda x: x['Version'])
+    return latest_version['Version']
+
+  def lambda_get_latest_version(self, lookup, default=None):
+    """
+    Args:
+      lookup: the name or arn of the lambda to be retrieved
+    Returns:
+      The number of the latest version
+    """
+    client = EFAwsResolver.__CLIENTS['lambda']
+    return self.lambda_latest_version(lookup=lookup, client=client, default=default)
+
+  def lambda_edge_get_latest_version(self, lookup, default=None):
+    """
+    Args:
+      lookup: the name or arn of the lambda@edge to be retrieved
+    Returns:
+      The number of the latest version
+    """
+    client = EFAwsResolver.__US_EAST_1_CLIENTS['lambda']
+    return self.lambda_latest_version(lookup=lookup, client=client, default=default)
+
   def kms_decrypt_value(self, lookup):
     """
     Args:
@@ -1140,6 +1181,10 @@ class EFAwsResolver(object):
       return self.kms_decrypt_value(*kv[1:])
     elif kv[0] == "kms:key_arn":
       return self.kms_key_arn(*kv[1:])
+    elif kv[0] == "lambda:latest-version":
+      return self.lambda_get_latest_version(*kv[1:])
+    elif kv[0] == "lambda:edge/latest-version":
+      return self.lambda_edge_get_latest_version(*kv[1:])
     elif kv[0] == "ram:resource-share/resource-share-arn":
       return self.ram_resource_share_arn(*kv[1:])
     elif kv[0] == "ram:resource-share/resource-arn":
@@ -1171,10 +1216,12 @@ class EFAwsResolver(object):
       # raise("No lookup function for: "+kv[0])
 
 
-  def __init__(self, clients):
+  def __init__(self, clients, us_east_1_clients):
     """
     ARGS
       clients - dictionary of ready-to-go boto3 clients using aws prefixes:
       expected: clients["ec2"], clients["iam"], clients["lambda"]
+      us_east_1_clients - same with clients above, but initialized in the us-east-1 region
     """
     EFAwsResolver.__CLIENTS = clients
+    EFAwsResolver.__US_EAST_1_CLIENTS = us_east_1_clients
