@@ -806,7 +806,17 @@ class TestEFAwsResolver(unittest.TestCase):
         }
       ]
     }
+    route_tables_response = {
+      "RouteTables": [
+        {
+          "Routes":   {
+            "GatewayId": "igw-fdaa769a"
+          }
+        }
+      ]
+    }
     self._clients["ec2"].describe_subnets.return_value = subnets_response
+    self._clients["ec2"].describe_route_tables.return_value = route_tables_response
     ef_aws_resolver = EFAwsResolver(self._clients)
     result = ef_aws_resolver.lookup("ec2:vpc/subnets,target_subnet_name")
     self.assertEquals(target_subnet_id, result)
