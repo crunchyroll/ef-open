@@ -808,11 +808,7 @@ class TestEFAwsResolver(unittest.TestCase):
     }
     route_tables_response = {
       "RouteTables": [
-        {
-          "Routes":   {
-            "GatewayId": "igw-fdaa769a"
-          }
-        }
+        {"Routes":   [{"GatewayId": "igw-fdaa769a"}]}
       ]
     }
     self._clients["ec2"].describe_subnets.return_value = subnets_response
