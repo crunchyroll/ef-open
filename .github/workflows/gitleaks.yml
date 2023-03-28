@@ -7,6 +7,5 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v1
-    - id: gitleaks-action
-      name: gitleaks-action
-      uses: crunchyroll/gitleaks-action@master
+    - name: gitleaks-action
+      uses: zricethezav/gitleaks-action@master
