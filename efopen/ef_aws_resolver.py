@@ -280,7 +280,8 @@ class EFAwsResolver(object):
     Args:
       lookup - the friendly name of the VPC whose subnets we want
     Returns:
-      A comma-separated list of all subnets in use in the named VPC or default/None if no match found
+      A comma-separated list of all public subnets in use in the named VPC or default/None if no match found.
+      This will not return the list of private subnets.
     """
     vpc_id = self.ec2_vpc_vpc_id(lookup)
     if vpc_id is None:
@@ -289,9 +290,18 @@ class EFAwsResolver(object):
       'Name': 'vpc-id',
       'Values': [vpc_id]
     }])
-    if len(subnets["Subnets"]) > 0:
+    public_subnets = []
+    for subnet in subnets['Subnets']:
+      routes = EFAwsResolver.__CLIENTS["ec2"].describe_route_tables(Filters=[
+        {'Name': 'association.subnet-id',
+         'Values': [subnet["SubnetId"]]}])['RouteTables'][0]['Routes']
+      is_public = any(route['GatewayId'].startswith('igw-') for route in routes if 'GatewayId' in route)
+      if is_public:
+        public_subnets.append(subnet)
+
+    if len(public_subnets) > 0:
       # Strip the metadata section (subnets["Subnets"])
-      subnet_list = [s["SubnetId"] for s in subnets["Subnets"]]
+      subnet_list = [s["SubnetId"] for s in public_subnets]
       # Add internal ", " only. This is called literally from: "{{aws...}}" - reuses the outer quotes
       return "\", \"".join(subnet_list)
     else:

@@ -806,10 +806,54 @@ class TestEFAwsResolver(unittest.TestCase):
         }
       ]
     }
+    route_tables_response = {
+      "RouteTables": [
+        {"Routes":   [{"GatewayId": "igw-fdaa769a"}]}
+      ]
+    }
     self._clients["ec2"].describe_subnets.return_value = subnets_response
+    self._clients["ec2"].describe_route_tables.return_value = route_tables_response
     ef_aws_resolver = EFAwsResolver(self._clients)
     result = ef_aws_resolver.lookup("ec2:vpc/subnets,target_subnet_name")
     self.assertEquals(target_subnet_id, result)
+
+  @patch('ef_aws_resolver.EFAwsResolver.ec2_vpc_vpc_id')
+  def test_ec2_vpc_subnets_not_public(self, mock_ec2_vpc_vpc_id):
+    """
+    Tests ec2_vpc_subnets to see if it returns None when there are no public subnets
+
+    Args:
+      mock_ec2_vpc_vpc_id: MagicMock, returns mock vpc id
+
+    Returns:
+      None
+
+    Raises:
+      AssertionError if any of the assert checks fail
+    """
+    mock_ec2_vpc_vpc_id.return_value = 'mock_vpc_id'
+    subnets_response = {
+      "Subnets": [
+        {
+          "SubnetId": "subnet-9c2ea7ea"
+        }
+      ]
+    }
+    route_tables_response = {
+      "RouteTables": [
+        {
+          "Routes":   [
+            {"NatGatewayId": "nat-07e6c104f449ed846", "DestinationCidrBlock": "0.0.0.0/0"},
+            {"GatewayId": "local", "DestinationCidrBlock": "10.213.64.0/18"}
+          ]
+        }
+      ]
+    }
+    self._clients["ec2"].describe_subnets.return_value = subnets_response
+    self._clients["ec2"].describe_route_tables.return_value = route_tables_response
+    ef_aws_resolver = EFAwsResolver(self._clients)
+    result = ef_aws_resolver.lookup("ec2:vpc/subnets,target_subnet_name")
+    self.assertIsNone(result)
 
   @patch('ef_aws_resolver.EFAwsResolver.ec2_vpc_vpc_id')
   def test_ec2_vpc_subnets_no_match(self, mock_ec2_vpc_vpc_id):
