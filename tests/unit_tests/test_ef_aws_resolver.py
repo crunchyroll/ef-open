@@ -820,7 +820,7 @@ class TestEFAwsResolver(unittest.TestCase):
   @patch('ef_aws_resolver.EFAwsResolver.ec2_vpc_vpc_id')
   def test_ec2_vpc_subnets_not_public(self, mock_ec2_vpc_vpc_id):
     """
-    Tests ec2_vpc_subnets to see if it returns None where there are no public subnets
+    Tests ec2_vpc_subnets to see if it returns None when there are no public subnets
 
     Args:
       mock_ec2_vpc_vpc_id: MagicMock, returns mock vpc id
