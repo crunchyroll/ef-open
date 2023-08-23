@@ -269,7 +269,7 @@ class EFAwsResolver(object):
     }])
     if len(subnets["Subnets"]) > 0:
       # Strip the metadata section (subnets["Subnets"])
-      az_list = [s["AvailabilityZone"] for s in subnets["Subnets"]]
+      az_list = list(set([s["AvailabilityZone"] for s in subnets["Subnets"]]))
       # Add internal ", " only. This is called literally from: "{{aws...}}" - CF template needs the outer quotes
       return "\", \"".join(az_list)
     else:
