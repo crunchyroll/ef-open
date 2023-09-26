@@ -37,6 +37,7 @@ class EFConfig(object):
   EF_REPO_BRANCH = _ef_site_config["EF_REPO_BRANCH"]
   ENV_ACCOUNT_MAP = _ef_site_config["ENV_ACCOUNT_MAP"]
   EPHEMERAL_ENVS = _ef_site_config["EPHEMERAL_ENVS"]
+  NEW_ENV_MAP = _ef_site_config.get("NEW_ENV_MAP", {})
   S3_CONFIG_BUCKET = _ef_site_config["S3_CONFIG_BUCKET"]
   S3_VERSION_BUCKET = _ef_site_config["S3_VERSION_BUCKET"]
   SERVICE_GROUPS = set(_ef_site_config["SERVICE_GROUPS"])
