@@ -209,14 +209,23 @@ class EFAwsResolver(object):
     """
     try:
       response = EFAwsResolver.__CLIENTS["ec2"].describe_security_groups(Filters=[{
-        'Name':'group-name', 'Values':[lookup]
+        'Name': 'group-name', 'Values': [lookup]
       }])
-    except:
-      return default
-    if len(response["SecurityGroups"]) > 0:
-      return response["SecurityGroups"][0]["GroupId"]
-    else:
-      return default
+      if len(response["SecurityGroups"]) > 0:
+        return response["SecurityGroups"][0]["GroupId"]
+    except Exception as e:
+      print("Error occurred while searching by group name: {}".format(e))
+
+    try:
+      response = EFAwsResolver.__CLIENTS["ec2"].describe_security_groups(Filters=[{
+        'Name': 'tag:Name', 'Values': [lookup]
+      }])
+      if len(response["SecurityGroups"]) > 0:
+        return response["SecurityGroups"][0]["GroupId"]
+    except Exception as e:
+      print("Error occurred while searching by tag name: {}".format(e))
+
+    return default
 
   def ec2_subnet_subnet_id(self, lookup, default=None):
     """
