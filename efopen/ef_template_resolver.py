@@ -174,6 +174,7 @@ class EFTemplateResolver(object):
       {{ENV}}           - environment: mgmt, prod, staging, proto<N>, etc.
       {{ENV_SHORT}}     - env with <N> or account trimmed: mgmt, prod, staging, proto, etc.
       {{ENV_FULL}}      - env fully qualified: prod, staging, proto<N>, mgmt.<account_alias>, etc.
+      {{ENV_NEW}}       - parallel new env name
       {{FUNCTION_NAME}} - only for lambdas
       {{INSTANCE_ID}}   - only for ec2
       {{REGION}}        - the region currently being worked in
@@ -188,6 +189,7 @@ class EFTemplateResolver(object):
         "ACCOUNT": None,
         "ACCOUNT_ALIAS": None,
         "ENV": None,
+        "ENV_NEW": None,
         "ENV_SHORT": None,
         "ENV_FULL": None,
         "FUNCTION_NAME": None,
@@ -320,6 +322,11 @@ class EFTemplateResolver(object):
       self.resolved["ENV_FULL"] = "{}.{}".format(self.resolved["ENV"], self.resolved["ACCOUNT_ALIAS"])
     else:
       self.resolved["ENV_FULL"] = self.resolved["ENV"]
+
+    if self.resolved["ENV"] in EFConfig.NEW_ENV_MAP:
+        self.resolved["ENV_NEW"] = EFConfig.NEW_ENV_MAP[self.resolved["ENV"]]
+    else:
+        self.resolved["ENV_NEW"] = self.resolved["ENV"]
 
     if self.verbose:
       print(repr(self.resolved), file=sys.stderr)
