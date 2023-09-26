@@ -323,10 +323,10 @@ class EFTemplateResolver(object):
     else:
       self.resolved["ENV_FULL"] = self.resolved["ENV"]
 
-    if self.resolved["ENV"] in EFConfig.NEW_ENV_MAP:
-        self.resolved["ENV_NEW"] = EFConfig.NEW_ENV_MAP[self.resolved["ENV"]]
+    if self.resolved["ENV_SHORT"] in EFConfig.NEW_ENV_MAP:
+        self.resolved["ENV_NEW"] = EFConfig.NEW_ENV_MAP[self.resolved["ENV_SHORT"]]
     else:
-        self.resolved["ENV_NEW"] = self.resolved["ENV"]
+        self.resolved["ENV_NEW"] = self.resolved["ENV_SHORT"]
 
     if self.verbose:
       print(repr(self.resolved), file=sys.stderr)
@@ -461,6 +461,8 @@ class EFTemplateResolver(object):
           if isinstance(resolved_symbol, list):
             # Using old style of string formatting here due to str.format() interaction with curly braces
             self.template = re.sub(r'{{\.?%s}}' % re.escape(symbol), "\n".join(resolved_symbol), self.template)
+          elif resolved_symbol.lower() == "novalue":
+            self.template = re.sub(r'"{{\.?%s}}"' % re.escape(symbol), '{ "Ref": "AWS::NoValue" }', self.template)
           else:
             self.template = re.sub(r'{{\.?%s}}' % re.escape(symbol), resolved_symbol, self.template)
           go_again = True
