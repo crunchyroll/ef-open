@@ -30,6 +30,7 @@ class EFCFContext(EFContext):
     self._lint = None
     self._poll_status = None
     self._template_file = None
+    self._high_load = None
 
   @property
   def changeset(self):
@@ -41,6 +42,17 @@ class EFCFContext(EFContext):
     if type(value) is not bool:
       raise TypeError("changeset value must be bool")
     self._changeset = value
+
+  @property
+  def high_load(self):
+    """True if the tool should use a high-load parameters override file (.load.parameters) if present. Otherwise, ef-cf wiil exit gracefully."""
+    return self._high_load
+
+  @high_load.setter
+  def high_load(self, value):
+    if type(value) is not bool:
+      raise TypeError("high_load value must be bool")
+    self._high_load = value
 
   @property
   def lint(self):
@@ -109,6 +121,7 @@ def handle_args_and_set_context(args):
                       action="store_true", default=False)
   parser.add_argument("--skip_symbols", help="Skip resolving the provided symbols", nargs='+', default=[])
   parser.add_argument("--custom_rules", help="A directory with custom rules for cfn-lint")
+  parser.add_argument("--high_load", help="Deploy using a high-load parameters override file (.load.parameters), if present. If not, skip deployment.", action="store_true", default=False)
 
   parsed_args = vars(parser.parse_args(args))
   context = EFCFContext()
@@ -129,6 +142,7 @@ def handle_args_and_set_context(args):
   context.render = parsed_args["render"]
   # Set up service registry and policy template path which depends on it
   context.service_registry = EFServiceRegistry(parsed_args["sr"])
+  context.high_load = parsed_args["high_load"]
   return context
 
 def resolve_template(template, profile, env, region, service, skip_symbols, verbose):
@@ -234,6 +248,7 @@ def main():
   # parameter file may not exist, but compute the name it would have if it did
   parameter_file_dir = template_file_dir + "/../parameters"
   parameter_file = parameter_file_dir + "/" + service_name + ".parameters." + context.env_full + ".json"
+  high_load_parameter_file = parameter_file_dir + "/" + service_name + ".parameters.high-load.json"
 
   # If running in EC2, use instance credentials (i.e. profile = None)
   # unless it's a non-EC2, which means that we use local
@@ -276,6 +291,7 @@ def main():
       print("profile: {}".format(profile))
     print("whereami: {}".format(context.whereami))
     print("service type: {}".format(context.service_registry.service_record(service_name)["type"]))
+    print("high_load: {}".format(context.high_load))
 
   template = resolve_template(
     template=context.template_file,
@@ -303,7 +319,10 @@ def main():
   except botocore.exceptions.ClientError:
     stack_exists = False
 
-  # Load parameters from file
+  # Initialize parameters as an empty list
+  parameters = []
+
+  # Load parameters from file if it exists
   if os.path.isfile(parameter_file):
     parameters_template = resolve_template(
       template=parameter_file,
@@ -318,8 +337,33 @@ def main():
       parameters = json.loads(parameters_template)
     except ValueError as error:
       fail("JSON error in parameter file: {}".format(parameter_file, error))
-  else:
-    parameters = []
+
+  # Check if high load context is set
+  if context.high_load:
+    if os.path.isfile(high_load_parameter_file):
+      # Load and merge high load parameters
+      high_load_parameters_template = resolve_template(
+        template=high_load_parameter_file,
+        profile=profile,
+        env=context.env,
+        region=region,
+        service=service_name,
+        skip_symbols=context.skip_symbols,
+        verbose=context.verbose
+      )
+      try:
+        high_load_parameters = json.loads(high_load_parameters_template)
+        # Merge parameters, with high_load_parameters taking precedence
+        parameters = high_load_parameters + [param for param in parameters if param not in high_load_parameters]
+      except ValueError as error:
+        fail("JSON error in high load parameter file: {}".format(high_load_parameter_file, error))
+    else:
+      # Log message and exit gracefully if high load parameter file does not exist
+      print("High load parameter file not found: {}".format(high_load_parameter_file))
+      exit()
+
+  if context.high_load and context.verbose:
+    print(">> Merged parameters:\n{}".format(json.dumps(parameters, indent=2)))
 
   if context.percent:
     print("Modifying deploy rate to {}%".format(context.percent))
