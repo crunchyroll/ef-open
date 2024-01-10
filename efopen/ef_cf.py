@@ -359,7 +359,8 @@ def main():
         fail("JSON error in high load parameter file: {}".format(high_load_parameter_file, error))
     else:
       # Log message and exit gracefully if high load parameter file does not exist
-      print("High load parameter file not found: {}".format(high_load_parameter_file))
+      if context.verbose:
+        print("High load parameter file not found: {}".format(high_load_parameter_file))
       exit()
 
   if context.high_load and context.verbose:
