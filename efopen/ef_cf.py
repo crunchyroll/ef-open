@@ -30,7 +30,8 @@ class EFCFContext(EFContext):
     self._lint = None
     self._poll_status = None
     self._template_file = None
-    self._high_load = None
+    self._use_high_load = None
+    self._ignore_high_load = None
 
   @property
   def changeset(self):
@@ -44,15 +45,24 @@ class EFCFContext(EFContext):
     self._changeset = value
 
   @property
-  def high_load(self):
-    """True if the tool should use a high-load parameters override file (.load.parameters) if present. Otherwise, ef-cf wiil exit gracefully."""
-    return self._high_load
+  def use_high_load(self):
+    return self._use_high_load
 
-  @high_load.setter
-  def high_load(self, value):
+  @use_high_load.setter
+  def use_high_load(self, value):
     if type(value) is not bool:
-      raise TypeError("high_load value must be bool")
-    self._high_load = value
+      raise TypeError("use_high_load value must be bool")
+    self._use_high_load = value
+
+  @property
+  def ignore_high_load(self):
+    return self._ignore_high_load
+
+  @ignore_high_load.setter
+  def ignore_high_load(self, value):
+    if type(value) is not bool:
+      raise TypeError("ignore_high_load value must be bool")
+    self._ignore_high_load = value
 
   @property
   def lint(self):
@@ -121,7 +131,13 @@ def handle_args_and_set_context(args):
                       action="store_true", default=False)
   parser.add_argument("--skip_symbols", help="Skip resolving the provided symbols", nargs='+', default=[])
   parser.add_argument("--custom_rules", help="A directory with custom rules for cfn-lint")
-  parser.add_argument("--high_load", help="Deploy using a high-load parameters override file (.load.parameters), if present. If not, skip deployment.", action="store_true", default=False)
+  high_load_group = parser.add_mutually_exclusive_group()
+  high_load_group.add_argument("--use-high-load",
+                               help="Deploy using <service_name>.parameters.high-load.json, if present. If not, exit gracefully without deploying.",
+                               action="store_true", default=False)
+  high_load_group.add_argument("--ignore-high-load",
+                               help="Deploy without using <service_name>.parameters.high-load.json, even if present.",
+                               action="store_true", default=False)
 
   parsed_args = vars(parser.parse_args(args))
   context = EFCFContext()
@@ -142,7 +158,8 @@ def handle_args_and_set_context(args):
   context.render = parsed_args["render"]
   # Set up service registry and policy template path which depends on it
   context.service_registry = EFServiceRegistry(parsed_args["sr"])
-  context.high_load = parsed_args["high_load"]
+  context.use_high_load = parsed_args["use_high_load"]
+  context.ignore_high_load = parsed_args["ignore_high_load"]
   return context
 
 def resolve_template(template, profile, env, region, service, skip_symbols, verbose):
@@ -291,7 +308,8 @@ def main():
       print("profile: {}".format(profile))
     print("whereami: {}".format(context.whereami))
     print("service type: {}".format(context.service_registry.service_record(service_name)["type"]))
-    print("high_load: {}".format(context.high_load))
+    print("use_high_load: {}".format(context.use_high_load))
+    print("ignore_high_load: {}".format(context.ignore_high_load))
 
   template = resolve_template(
     template=context.template_file,
@@ -338,32 +356,34 @@ def main():
     except ValueError as error:
       fail("JSON error in parameter file: {}".format(parameter_file, error))
 
-  # Check if high load context is set
-  if context.high_load:
-    if os.path.isfile(high_load_parameter_file):
-      # Load and merge high load parameters
-      high_load_parameters_template = resolve_template(
-        template=high_load_parameter_file,
-        profile=profile,
-        env=context.env,
-        region=region,
-        service=service_name,
-        skip_symbols=context.skip_symbols,
-        verbose=context.verbose
-      )
-      try:
-        high_load_parameters = json.loads(high_load_parameters_template)
-        # Merge parameters, with high_load_parameters taking precedence
-        parameters = high_load_parameters + [param for param in parameters if param not in high_load_parameters]
-      except ValueError as error:
-        fail("JSON error in high load parameter file: {}".format(high_load_parameter_file, error))
-    else:
-      # Log message and exit gracefully if high load parameter file does not exist
+  # If use_high_load context or ignore_high_load is set, check if high load parameter file exists. If not, exit gracefully.
+  if context.use_high_load or context.ignore_high_load:
+    if not os.path.isfile(high_load_parameter_file):
       if context.verbose:
         print("High load parameter file not found: {}".format(high_load_parameter_file))
+        print("Exiting gracefully")
       exit()
 
-  if context.high_load and context.verbose:
+  # Check if use_high_load context is set
+  if context.use_high_load:
+    # Load and merge high load parameters
+    high_load_parameters_template = resolve_template(
+      template=high_load_parameter_file,
+      profile=profile,
+      env=context.env,
+      region=region,
+      service=service_name,
+      skip_symbols=context.skip_symbols,
+      verbose=context.verbose
+    )
+    try:
+      high_load_parameters = json.loads(high_load_parameters_template)
+      # Merge parameters, with high_load_parameters taking precedence
+      parameters = high_load_parameters + [param for param in parameters if param not in high_load_parameters]
+    except ValueError as error:
+      fail("JSON error in high load parameter file: {}".format(high_load_parameter_file, error))
+
+  if context.use_high_load and context.verbose:
     print(">> Merged parameters:\n{}".format(json.dumps(parameters, indent=2)))
 
   if context.percent:
