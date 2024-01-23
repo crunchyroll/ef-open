@@ -274,3 +274,24 @@ class TestEFTemplateResolver(unittest.TestCase):
     with open(self.test_params_yaml) as yaml_file:
       resolver.load(test_string, yaml_file)
     self.assertEqual(resolver.render(), "thisisareallylongstringthatcoversmultiple\nlinesfortestingmultilinestrings")
+
+  @patch('ef_template_resolver.create_aws_clients')
+  def test_render_service_in_dest_path(self, mock_create_aws):
+    """Does dest.path resolve correctly with SERVICE templated in from the context"""
+    mock_create_aws.return_value = self._clients
+
+    test_string = "/etc/systemd/system/{{SERVICE}}.service.d/override.conf"
+    expected = "/etc/systemd/system/a-test-service.service.d/override.conf"
+    resolver = EFTemplateResolver(profile=TEST_PROFILE, env=TEST_ENV, region=TEST_REGION, service="a-test-service")
+    resolver.load(test_string)
+    self.assertEqual(resolver.render(), expected)
+
+  @patch('ef_template_resolver.create_aws_clients')
+  def test_render_dest_path_without_service(self, mock_create_aws):
+    """Does dest.path resolve correctly with SERVICE templated in from the context"""
+    mock_create_aws.return_value = self._clients
+
+    test_string = "/etc/systemd/system/a-test-service.service.d/override.conf"
+    resolver = EFTemplateResolver(profile=TEST_PROFILE, env=TEST_ENV, region=TEST_REGION, service="some-other-test-service")
+    resolver.load(test_string)
+    self.assertEqual(resolver.render(), test_string)
