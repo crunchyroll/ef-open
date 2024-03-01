@@ -25,7 +25,8 @@ setup(
         'netaddr==0.8.0',
         'requests<=2.25.1',
         'tenacity==7.0.0',
-        'yamllint<=1.25.0'
+        'yamllint<=1.25.0',
+        'python-dateutil==2.8.2'
     ],
     extras_require={
         'test': [
