@@ -203,6 +203,14 @@ def calculate_max_batch_size(asg_client, service, percent):
   # max batch size must be a minimum of 1, otherwise cloudformation gives an error.
   return max(new_batch_size, 1)
 
+
+def contains_parameter(parameters, key):
+    for param in parameters:
+        if param["ParameterKey"] == key:
+            return True
+    return False
+
+
 class CFTemplateLinter(object):
 
   def __init__(self, template, custom_rules):
@@ -379,7 +387,8 @@ def main():
     try:
       high_load_parameters = json.loads(high_load_parameters_template)
       # Merge parameters, with high_load_parameters taking precedence
-      parameters = high_load_parameters + [param for param in parameters if param not in high_load_parameters]
+      parameters = (high_load_parameters +
+                    [param for param in parameters if not contains_parameter(high_load_parameters, param["ParameterKey"])])
     except ValueError as error:
       fail("JSON error in high load parameter file: {}".format(high_load_parameter_file, error))
 
