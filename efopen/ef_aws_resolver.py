@@ -85,16 +85,12 @@ class EFAwsResolver(object):
       # This a region-specific client, so we'll make a new client in the right place using existing SESSION
       region_name, domain_name = lookup.split("/")
       acm_client = EFAwsResolver.__CLIENTS["SESSION"].client(service_name="acm", region_name=region_name)
-      next_token = None
+      kwargs = dict(CertificateStatuses=['ISSUED'], MaxItems=100)
       while True:
-        response = acm_client.list_certificates(
-          CertificateStatuses=['ISSUED'],
-          MaxItems=100,
-          NextToken=next_token
-        )
+        response = acm_client.list_certificates(**kwargs)
         cert_summaries.extend(response["CertificateSummaryList"])
         if response.get("NextToken"):
-          next_token = response["NextToken"]
+          kwargs["NextToken"] = response["NextToken"]
         else:
           break
     except Exception:
