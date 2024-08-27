@@ -80,24 +80,31 @@ class EFAwsResolver(object):
         - if no certs were issued by Amazon, returns ARN of an arbitrary matching certificate
         - certificates issued by Amazon take precedence over certificates not issued by Amazon
     """
-    # @todo: Only searches the first 100 certificates in the account
-
+    cert_summaries = []
     try:
       # This a region-specific client, so we'll make a new client in the right place using existing SESSION
       region_name, domain_name = lookup.split("/")
       acm_client = EFAwsResolver.__CLIENTS["SESSION"].client(service_name="acm", region_name=region_name)
-      response = acm_client.list_certificates(
-        CertificateStatuses=['ISSUED'],
-        MaxItems=100
-      )
+      next_token = None
+      while True:
+        response = acm_client.list_certificates(
+          CertificateStatuses=['ISSUED'],
+          MaxItems=100,
+          NextToken=next_token
+        )
+        cert_summaries.extend(response["CertificateSummaryList"])
+        if response.get("NextToken"):
+          next_token = response["NextToken"]
+        else:
+          break
     except Exception:
       return default
     # No certificates
-    if len(response["CertificateSummaryList"]) < 1:
+    if not cert_summaries:
       return default
     # One or more certificates - find cert with latest IssuedAt date or an arbitrary cert if none are dated
     best_match_cert = None
-    for cert_handle in response["CertificateSummaryList"]:
+    for cert_handle in cert_summaries:
       if cert_handle["DomainName"] == domain_name:
         cert = acm_client.describe_certificate(CertificateArn=cert_handle["CertificateArn"])["Certificate"]
         # Patch up cert if there is no IssuedAt (i.e. cert was not issued by Amazon)
